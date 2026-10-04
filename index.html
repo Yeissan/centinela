@@ -11,9 +11,11 @@
 <!-- DUELOS EN LINEA: libreria PeerJS (conexion directa entre jugadores) -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-<!-- ANUNCIOS (Adsgram): quita los comentarios de la linea siguiente y pon
-     provider:'adsgram' y tus blockId en el bloque CONFIG, mas abajo. -->
-<!-- <script src="https://sad.adsgram.ai/js/sad.min.js"></script> -->
+<!-- ============ ANUNCIOS (Monetag) ============
+     Pega justo debajo de este comentario la etiqueta que te da Monetag en
+     "Telegram Mini Apps" > "Get SDK" > "Get instructions". Se parece a esta:
+     <script src="https://DOMINIO/sdk.js" data-zone="1234567" data-sdk="show_1234567"></script>
+     No hay que tocar nada mas: el juego la detecta y la usa. -->
 
 <style>html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
 <title>Centinela Antivirus</title>
@@ -129,6 +131,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
 .tab{flex:1;font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;padding:11px 8px;
   background:transparent;border:1px solid var(--line);color:var(--dim);cursor:pointer}
 .tab.on{border-color:var(--core);color:var(--ink);background:rgba(92,240,255,.1)}
+.tab:disabled{opacity:.4;cursor:default}
+span.tab{text-align:center;cursor:default;font-variant-numeric:tabular-nums}
+.statv{font-family:var(--display);font-weight:800;font-size:18px;color:var(--core);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+a.buy{text-decoration:none}
+.buy:disabled{border-color:var(--line);color:var(--dim);background:transparent;cursor:default}
+.ico.off{color:var(--dim)}
+.ico.off svg .wave{display:none}
+.field input[readonly]{font-size:13px}
+.item.sel{grid-template-columns:56px minmax(0,1fr) auto}
 .sheet-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain;touch-action:pan-y}
 .item{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:rgba(10,13,34,.8)}
 .item.up{grid-template-columns:minmax(0,1fr) auto}
@@ -205,10 +216,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
 
     <div id="hud" hidden>
       <div class="hud-top">
-        <div class="stat"><span class="lbl">Puntos</span><span class="val" id="score">0</span></div>
+        <div class="stat"><span class="lbl" id="scoreLbl">Puntos</span><span class="val" id="score">0</span></div>
         <div class="stat mid"><span class="lbl" id="secLbl">Nivel</span><span class="val" id="sector">01</span><div class="sec-bar"><i id="secFill"></i></div></div>
         <div class="hud-right">
-          <div class="stat end"><span class="lbl">Bits</span><span class="val"><i class="gem"></i><span id="bitsN">0</span></span></div>
+          <div class="stat end" id="bitsStat"><span class="lbl">Bits</span><span class="val"><i class="gem"></i><span id="bitsN">0</span></span></div>
           <button class="ico" id="btnPause" aria-label="Pausar"><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></button>
         </div>
       </div>
@@ -228,11 +239,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
           <button class="tile" id="btnShop">Arsenal</button>
           <button class="tile" id="btnDuel">Duelo</button>
           <button class="tile" id="btnRank">Ranking</button>
-          <button class="tile" id="btnMute">Sonido</button>
+          <button class="tile" id="btnInvite">Invitar</button>
         </div>
         <div class="row">
           <span>Rango <strong id="rankMenu">0</strong></span>
           <span class="wallet"><i class="gem"></i><strong id="walletMenu">0</strong></span>
+          <button class="ico" id="btnMute" aria-label="Activar o silenciar el sonido"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path class="wave" d="M15.5 12a4 4 0 0 0-2-3.5v7a4 4 0 0 0 2-3.5zm-2-8.3v2.1a7 7 0 0 1 0 12.4v2.1a9 9 0 0 0 0-16.6z"/></svg></button>
         </div>
         <p class="tag" id="howto">Arrastra para moverte. El disparo es automático.</p>
       </div>
@@ -280,7 +292,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
       <div class="panel-in">
         <h2 id="duelTitle">Victoria</h2>
         <div class="vs">
-          <div><span class="lbl">Tú</span><div class="big sm" id="duelMe">0</div></div>
+          <div><span class="lbl">Tus eliminados</span><div class="big sm" id="duelMe">0</div></div>
           <div><span class="lbl" id="duelOppName">Rival</span><div class="big sm" id="duelOpp">0</div></div>
         </div>
         <div class="row"><span>Recompensa</span><span class="wallet"><i class="gem"></i><strong id="duelBits">0</strong></span></div>
@@ -293,7 +305,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
     </section>
 
     <section class="sheet" id="levels" hidden>
-      <div class="sheet-top"><h2>Niveles</h2><span class="tagline"><strong id="lvStars">0</strong> / 120 estrellas</span></div>
+      <div class="sheet-top"><h2>Niveles</h2><span class="tagline"><strong id="lvStars">0</strong> / 3000 estrellas</span></div>
+      <div class="tabs"><button class="tab" id="lvPrev">Anteriores</button><span class="tab on" id="lvRange">1 – 50</span><button class="tab" id="lvNext">Siguientes</button></div>
       <div class="sheet-body" id="levelsBody"></div>
       <div class="sheet-foot"><button class="btn alt" data-close>Volver</button></div>
     </section>
@@ -307,8 +320,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
     <section class="sheet" id="shop" hidden>
       <div class="sheet-top"><h2>Arsenal</h2><span class="wallet"><i class="gem"></i><span id="walletShop">0</span></span></div>
       <div class="tabs">
-        <button class="tab on" id="tabSkins">Skins</button>
+        <button class="tab on" id="tabShip">Nave</button>
         <button class="tab" id="tabUps">Mejoras</button>
+        <button class="tab" id="tabSkins">Skins</button>
       </div>
       <div class="sheet-body" id="shopBody"></div>
       <p class="note" id="shopNote"></p>
@@ -330,9 +344,16 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
       <div class="sheet-foot"><button class="btn alt" data-close>Volver</button></div>
     </section>
 
+    <section class="sheet" id="invite" hidden>
+      <div class="sheet-top"><h2>Invitar</h2><span class="tagline">Bono de bits <strong id="invBonus">+0 %</strong></span></div>
+      <div class="sheet-body" id="inviteBody"></div>
+      <p class="note" id="inviteNote"></p>
+      <div class="sheet-foot"><button class="btn alt" data-close>Volver</button></div>
+    </section>
+
     <section class="sheet" id="duel" hidden>
       <div class="sheet-top"><h2>Duelo</h2><span class="tagline">Victorias <strong id="duelWins">0</strong></span></div>
-      <p class="tag">Los dos jugáis a la vez durante 90 segundos. Cada 8 virus que eliminas envían un ataque al rival. Gana quien resista con más puntos.</p>
+      <p class="tag">Las dos naves comparten la misma pantalla y los mismos virus durante 90 segundos. Gana quien elimine más. Las dos juegan con las mismas características.</p>
       <div class="sheet-body">
         <div class="box" id="roomBox" hidden>
           <span class="lbl">Código de tu sala</span>
@@ -348,9 +369,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
             <input id="codeInput" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" aria-label="Código de sala">
             <button class="btn alt" id="btnJoin">Unirse</button>
           </div>
-          <button class="btn alt" id="btnBot">Practicar contra un bot<small>No da puntos de rango</small></button>
+          <button class="btn alt" id="btnBot">Practicar contra un bot<small>No cuenta para el ranking ni las recompensas</small></button>
         </div>
         <p class="note" id="duelNote"></p>
+        <span class="lbl">Recompensas por victorias en duelo</span>
+        <div class="stack" id="duelRewards"></div>
       </div>
       <div class="sheet-foot"><button class="btn alt" data-close>Volver</button></div>
     </section>
@@ -375,23 +398,34 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
    ===================================================================== */
 const CONFIG = {
   ads: {
-    provider: 'demo',          // 'demo' (simulado) | 'adsgram' | 'custom'
-    rewardedBlockId: '',       // bloque con recompensa: "Continuar", "Bits ×2" y "+150 bits"
-    interstitialBlockId: '',   // bloque de anuncio entre niveles
+    provider: 'auto',          // 'auto': usa Monetag si su etiqueta está en la página y, si no, el modo demo.
+                               // También puedes forzar 'monetag' | 'adsgram' | 'custom' | 'demo'
+    rewardedBlockId: '',       // solo Adsgram: bloque con recompensa ("Continuar", "Bits ×2" y "+150 bits")
+    interstitialBlockId: '',   // solo Adsgram: bloque de anuncio entre niveles
     interstitialEvery: 3,      // un anuncio cada N niveles jugados (0 = nunca)
     shopReward: 150,           // bits que da el anuncio del Arsenal
     // Para otra red (Monetag, RichAds...): funciones async que devuelven true
     // cuando el anuncio se ha visto completo.
     custom: { rewarded: null, interstitial: null }
   },
+  game: {
+    levelSeconds: 50,          // duración base de las oleadas de un nivel, en segundos
+    secondsPerLevel: 2,        // segundos extra por cada nivel (nivel 10 = 50 + 2×10 = 70 s)
+    maxLevelSeconds: 120       // tope de duración de las oleadas de un nivel
+  },
   telegram: {
-    shareUrl: ''               // enlace de tu juego, p. ej. https://t.me/TuBot/centinela
+    shareUrl: '',              // enlace de tu juego, p. ej. https://t.me/TuBot/centinela (necesario para invitar y compartir)
+    storyImage: 'historia.jpg' // imagen para las historias de Telegram; súbela junto a index.html
   },
   online: {
-    // RANKING GLOBAL: pega aquí la URL de tu Firebase Realtime Database (plan gratuito), p. ej.
+    // RANKING GLOBAL E INVITACIONES: pega aquí la URL de tu Firebase Realtime Database (plan gratuito), p. ej.
     // 'https://tu-proyecto-default-rtdb.firebaseio.com'. Reglas que debes pegar en Firebase:
-    // { "rules": { "ranking": { ".read": true, ".indexOn": ["p"],
-    //   "$uid": { ".write": true, ".validate": "newData.child('p').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } } }
+    // { "rules": {
+    //   "ranking": { ".read": true, ".indexOn": ["p"],
+    //     "$uid": { ".write": true, ".validate": "newData.child('p').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } },
+    //   "refs": { "$ref": { ".read": true,
+    //     "$uid": { ".write": true, ".validate": "newData.child('l').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } }
+    // } }
     databaseUrl: '',
     duelPrefix: 'centinela-duelo-'   // prefijo de las salas de duelo (cámbialo si quieres salas solo para tu juego)
   }
@@ -409,7 +443,7 @@ const tri = v => Math.abs((((v % 2) + 2) % 2) - 1) * 2 - 1;
 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const C = { core:'#5cf0ff', mint:'#7dffc4', virus:'#ff3b7f', amber:'#ffb62e', ember:'#ff6a3d', hack:'#a66bff', red:'#ff2a4d', ink:'#eaf6ff', ad:'#ffe14a', poly:'#b6ff3d' };
-const MAXLV = 40;
+const MAXLV = 1000;
 
 /* ---------------- Contenido ---------------- */
 const SKINS = [
@@ -418,7 +452,9 @@ const SKINS = [
   { id: 'prisma',    name: 'Prisma',    desc: 'Cristal de datos facetado',     cost: 1400, main: '#ffb62e', acc: '#ffffff', fill: '#3a2606' },
   { id: 'espectro',  name: 'Espectro',  desc: 'Deja un rastro fantasma',       cost: 3000, main: '#c79bff', acc: '#ff8fd0', fill: '#1c0d3a' },
   { id: 'titan',     name: 'Titán',     desc: 'Blindaje pesado de combate',    req: 1, reqText: 'Derrota a un Rootkit', main: '#ff6a3d', acc: '#ffb62e', fill: '#3a1206' },
-  { id: 'aureo',     name: 'Áureo',     desc: 'Núcleo dorado con halo',        req: 1, reqText: 'Supera el nivel 15',   main: '#ffd76a', acc: '#ffffff', fill: '#3a2c06' }
+  { id: 'aureo',     name: 'Áureo',     desc: 'Núcleo dorado con halo',        req: 1, reqText: 'Supera el nivel 15',   main: '#ffd76a', acc: '#ffffff', fill: '#3a2c06' },
+  { id: 'duelista',  name: 'Duelista',  desc: 'Doble punta de combate',        req: 1, reqText: 'Gana 3 duelos',        main: '#ff5a8a', acc: '#ffffff', fill: '#3a0a1c' },
+  { id: 'campeon',   name: 'Campeón',   desc: 'La corona de la arena',         req: 1, reqText: 'Gana 15 duelos',       main: '#ffffff', acc: '#ffd76a', fill: '#262a3d' }
 ];
 const UPS = [
   { id: 'rate',   name: 'Cadencia',     desc: 'Dispara más rápido',                 max: 5, cost: [150, 350, 700, 1200, 2000] },
@@ -428,7 +464,7 @@ const UPS = [
   { id: 'bomb',   name: 'Reserva',      desc: 'Empiezas con una cuarentena más',    max: 2, cost: [400, 1100] },
   { id: 'time',   name: 'Persistencia', desc: 'Los potenciadores duran más',        max: 3, cost: [200, 500, 1000] }
 ];
-const BITS = { worm: 4, spy: 8, adware: 3, trojan: 14, ransom: 35, poly: 20, boss: 300 };
+const BITS = { worm: 2, spy: 4, adware: 2, trojan: 7, ransom: 18, poly: 10, boss: 150 };
 /* Códice: una tarjeta por amenaza, con tres rangos que se consiguen cumpliendo su misión */
 const CARDS = [
   { id: 'worm',   name: 'Gusano',        from: 1,  goals: [25, 150, 600], desc: 'Baja serpenteando, solo o en cadena. Débil, pero numeroso.' },
@@ -448,7 +484,8 @@ const MILESTONES = [[3, 500], [6, 1000], [9, 1500], [12, 2500], [15, 3500], [18,
 /* ---------------- Guardado ---------------- */
 const SAVE_KEY = 'cen_save';
 const save = { v: 2, bits: 0, earned: 0, level: 1, best: {}, stars: {}, skin: 'centinela', skins: ['centinela'], up: {}, kills: {}, seen: {},
-  bossKills: 0, duelWins: 0, duelPlayed: 0, uid: '', name: '', music: true, sfx: true };
+  bossKills: 0, duelWins: 0, duelPlayed: 0, uid: '', name: '', music: true, sfx: true,
+  xp: 0, ref: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {} };
 for (const u of UPS) save.up[u.id] = 0;
 function applySave(d) {
   if (!d || typeof d !== 'object') return;
@@ -456,10 +493,12 @@ function applySave(d) {
   save.bits = num(d.bits, save.bits); save.earned = num(d.earned, save.earned);
   save.level = clamp(Math.max(save.level, num(d.level, 1)), 1, MAXLV);
   save.bossKills = num(d.bossKills, save.bossKills); save.duelWins = num(d.duelWins, save.duelWins); save.duelPlayed = num(d.duelPlayed, save.duelPlayed);
-  for (let n = 1; n <= MAXLV; n++) {
-    if (d.best && typeof d.best === 'object' && d.best[n] != null) save.best[n] = Math.max(save.best[n] || 0, num(d.best[n], 0));
-    if (d.stars && typeof d.stars === 'object' && d.stars[n] != null) save.stars[n] = clamp(Math.max(save.stars[n] || 0, num(d.stars[n], 0)), 0, 3);
-  }
+  if (d.best && typeof d.best === 'object') for (const k in d.best) { const n = Number(k); if (n >= 1 && n <= MAXLV) save.best[n] = Math.max(save.best[n] || 0, num(d.best[k], 0)); }
+  if (d.stars && typeof d.stars === 'object') for (const k in d.stars) { const n = Number(k); if (n >= 1 && n <= MAXLV) save.stars[n] = clamp(Math.max(save.stars[n] || 0, num(d.stars[k], 0)), 0, 3); }
+  save.xp = Math.max(save.xp, num(d.xp, 0));
+  if (typeof d.ref === 'string' && /^tg\d{3,15}$/.test(d.ref) && !save.ref) save.ref = d.ref;
+  save.refBonus = clamp(num(d.refBonus, save.refBonus), 0, 100); save.refQual = num(d.refQual, save.refQual); save.refClaim = Math.max(save.refClaim, num(d.refClaim, 0));
+  if (d.shares && typeof d.shares === 'object') for (const k in d.shares) if (typeof d.shares[k] === 'string') save.shares[k] = d.shares[k].slice(0, 10);
   for (const c of CARDS) {
     if (d.kills && typeof d.kills === 'object') save.kills[c.id] = Math.max(save.kills[c.id] || 0, num(d.kills[c.id], 0));
     if (d.seen && typeof d.seen === 'object' && d.seen[c.id]) save.seen[c.id] = true;
@@ -473,17 +512,43 @@ function applySave(d) {
   if (typeof d.sfx === 'boolean') save.sfx = d.sfx;
 }
 let cloudOK = false, cloudT = 0;
+const cloudSent = {};
+/* Telegram guarda como máximo 4096 caracteres por clave: el progreso de los 1000 niveles se reparte en varias */
+function cloudPack() {
+  const core = Object.assign({}, save); delete core.best; delete core.stars;
+  const out = { save: JSON.stringify(core) }, top = save.level;
+  let st = ''; for (let n = 1; n <= top; n++) st += (save.stars[n] || 0);
+  out.st = st;
+  for (let c = 0; c * 250 < top; c++) {
+    const a = []; for (let n = c * 250 + 1; n <= Math.min(top, c * 250 + 250); n++) a.push((save.best[n] || 0).toString(36));
+    out['b' + c] = a.join(',');
+  }
+  return out;
+}
+function cloudUnpack(v) {
+  const d = JSON.parse(v.save || '{}'); d.best = {}; d.stars = {};
+  const st = v.st || ''; for (let i = 0; i < st.length; i++) d.stars[i + 1] = Number(st[i]) || 0;
+  for (let c = 0; c < 4; c++) if (v['b' + c]) v['b' + c].split(',').forEach((x, i) => { d.best[c * 250 + i + 1] = parseInt(x, 36) || 0; });
+  return d;
+}
 function persist() {
-  const s = JSON.stringify(save);
-  try { localStorage.setItem(SAVE_KEY, s); } catch (e) {}
-  if (cloudOK) { clearTimeout(cloudT); cloudT = setTimeout(() => { try { tg.CloudStorage.setItem('save', s); } catch (e) {} }, 800); }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  if (cloudOK) {
+    clearTimeout(cloudT);
+    cloudT = setTimeout(() => { try { const pk = cloudPack(); for (const k in pk) if (cloudSent[k] !== pk[k]) { cloudSent[k] = pk[k]; tg.CloudStorage.setItem(k, pk[k]); } } catch (e) {} }, 800);
+  }
 }
 let SK = SKINS[0];
-function syncSkin() { SK = SKINS.find(s => s.id === save.skin) || SKINS[0]; }
+function syncSkin() { SK = SKINS.find(s => s.id === save.skin) || SKINS[0]; P.sk = SK; }
+/* nivel de la nave: sube con la experiencia de superar niveles nuevos; cada nivel da +5 % de daño y +2 de integridad */
+function shipLevel() { let xp = save.xp, L = 1, need = 80; while (xp >= need) { xp -= need; L++; need = 60 + 20 * L; } return { L, cur: xp, need }; }
 function stats() {
-  const u = save.up;
-  return { fire: .17 * (1 - .07 * u.rate), dmg: 1 + .3 * u.power, maxInt: 100 + 15 * u.armor, magnet: 80 + 35 * u.magnet, bombs: 1 + u.bomb, maxBombs: 3 + u.bomb, dur: 1 + .25 * u.time };
+  const u = save.up, L = shipLevel().L;
+  return { L, fire: .17 * (1 - .07 * u.rate), dmg: (1 + .3 * u.power) * (1 + .05 * (L - 1)), maxInt: 100 + 15 * u.armor + 2 * (L - 1), magnet: 80 + 35 * u.magnet,
+    bombs: 1 + u.bomb, maxBombs: 3 + u.bomb, dur: 1 + .25 * u.time };
 }
+/* a partir del nivel 40 la velocidad de los virus deja de crecer y solo aumenta, más despacio, su vida */
+const hpMul = D => D <= 40 ? 1 + (D - 1) * .09 : 4.51 + (D - 40) * .025;
 let ST = stats();
 const cardRank = id => CARD[id].goals.filter(g => (save.kills[id] || 0) >= g).length;
 const totalRanks = () => CARDS.reduce((n, c) => n + cardRank(c.id), 0);
@@ -543,20 +608,37 @@ const Ads = (() => {
       }, 1000);
     });
   }
-  async function run(kind) {
-    const a = CONFIG.ads;
+  /* Monetag: su etiqueta <script data-zone="..." data-sdk="show_..."> crea la función global show_...() */
+  const mtTag = document.querySelector('script[data-zone][data-sdk]');
+  const mtName = mtTag ? mtTag.getAttribute('data-sdk') : '';
+  function provider() { const p = CONFIG.ads.provider; return p === 'auto' ? (mtName ? 'monetag' : 'demo') : p; }
+  function preload() {
+    if (provider() !== 'monetag' || typeof window[mtName] !== 'function') return;
+    try { const r = window[mtName]({ type: 'preload', ymid: myUid() }); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  }
+  async function monetag(place) {
+    const show = window[mtName];
+    if (typeof show !== 'function') return false;
+    /* la promesa se cumple cuando el anuncio se ha visto y cerrado; falla si se salta o no hay anuncio */
+    await show({ ymid: myUid(), requestVar: place, catchIfNoFeed: true });
+    preload();
+    return true;
+  }
+  async function run(kind, place) {
+    const a = CONFIG.ads, p = provider();
     try {
-      if (a.provider === 'adsgram') {
+      if (p === 'monetag') return await monetag(place);
+      if (p === 'adsgram') {
         const c = adsgram(kind === 'rewarded' ? a.rewardedBlockId : a.interstitialBlockId);
         if (!c) return false;
         const r = await c.show();
         return !!(r && r.done);
       }
-      if (a.provider === 'custom') { const f = a.custom[kind]; return f ? !!(await f()) : false; }
+      if (p === 'custom') { const f = a.custom[kind]; return f ? !!(await f()) : false; }
       return await demo(kind);
     } catch (e) { return false; }
   }
-  return { rewarded: () => run('rewarded'), interstitial: () => run('interstitial') };
+  return { rewarded: place => run('rewarded', place), interstitial: () => run('interstitial', 'entre_niveles'), preload };
 })();
 
 /* ---------------- Ranking en línea (Firebase Realtime Database por REST) ---------------- */
@@ -578,9 +660,24 @@ const Online = (() => {
     const r = await fetch(base + '/ranking.json?orderBy=%22p%22&limitToLast=50');
     if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
-    return Object.keys(d).map(k => ({ id: k, n: String((d[k] && d[k].n) || 'Agente').slice(0, 16), p: Number(d[k] && d[k].p) || 0, l: Number(d[k] && d[k].l) || 1 })).sort((a, b) => b.p - a.p);
+    return Object.keys(d).map(k => ({ id: k, n: String((d[k] && d[k].n) || 'Agente').slice(0, 16), p: Number(d[k] && d[k].p) || 0, l: Number(d[k] && d[k].l) || 1, w: Number(d[k] && d[k].w) || 0 })).sort((a, b) => b.p - a.p);
   }
-  return { enabled, submit, top };
+  /* invitaciones: cada jugador invitado anota su nivel bajo el identificador de quien lo invitó */
+  let lastRef = '';
+  async function refPush() {
+    if (!enabled || !save.ref || !tgUser) return false;
+    const body = JSON.stringify({ n: myName(), l: save.level });
+    if (body === lastRef) return true;
+    try { const r = await fetch(base + '/refs/' + encodeURIComponent(save.ref) + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) lastRef = body; return r.ok; }
+    catch (e) { return false; }
+  }
+  async function refList() {
+    const r = await fetch(base + '/refs/' + encodeURIComponent(myUid()) + '.json');
+    if (!r.ok) throw new Error('http ' + r.status);
+    const d = (await r.json()) || {};
+    return Object.keys(d).map(k => ({ id: k, n: String((d[k] && d[k].n) || 'Agente').slice(0, 16), l: clamp(Number(d[k] && d[k].l) || 1, 1, MAXLV) }));
+  }
+  return { enabled, submit, top, refPush, refList };
 })();
 
 /* ---------------- Sonido y música (todo sintetizado) ---------------- */
@@ -803,18 +900,22 @@ function resize() {
 }
 
 /* ---------------- Estado ---------------- */
-const P = { x: 200, y: 500, tx: 200, ty: 500, r: 10, inv: 0, fire: 0, rapid: 0, spread: 0, shield: false, tilt: 0, hist: [], histT: 0 };
+function newShip(id) {
+  return { id, x: 200, y: 500, tx: 200, ty: 500, r: 10, inv: 0, fire: 0, rapid: 0, spread: 0, shield: false, tilt: 0, hist: [], histT: 0,
+    sk: SKINS[0], name: '', int: 100, maxInt: 100, out: 0, bombs: 1, maxBombs: 3, kills: 0, gap: .17, dmg: 1, magnet: 80, dur: 1 };
+}
+const P = newShip(0), Q = newShip(1);   /* P: tu nave. Q: la nave del rival en los duelos */
 const S = {
-  mode: 'menu', kind: 'level', levelN: 1, diff: 1, win: false, t: 0, bg: 0, score: 0, kills: 0, sectorKills: 0, quota: 14, bossLevel: false, bossSpawned: false,
-  chain: 0, combo: 1, comboT: 0, integrity: 100, bombs: 1, shake: 0, glitch: 0, flash: 0, spawnT: 1, hackT: 5, boss: null, banner: null, toasts: [],
-  revived: false, doubled: false, runBits: 0, credited: 0, overT: 0, runs: 0, hackTip: false, shock: null, alive: true, duelT: 0,
+  mode: 'menu', kind: 'level', net: 'solo', levelN: 1, diff: 1, win: false, t: 0, bg: 0, score: 0, kills: 0, sectorKills: 0, quota: 14, wavesTotal: 1, wavesDone: 0,
+  bossLevel: false, bossSpawned: false, chain: 0, combo: 1, comboT: 0, shake: 0, glitch: 0, flash: 0, spawnT: 1, hackT: 5, boss: null, banner: null, toasts: [],
+  revived: false, doubled: false, runBits: 0, credited: 0, overT: 0, runs: 0, hackTip: false, shock: null, shockN: 0, alive: true, duelT: 0,
   zone: 0, zonePrev: 0, zoneMix: 1, warp: 0
 };
 function musicState() {
   const m = S.mode;
   return { I: m === 'menu' ? 0 : S.boss ? 2 : 1, tr: ZONES[S.zone].tr, muffle: m === 'pause' || m === 'over' || m === 'ad' || m === 'duelend', ad: m === 'ad' };
 }
-let bullets = [], enemies = [], ebullets = [], parts = [], picks = [], texts = [];
+let bullets = [], enemies = [], ebullets = [], parts = [], picks = [], texts = [], eid = 0;
 const nebulae = [{ x: 70, y: 120, r: 230, k: 'b', ph: 0 }, { x: 340, y: 420, r: 260, k: 'c', ph: 2 }, { x: 150, y: 760, r: 220, k: 'a', ph: 4 }];
 const packets = []; for (let i = 0; i < 9; i++) packets.push({ x: (1 + (Math.random() * 7 | 0)) * 50, y: rand(0, 900), v: rand(180, 420), len: rand(40, 110) });
 const dust = []; for (let i = 0; i < 44; i++) dust.push({ x: rand(0, 400), y: rand(0, 900), z: Math.random() });
@@ -849,17 +950,24 @@ function burst(x, y, color, n, speed) {
   }
 }
 function add(type, x, y, o) {
-  const d = DEF[type], mul = (type === 'worm' || type === 'adware') ? 1 : 1 + (S.diff - 1) * .09;
-  const e = { type, x, y: y == null ? -30 : y, x0: x, t: 0, rot: rand(0, TAU), ph: rand(0, TAU), hit: 0, r: d.r, hp: Math.ceil(d.hp * mul), max: 0,
+  const d = DEF[type], mul = (type === 'worm' || type === 'adware') ? 1 : hpMul(S.diff);
+  const e = { id: ++eid, type, x, y: y == null ? -30 : y, x0: x, t: 0, rot: rand(0, TAU), ph: rand(0, TAU), hit: 0, r: d.r, hp: Math.ceil(d.hp * mul), max: 0,
     score: d.score, color: d.color, fire: rand(1, 2), state: 0, st: 0, ang: Math.PI / 2, lx: 0, dead: false, flee: false, kind: 0, bt: 0, pat: 0, shots: 1, hx: 0, hitP: false };
   if (o) Object.assign(e, o);
   e.max = e.hp; enemies.push(e);
-  if (S.mode === 'play') { const cid = type === 'hacker' ? (e.kind === 1 ? 'sniper' : 'hacker') : type; if (!save.seen[cid]) save.seen[cid] = true; }
+  if (S.mode === 'play' && S.kind === 'level') { const cid = type === 'hacker' ? (e.kind === 1 ? 'sniper' : 'hacker') : type; if (!save.seen[cid]) save.seen[cid] = true; }
   return e;
 }
 function count(type) { let n = 0; for (const e of enemies) if (e.type === type && !e.dead) n++; return n; }
 function eb(x, y, vx, vy) { ebullets.push({ x, y, vx, vy, dead: false }); }
-function shootAt(e, speed) { const a = Math.atan2(P.y - e.y, P.x - e.x); eb(e.x, e.y, Math.cos(a) * speed, Math.sin(a) * speed); }
+/* naves en juego y a cuál apunta cada enemigo (en los duelos, a la más cercana) */
+function actors() { return S.kind === 'duel' ? [P, Q].filter(p => p.out <= 0) : (S.alive ? [P] : []); }
+function target(e) {
+  if (S.kind !== 'duel') return P;
+  if (P.out > 0) return Q; if (Q.out > 0) return P;
+  return Math.hypot(e.x - P.x, e.y - P.y) <= Math.hypot(e.x - Q.x, e.y - Q.y) ? P : Q;
+}
+function shootAt(e, speed) { const T = target(e), a = Math.atan2(T.y - e.y, T.x - e.x); eb(e.x, e.y, Math.cos(a) * speed, Math.sin(a) * speed); }
 function drop(x, y, type) {
   picks.push({ x: clamp(x, 20, W - 20), y, t: 0, type: type || pick(['patch', 'rapid', 'spread', 'shield', 'bomb', 'rapid', 'spread', 'patch']), dead: false });
 }
@@ -892,10 +1000,12 @@ function creditBits() {
 
 function reset() {
   ST = stats(); syncSkin();
-  Object.assign(S, { t: 0, score: 0, kills: 0, sectorKills: 0, chain: 0, combo: 1, comboT: 0, integrity: ST.maxInt, bombs: ST.bombs, win: false,
-    shake: 0, glitch: 0, flash: 0, spawnT: 1.2, hackT: 6, boss: null, bossSpawned: false, revived: false, doubled: false, runBits: 0, credited: 0, overT: 0, shock: null, alive: true, warp: 1 });
-  bullets = []; enemies = []; ebullets = []; parts = []; picks = []; texts = []; S.toasts = [];
-  Object.assign(P, { x: W / 2, y: H - 120, tx: W / 2, ty: H - 120, inv: 1.5, fire: 0, rapid: 0, spread: 0, shield: false, tilt: 0, hist: [] });
+  Object.assign(S, { t: 0, net: 'solo', score: 0, kills: 0, sectorKills: 0, wavesDone: 0, chain: 0, combo: 1, comboT: 0, win: false,
+    shake: 0, glitch: 0, flash: 0, spawnT: 1.2, hackT: 6, boss: null, bossSpawned: false, revived: false, doubled: false, runBits: 0, credited: 0, overT: 0, shock: null, shockN: 0, alive: true, warp: 1 });
+  bullets = []; enemies = []; ebullets = []; parts = []; picks = []; texts = []; S.toasts = []; eid = 0;
+  for (const pl of [P, Q]) Object.assign(pl, { inv: 1.5, fire: 0, rapid: 0, spread: 0, shield: false, tilt: 0, hist: [], out: 0, kills: 0 });
+  Object.assign(P, { x: W / 2, y: H - 120, tx: W / 2, ty: H - 120, sk: SK, name: myName(), maxInt: ST.maxInt, int: ST.maxInt, bombs: ST.bombs, maxBombs: ST.maxBombs,
+    gap: ST.fire, dmg: ST.dmg, magnet: ST.magnet, dur: ST.dur });
 }
 
 /* ---------------- Reglas ---------------- */
@@ -912,8 +1022,8 @@ function spawnWave(demo) {
   else if (Math.random() < .3) { const n = 3 + (D > 6 ? 1 : 0), x0 = clamp(x, 70, W - 70), ph = rand(0, TAU); for (let i = 0; i < n; i++) add('worm', x0, -30 - i * 34, { x0, ph: ph + i * .55 }); }
   else add('worm', clamp(x, 60, W - 60));
 }
-function spawnHacker(demo, forceDrifter) {
-  const sniper = !demo && !forceDrifter && S.diff >= 4 && Math.random() < .45;
+function spawnHacker(demo) {
+  const sniper = !demo && S.diff >= 4 && Math.random() < .45;
   if (sniper) {
     const left = Math.random() < .5;
     add('hacker', left ? -30 : W + 30, rand(110, H * .36), { kind: 1, hx: left ? rand(40, 110) : W - rand(40, 110), shots: S.diff >= 12 ? 2 : 1 });
@@ -926,7 +1036,7 @@ function levelClear() {
   for (const b of ebullets) b.dead = true;
   banner('NIVEL SUPERADO', 'Red limpia'); Sfx.win(); haptic('success');
 }
-function kill(e) {
+function kill(e, by) {
   if (e.dead) return;
   e.dead = true;
   const boss = e.type === 'boss';
@@ -934,84 +1044,101 @@ function kill(e) {
   Sfx.boom(boss);
   S.shake = Math.max(S.shake, boss ? 14 : e.r > 16 ? 5 : 2.5);
   if (S.mode !== 'play') return;
-  S.kills++; S.chain++; S.comboT = 2.6; S.combo = Math.min(8, 1 + (S.chain / 4 | 0));
-  const pts = e.score * S.combo; S.score += pts; S.runBits += BITS[e.type] || 0; floatText(e.x, e.y, '+' + fmt(pts), e.color);
-  tally(e.type);
   if (e.type === 'trojan') { add('worm', e.x - 12, e.y, { x0: e.x - 12, ph: 0 }); add('worm', e.x + 12, e.y, { x0: e.x + 12, ph: Math.PI }); }
-  haptic('light');
   if (Math.random() < (boss ? 0 : e.type === 'ransom' ? .6 : e.type === 'trojan' ? .24 : e.type === 'adware' ? .04 : .09)) drop(e.x, e.y);
-  if (S.kind === 'duel') { Duel.onKill(); return; }
-  if (boss) { save.bossKills++; unlock('titan'); levelClear(); return; }
-  S.sectorKills++;
-  if (S.sectorKills >= S.quota) {
-    if (!S.bossLevel) levelClear();
-    else if (!S.bossSpawned) { S.bossSpawned = true; banner('ROOTKIT', 'Jefe de zona. Derrótalo para superar el nivel'); S.boss = add('boss', W / 2, -70, { fire: 2.2 }); Sfx.alarm(); }
+  if (S.kind === 'duel') {   /* en los duelos solo cuenta quién elimina cada virus */
+    if (by) { by.kills++; floatText(e.x, e.y, '+1', by.sk.main, 13); }
+    if (by === P) haptic('light');
+    return;
   }
+  S.kills++; S.chain++; S.comboT = 2.6; S.combo = Math.min(8, 1 + (S.chain / 4 | 0));
+  const pts = e.score * S.combo; S.score += pts; floatText(e.x, e.y, '+' + fmt(pts), e.color); haptic('light');
+  if (!S.replay) { S.runBits += BITS[e.type] || 0; tally(e.type); }   /* un nivel repetido no da bits ni avanza misiones */
+  if (boss) { if (!S.replay) { save.bossKills++; unlock('titan'); } levelClear(); return; }
+  S.sectorKills++;
 }
 function leak(e) {
-  S.integrity -= 5; S.chain = 0; S.combo = 1; S.flash = Math.max(S.flash, .12);
+  P.int -= 5; S.chain = 0; S.combo = 1; S.flash = Math.max(S.flash, .12);
   floatText(e.x, H - 40, 'FUGA −5', C.red);
-  if (S.integrity <= 0) die();
+  if (P.int <= 0) die();
 }
-function hurt(d) {
-  if (P.inv > 0 || S.mode !== 'play') return;
-  if (P.shield) {
-    P.shield = false; P.inv = 1; burst(P.x, P.y, C.mint, 18, 220); Sfx.deflect();
-    floatText(P.x, P.y - 26, 'CORTAFUEGOS ROTO', C.mint); haptic('medium'); return;
+function hurt(d, pl) {
+  pl = pl || P;
+  if (pl.inv > 0 || pl.out > 0 || S.mode !== 'play') return;
+  const mine = pl === P;
+  if (pl.shield) {
+    pl.shield = false; pl.inv = 1; burst(pl.x, pl.y, C.mint, 18, 220);
+    floatText(pl.x, pl.y - 26, 'CORTAFUEGOS ROTO', C.mint); if (mine) { Sfx.deflect(); haptic('medium'); } return;
   }
-  S.integrity -= d; P.inv = 1.3; S.shake = 10; S.glitch = .3; S.flash = .25; S.chain = 0; S.combo = 1;
-  Sfx.hurt(); haptic('heavy'); burst(P.x, P.y, SK.main, 16, 200);
-  if (S.integrity <= 0) die();
+  pl.int -= d; pl.inv = 1.3; burst(pl.x, pl.y, pl.sk.main, 16, 200);
+  if (mine) { S.shake = 10; S.glitch = .3; S.flash = .25; Sfx.hurt(); haptic('heavy'); }
+  if (S.kind === 'duel') { if (pl.int <= 0) knockOut(pl); return; }
+  S.chain = 0; S.combo = 1;
+  if (pl.int <= 0) die();
+}
+/* en los duelos nadie queda eliminado: la nave caída tarda unos segundos en reiniciarse */
+function knockOut(pl) {
+  pl.int = 0; pl.out = 4; pl.rapid = pl.spread = 0; pl.shield = false;
+  burst(pl.x, pl.y, pl.sk.main, 50, 300); burst(pl.x, pl.y, C.ink, 20, 180);
+  if (pl === P) { S.shake = 16; S.glitch = .5; Sfx.boom(true); haptic('error'); }
 }
 function die() {
   if (S.mode !== 'play') return;
-  S.integrity = 0; S.alive = false; S.mode = 'dying'; S.overT = 1.1; S.shake = 16; S.glitch = .6;
+  P.int = 0; S.alive = false; S.mode = 'dying'; S.overT = 1.1; S.shake = 16; S.glitch = .6;
   burst(P.x, P.y, SK.main, 60, 320); burst(P.x, P.y, C.ink, 24, 180); Sfx.boom(true); haptic('error');
 }
-function shockwave() {
-  S.shock = { x: P.x, y: P.y, t: 0 }; S.flash = .3; S.shake = 12; Sfx.bomb(); haptic('heavy');
+function shockwave(pl) {
+  pl = pl || P;
+  S.shock = { x: pl.x, y: pl.y, t: 0 }; S.shockN++; S.flash = .3; S.shake = 12; Sfx.bomb(); if (pl === P) haptic('heavy');
   for (const e of enemies.slice()) {
     if (e.dead) continue;
     if (e.type === 'hacker') { e.flee = true; e.state = 9; }
-    else if (e.type === 'boss') { e.hp -= 35; e.hit = .2; if (e.hp <= 0) kill(e); }
-    else kill(e);
+    else if (e.type === 'boss') { e.hp -= 35; e.hit = .2; if (e.hp <= 0) kill(e, pl); }
+    else kill(e, pl);
   }
   for (const b of ebullets) b.dead = true;
 }
-function bomb() { if (S.mode !== 'play' || S.bombs <= 0) return; S.bombs--; shockwave(); }
-function collect(p) {
-  p.dead = true; Sfx.pick(); haptic('light');
-  floatText(P.x, P.y - 30, PK[p.type].label, PK[p.type].color);
-  burst(p.x, p.y, PK[p.type].color, 10, 140);
-  if (p.type === 'patch') S.integrity = Math.min(ST.maxInt, S.integrity + 30);
-  else if (p.type === 'rapid') P.rapid = 8 * ST.dur;
-  else if (p.type === 'spread') P.spread = 10 * ST.dur;
-  else if (p.type === 'shield') P.shield = true;
-  else S.bombs = Math.min(ST.maxBombs, S.bombs + 1);
+function bomb(pl) {
+  pl = pl || P;
+  if (S.mode !== 'play' || pl.out > 0 || pl.bombs <= 0) return;
+  if (S.kind === 'duel' && S.net === 'guest') { Duel.sendBomb(); return; }
+  pl.bombs--; shockwave(pl);
 }
-function rayDist(e) {
-  const dx = P.x - e.x, dy = P.y - e.y, c = Math.cos(e.ang), s = Math.sin(e.ang), proj = dx * c + dy * s;
+function collect(p, pl) {
+  p.dead = true; if (pl === P) { Sfx.pick(); haptic('light'); }
+  floatText(pl.x, pl.y - 30, PK[p.type].label, PK[p.type].color);
+  burst(p.x, p.y, PK[p.type].color, 10, 140);
+  if (p.type === 'patch') pl.int = Math.min(pl.maxInt, pl.int + 30);
+  else if (p.type === 'rapid') pl.rapid = 8 * pl.dur;
+  else if (p.type === 'spread') pl.spread = 10 * pl.dur;
+  else if (p.type === 'shield') pl.shield = true;
+  else pl.bombs = Math.min(pl.maxBombs, pl.bombs + 1);
+}
+function rayDist(e, pl) {
+  const dx = pl.x - e.x, dy = pl.y - e.y, c = Math.cos(e.ang), s = Math.sin(e.ang), proj = dx * c + dy * s;
   return proj < 0 ? Math.hypot(dx, dy) : Math.abs(dx * s - dy * c);
 }
 function updateHacker(e, dt, live) {
   if (e.flee) { e.y -= 340 * dt; if (e.y < -70) e.dead = true; return; }
+  const T = target(e);
   if (e.kind === 0) {
-    const v = 42 + S.diff;
-    e.y += (58 + S.diff * 1.5) * dt; e.x += clamp((P.x - e.x) * 1.5, -v, v) * dt;
+    const v = 42 + Math.min(S.diff, 40);
+    e.y += (58 + Math.min(S.diff, 40) * 1.5) * dt; e.x += clamp((T.x - e.x) * 1.5, -v, v) * dt;
     return;
   }
   if (e.state === 0) {
     e.x += (e.hx - e.x) * Math.min(1, dt * 3.2);
-    if (Math.abs(e.hx - e.x) < 4) { e.state = 1; e.st = 1.15; e.ang = Math.atan2(P.y - e.y, P.x - e.x); }
+    if (Math.abs(e.hx - e.x) < 4) { e.state = 1; e.st = 1.15; e.ang = Math.atan2(T.y - e.y, T.x - e.x); }
   } else if (e.state === 1) {
-    e.st -= dt; if (e.st > .38) e.ang = Math.atan2(P.y - e.y, P.x - e.x);
+    e.st -= dt; if (e.st > .38) e.ang = Math.atan2(T.y - e.y, T.x - e.x);
     if (e.st <= 0) { e.state = 2; e.st = .5; Sfx.beam(); }
   } else if (e.state === 2) {
-    e.st -= dt; if (live && rayDist(e) < 8 + P.r) { if (P.inv <= 0) e.hitP = true; hurt(30); }
+    e.st -= dt;
+    if (live) for (const pl of actors()) if (rayDist(e, pl) < 8 + pl.r) { if (pl.inv <= 0) e.hitP = true; hurt(30, pl); }
     if (e.st <= 0) { e.shots--; if (e.shots > 0) { e.state = 1; e.st = 1; } else e.state = 3; }
   } else {
     e.x += (e.hx < W / 2 ? -1 : 1) * 170 * dt;
-    if (e.x < -40 || e.x > W + 40) { e.dead = true; if (live && !e.hitP) tally('sniper'); }
+    if (e.x < -40 || e.x > W + 40) { e.dead = true; if (live && !e.hitP && S.kind === 'level' && !S.replay) tally('sniper'); }
   }
 }
 function updateBoss(e, dt, live) {
@@ -1021,12 +1148,34 @@ function updateBoss(e, dt, live) {
   if (e.fire <= 0 && live) {
     e.pat++;
     if (e.pat % 2) { const n = 12 + Math.min(10, S.diff / 4 | 0), off = rand(0, TAU); for (let i = 0; i < n; i++) { const a = off + i / n * TAU; eb(e.x, e.y, Math.cos(a) * 120, Math.sin(a) * 120); } }
-    else { const a = Math.atan2(P.y - e.y, P.x - e.x); for (let i = -2; i <= 2; i++) eb(e.x, e.y, Math.cos(a + i * .17) * 175, Math.sin(a + i * .17) * 175); }
+    else { const T = target(e), a = Math.atan2(T.y - e.y, T.x - e.x); for (let i = -2; i <= 2; i++) eb(e.x, e.y, Math.cos(a + i * .17) * 175, Math.sin(a + i * .17) * 175); }
     e.fire = Math.max(.95, 1.9 - S.diff * .02); Sfx.hit();
   }
 }
 
 const keys = {};
+function moveShip(pl, dt) {
+  pl.tx = clamp(pl.tx, 16, W - 16); pl.ty = clamp(pl.ty, 110, H - 26);
+  const px = pl.x, f = Math.min(1, dt * 20);
+  pl.x += (pl.tx - pl.x) * f; pl.y += (pl.ty - pl.y) * f;
+  pl.tilt += (clamp((pl.x - px) / Math.max(dt, .001) / 420, -1, 1) - pl.tilt) * Math.min(1, dt * 10);
+}
+/* temporizadores, reinicio tras caer, disparo automático y estela de una nave */
+function shipTick(pl, dt, live) {
+  if (pl.out > 0) { pl.out -= dt; if (pl.out <= 0) { pl.out = 0; pl.int = pl.maxInt; pl.inv = 2.5; } return; }
+  if (pl.inv > 0) pl.inv -= dt;
+  if (pl.rapid > 0) pl.rapid -= dt;
+  if (pl.spread > 0) pl.spread -= dt;
+  pl.histT -= dt; if (pl.histT <= 0) { pl.histT = .045; pl.hist.push({ x: pl.x, y: pl.y }); if (pl.hist.length > 5) pl.hist.shift(); }
+  pl.fire -= dt;
+  if (pl.fire <= 0) {
+    pl.fire = pl.gap * (pl.rapid > 0 ? .55 : 1);
+    bullets.push({ x: pl.x, y: pl.y - 16, vx: 0, vy: -640, dead: false, o: pl });
+    if (pl.spread > 0) for (const a of [-.2, .2]) bullets.push({ x: pl.x, y: pl.y - 12, vx: Math.sin(a) * 640, vy: -Math.cos(a) * 640, dead: false, o: pl });
+    if (live && pl === P) Sfx.shoot();
+  }
+  if (parts.length < 520) parts.push({ x: pl.x + rand(-3, 3), y: pl.y + 13, vx: rand(-12, 12), vy: rand(70, 140), life: .28, max: .28, color: pl.sk.main, size: rand(2, 3.5), bit: false, ch: '' });
+}
 function update(dt) {
   const mode = S.mode;
   if (mode === 'pause' || mode === 'ad') return;
@@ -1050,54 +1199,43 @@ function update(dt) {
   for (const t of texts) { t.y -= 34 * dt; t.life -= dt; }
   parts = parts.filter(p => p.life > 0); texts = texts.filter(t => t.life > 0);
 
-  if (mode === 'dying') { S.overT -= dt; if (S.overT <= 0) { if (S.kind === 'duel') Duel.localDead(); else showResult(); } return; }
+  if (mode === 'dying') { S.overT -= dt; if (S.overT <= 0) showResult(); return; }
   if (mode === 'clearing') { S.overT -= dt; enemies = enemies.filter(e => !e.dead); ebullets = ebullets.filter(b => !b.dead); if (S.overT <= 0) showResult(); return; }
-  if (mode === 'duelwait') { Duel.waitTick(dt); return; }
   if (mode !== 'play' && !demo) return;
-  if (mode === 'play' && S.kind === 'duel') { Duel.tick(dt); if (S.mode !== 'play') return; }
-  const live = mode === 'play';
+  const live = mode === 'play', duel = live && S.kind === 'duel', guest = duel && S.net === 'guest';
 
-  /* jugador */
+  /* tu nave */
   if (demo) { P.tx = W / 2 + Math.sin(S.t * .9) * W * .3; P.ty = H - 80; }
   else {
     const kx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), ky = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
     if (kx || ky) { P.tx += kx * 340 * dt; P.ty += ky * 340 * dt; }
   }
-  P.tx = clamp(P.tx, 16, W - 16); P.ty = clamp(P.ty, 110, H - 26);
-  const px = P.x, f = Math.min(1, dt * 20);
-  P.x += (P.tx - P.x) * f; P.y += (P.ty - P.y) * f;
-  P.tilt += (clamp((P.x - px) / Math.max(dt, .001) / 420, -1, 1) - P.tilt) * Math.min(1, dt * 10);
-  P.histT -= dt; if (P.histT <= 0) { P.histT = .045; P.hist.push({ x: P.x, y: P.y }); if (P.hist.length > 5) P.hist.shift(); }
-  if (P.inv > 0) P.inv -= dt;
-  if (P.rapid > 0) P.rapid -= dt;
-  if (P.spread > 0) P.spread -= dt;
-  if (live && S.comboT > 0) { S.comboT -= dt; if (S.comboT <= 0) { S.chain = 0; S.combo = 1; } }
-  P.fire -= dt;
-  if (P.fire <= 0) {
-    P.fire = ST.fire * (P.rapid > 0 ? .55 : 1);
-    bullets.push({ x: P.x, y: P.y - 16, vx: 0, vy: -640, dead: false });
-    if (P.spread > 0) for (const a of [-.2, .2]) bullets.push({ x: P.x, y: P.y - 12, vx: Math.sin(a) * 640, vy: -Math.cos(a) * 640, dead: false });
-    if (live) Sfx.shoot();
-  }
-  if (parts.length < 520) parts.push({ x: P.x + rand(-3, 3), y: P.y + 13, vx: rand(-12, 12), vy: rand(70, 140), life: .28, max: .28, color: SK.main, size: rand(2, 3.5), bit: false, ch: '' });
+  moveShip(P, dt);
+  if (duel && !guest) { Duel.hostTick(dt); if (S.mode !== 'play') return; }
+  shipTick(P, dt, live); if (duel) shipTick(Q, dt, live);
+  if (guest) { Duel.guestTick(dt); return; }   /* el invitado solo dibuja lo que calcula el anfitrión */
+  if (live && S.kind === 'level' && S.comboT > 0) { S.comboT -= dt; if (S.comboT <= 0) { S.chain = 0; S.combo = 1; } }
 
   /* aparición de enemigos: más rápida cuanto mayor es el nivel */
+  /* un nivel dura un número fijo de oleadas; termina cuando han salido todas y no queda ningún virus */
+  const wavesOver = live && S.kind === 'level' && S.wavesDone >= S.wavesTotal;
   S.spawnT -= dt;
-  if (S.spawnT <= 0) {
-    spawnWave(demo);
-    S.spawnT = demo ? 1 : (S.boss ? 1.7 : Math.max(.3, 1.2 * Math.pow(.955, S.diff - 1))) * rand(.75, 1.25);
+  if (S.spawnT <= 0 && (!wavesOver || S.boss)) {
+    spawnWave(demo); if (live && S.kind === 'level' && !S.boss) S.wavesDone++;
+    S.spawnT = demo ? 1 : (S.boss ? 1.7 : Math.max(.3, 1.2 * Math.pow(.955, S.diff - 1))) * (duel ? .6 : 1) * rand(.75, 1.25);
   }
   S.hackT -= dt;
   if (S.hackT <= 0) { spawnHacker(demo); S.hackT = demo ? 6 : Math.max(3, 9 - S.diff * .2) * rand(.8, 1.2); }
 
   /* enemigos */
-  const D = S.diff;
+  const D = Math.min(S.diff, 40), acts = actors();
   for (const e of enemies) {
     if (e.dead) continue;
     e.t += dt; e.rot += dt; if (e.hit > 0) e.hit -= dt;
+    const T = target(e);
     switch (e.type) {
       case 'worm': e.y += (72 + D * 2.2) * dt; e.x = e.x0 + Math.sin(e.t * 2.3 + e.ph) * 46; break;
-      case 'spy': e.y += (100 + D * 2) * dt; e.x += clamp((P.x - e.x) * 2, -78, 78) * dt; e.lx = clamp((P.x - e.x) / 60, -1, 1); break;
+      case 'spy': e.y += (100 + D * 2) * dt; e.x += clamp((T.x - e.x) * 2, -78, 78) * dt; e.lx = clamp((T.x - e.x) / 60, -1, 1); break;
       case 'adware': e.y += (128 + D * 2) * dt; e.x = e.x0 + tri(e.t * 1.7 + e.ph) * 38; break;
       case 'trojan': e.y += 48 * dt; e.x = e.x0 + Math.sin(e.t + e.ph) * 14; break;
       case 'ransom':
@@ -1114,14 +1252,14 @@ function update(dt) {
     if (e.type !== 'hacker') e.x = clamp(e.x, e.r, W - e.r);
     if (e.y > H + 50) {
       e.dead = true;
-      if (live) { if (e.type !== 'hacker') leak(e); else if (!e.hitP && !e.flee && e.kind === 0) tally('hacker'); }
+      if (live && S.kind === 'level') { if (e.type !== 'hacker') leak(e); else if (!e.hitP && !e.flee && e.kind === 0 && !S.replay) tally('hacker'); }
       continue;
     }
-    if (live && S.alive) {
-      const dx = e.x - P.x, dy = e.y - P.y, rr = e.r * .8 + P.r;
+    if (live) for (const pl of acts) {
+      const dx = e.x - pl.x, dy = e.y - pl.y, rr = e.r * .8 + pl.r;
       if (dx * dx + dy * dy < rr * rr) {
-        if (e.type === 'hacker') { if (P.inv <= 0) e.hitP = true; hurt(34); }
-        else if (P.inv <= 0) { hurt(22); if (e.type !== 'boss') { e.dead = true; burst(e.x, e.y, e.color, 14, 180); } }
+        if (e.type === 'hacker') { if (pl.inv <= 0) e.hitP = true; hurt(34, pl); }
+        else if (pl.inv <= 0 && pl.out <= 0) { hurt(22, pl); if (e.type !== 'boss') { e.dead = true; burst(e.x, e.y, e.color, 14, 180); break; } }
       }
     }
   }
@@ -1135,8 +1273,8 @@ function update(dt) {
       const dx = e.x - b.x, dy = e.y - b.y, rr = e.r + 4;
       if (dx * dx + dy * dy < rr * rr) {
         b.dead = true;
-        if (e.type === 'hacker') { e.hit = .12; if (parts.length < 520) parts.push({ x: b.x, y: b.y, vx: rand(-120, 120), vy: rand(40, 160), life: .25, max: .25, color: C.hack, size: 3, bit: false, ch: '' }); if (live && Math.random() < .25) Sfx.deflect(); }
-        else { e.hp -= ST.dmg; e.hit = .08; if (e.hp <= .001) kill(e); else if (live) Sfx.hit(); }
+        if (e.type === 'hacker') { e.hit = .12; if (parts.length < 520) parts.push({ x: b.x, y: b.y, vx: rand(-120, 120), vy: rand(40, 160), life: .25, max: .25, color: C.hack, size: 3, bit: false, ch: '' }); if (live && b.o === P && Math.random() < .25) Sfx.deflect(); }
+        else { e.hp -= b.o.dmg; e.hit = .08; if (e.hp <= .001) kill(e, b.o); else if (live && b.o === P) Sfx.hit(); }
         break;
       }
     }
@@ -1144,17 +1282,23 @@ function update(dt) {
   for (const b of ebullets) {
     b.x += b.vx * dt; b.y += b.vy * dt;
     if (b.y > H + 20 || b.y < -20 || b.x < -20 || b.x > W + 20) { b.dead = true; continue; }
-    if (live) { const dx = b.x - P.x, dy = b.y - P.y; if (dx * dx + dy * dy < (P.r + 4) * (P.r + 4)) { b.dead = true; hurt(14); } }
+    if (live) for (const pl of acts) { const dx = b.x - pl.x, dy = b.y - pl.y; if (dx * dx + dy * dy < (pl.r + 4) * (pl.r + 4)) { b.dead = true; hurt(14, pl); break; } }
   }
   for (const p of picks) {
     p.t += dt; p.y += 70 * dt;
-    const dx = P.x - p.x, dy = P.y - p.y, d = Math.hypot(dx, dy);
-    if (live && d < ST.magnet) { p.x += dx / d * 210 * dt; p.y += dy / d * 210 * dt; }
-    if (live && d < 24) collect(p);
+    if (live) for (const pl of acts) {
+      const dx = pl.x - p.x, dy = pl.y - p.y, d = Math.hypot(dx, dy);
+      if (d < 24) { collect(p, pl); break; }
+      if (d < pl.magnet) { p.x += dx / d * 210 * dt; p.y += dy / d * 210 * dt; break; }
+    }
     if (p.y > H + 30) p.dead = true;
   }
   bullets = bullets.filter(b => !b.dead); ebullets = ebullets.filter(b => !b.dead);
   enemies = enemies.filter(e => !e.dead); picks = picks.filter(p => !p.dead);
+  if (wavesOver && S.mode === 'play' && !S.boss && !enemies.some(e => e.type !== 'hacker')) {
+    if (!S.bossLevel) levelClear();
+    else if (!S.bossSpawned) { S.bossSpawned = true; banner('ROOTKIT', 'Jefe de zona. Derrótalo para superar el nivel'); S.boss = add('boss', W / 2, -70, { fire: 2.2 }); Sfx.alarm(); }
+  }
 }
 
 /* ---------------- Dibujo ---------------- */
@@ -1254,6 +1398,15 @@ function drawShip(g, sk, t) {
       g.beginPath(); g.arc(0, 0, 25, 0, TAU); g.setLineDash([2, 5]); g.lineWidth = 1.2; g.stroke(); g.setLineDash([]);
       g.beginPath(); g.arc(0, 0, 3.2, 0, TAU); g.fillStyle = '#ffffff'; g.fill();
       break;
+    case 'duelista':
+      path(g, [[-5, -19], [-10, -4], [-17, 12], [-6, 7], [0, 12], [6, 7], [17, 12], [10, -4], [5, -19], [0, -7]]); g.fill(); g.stroke();
+      g.fillStyle = '#ffffff'; g.fillRect(-1.2, -3, 2.4, 9); g.fillRect(-4, 0, 8, 2.4);
+      break;
+    case 'campeon':
+      path(g, [[0, -19], [6, -7], [15, -13], [12, 8], [5, 13], [-5, 13], [-12, 8], [-15, -13], [-6, -7]]); g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(-12, 8); g.lineTo(12, 8); g.strokeStyle = sk.acc; g.lineWidth = 1.2; g.stroke();
+      g.fillStyle = sk.acc; g.fillRect(-1.5, -6, 3, 10); g.fillRect(-5, -2.5, 10, 3);
+      break;
     default:
       path(g, [[0, -17], [11, -3], [15, 12], [5, 7], [0, 13], [-5, 7], [-15, 12], [-11, -3]]); g.fill(); g.stroke();
       cross(g);
@@ -1327,6 +1480,32 @@ function fitText(text, weight, size, max) {
   if (w > max) ctx.font = weight + ' ' + Math.floor(size * max / w) + 'px Oxanium, sans-serif';
 }
 
+function paintShip(pl) {
+  const sk = pl.sk, duel = S.kind === 'duel';
+  ctx.textAlign = 'center';
+  if (pl.out > 0) {
+    ctx.font = '11px "Share Tech Mono", monospace'; ctx.fillStyle = sk.main; ctx.globalAlpha = .85;
+    ctx.fillText('REINICIANDO ' + Math.ceil(pl.out), pl.x, pl.y); ctx.globalAlpha = 1; return;
+  }
+  const blink = pl.inv > 0 && Math.sin(S.t * 40) > 0;
+  ctx.globalCompositeOperation = 'lighter'; drawGlow(pl.x, pl.y, 46, sk.main, .55);
+  if (pl.shield) drawGlow(pl.x, pl.y, 40, C.mint, .5 + .2 * Math.sin(S.t * 6));
+  ctx.globalCompositeOperation = 'source-over';
+  if (sk.id === 'espectro') for (let i = 0; i < pl.hist.length; i++) {
+    const h = pl.hist[i]; ctx.save(); ctx.translate(h.x, h.y); ctx.globalAlpha = .05 + .05 * i; drawShip(ctx, sk, S.t); ctx.restore();
+  }
+  ctx.save(); ctx.translate(pl.x, pl.y); ctx.rotate(pl.tilt * .35); ctx.globalAlpha = blink ? .35 : 1; drawShip(ctx, sk, S.t); ctx.restore(); ctx.globalAlpha = 1;
+  if (pl.shield) { ctx.beginPath(); ctx.arc(pl.x, pl.y, 27, 0, TAU); ctx.strokeStyle = C.mint; ctx.lineWidth = 1.6; ctx.stroke(); }
+  ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+  if (pl.rapid > 0) { ctx.beginPath(); ctx.arc(pl.x, pl.y, 31, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, pl.rapid / (8 * pl.dur))); ctx.strokeStyle = C.amber; ctx.stroke(); }
+  if (pl.spread > 0) { ctx.beginPath(); ctx.arc(pl.x, pl.y, 35, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, pl.spread / (10 * pl.dur))); ctx.strokeStyle = C.core; ctx.stroke(); }
+  ctx.lineCap = 'butt';
+  if (duel) {
+    ctx.font = '10px "Share Tech Mono", monospace'; ctx.fillStyle = pl === P ? C.ink : sk.main;
+    ctx.fillText(pl === P ? 'TÚ' : pl.name.toUpperCase(), pl.x, pl.y > H - 48 ? pl.y - 32 : pl.y + 34);
+  }
+}
+
 function draw() {
   const k = dpr * scale;
   ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -1368,7 +1547,7 @@ function draw() {
   }
 
   ctx.globalCompositeOperation = 'lighter';
-  for (const b of bullets) drawGlow(b.x, b.y, 12, SK.main, .9);
+  for (const b of bullets) drawGlow(b.x, b.y, 12, (b.o || P).sk.main, .9);
   ctx.fillStyle = '#ffffff';
   for (const b of bullets) ctx.fillRect(b.x - 1.2, b.y - 7, 2.4, 13);
   for (const b of ebullets) drawGlow(b.x, b.y, 15, C.virus, 1);
@@ -1376,20 +1555,9 @@ function draw() {
   for (const b of ebullets) { ctx.beginPath(); ctx.arc(b.x, b.y, 2.6, 0, TAU); ctx.fill(); }
   ctx.globalCompositeOperation = 'source-over';
 
-  if (S.alive && S.mode !== 'over' && S.mode !== 'duelend') {
-    const blink = P.inv > 0 && Math.sin(S.t * 40) > 0;
-    ctx.globalCompositeOperation = 'lighter'; drawGlow(P.x, P.y, 46, SK.main, .55);
-    if (P.shield) drawGlow(P.x, P.y, 40, C.mint, .5 + .2 * Math.sin(S.t * 6));
-    ctx.globalCompositeOperation = 'source-over';
-    if (SK.id === 'espectro') for (let i = 0; i < P.hist.length; i++) {
-      const h = P.hist[i]; ctx.save(); ctx.translate(h.x, h.y); ctx.globalAlpha = .05 + .05 * i; drawShip(ctx, SK, S.t); ctx.restore();
-    }
-    ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.tilt * .35); ctx.globalAlpha = blink ? .35 : 1; drawShip(ctx, SK, S.t); ctx.restore(); ctx.globalAlpha = 1;
-    if (P.shield) { ctx.beginPath(); ctx.arc(P.x, P.y, 27, 0, TAU); ctx.strokeStyle = C.mint; ctx.lineWidth = 1.6; ctx.stroke(); }
-    ctx.lineWidth = 2.2; ctx.lineCap = 'round';
-    if (P.rapid > 0) { ctx.beginPath(); ctx.arc(P.x, P.y, 31, -Math.PI / 2, -Math.PI / 2 + TAU * P.rapid / (8 * ST.dur)); ctx.strokeStyle = C.amber; ctx.stroke(); }
-    if (P.spread > 0) { ctx.beginPath(); ctx.arc(P.x, P.y, 35, -Math.PI / 2, -Math.PI / 2 + TAU * P.spread / (10 * ST.dur)); ctx.strokeStyle = C.core; ctx.stroke(); }
-    ctx.lineCap = 'butt';
+  if (S.mode !== 'over' && S.mode !== 'duelend') {
+    if (S.kind === 'duel' && S.mode !== 'menu') paintShip(Q);
+    if (S.alive) paintShip(P);
   }
 
   ctx.globalCompositeOperation = 'lighter';
@@ -1454,24 +1622,25 @@ const hudCache = {};
 function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
 function syncHud() {
   const duel = S.kind === 'duel';
-  setText('score', fmt(S.score)); setText('combo', 'x' + S.combo); setText('bombN', String(S.bombs)); setText('bitsN', fmt(S.runBits));
+  setText('scoreLbl', duel ? 'Eliminados' : 'Puntos'); setText('score', duel ? String(P.kills) : fmt(S.score));
+  setText('combo', duel ? '' : 'x' + S.combo); setText('bombN', String(P.bombs)); setText('bitsN', fmt(S.runBits));
   setText('secLbl', duel ? 'Tiempo' : 'Nivel');
   const tl = Math.max(0, Math.ceil(S.duelT));
-  setText('sector', duel ? (tl / 60 | 0) + ':' + pad2(tl % 60) : pad2(S.levelN));
-  const iw = Math.max(0, S.integrity / ST.maxInt * 100) + '%';
-  if (hudCache.iw !== iw) { hudCache.iw = iw; $('intFill').style.width = iw; $('intBar').classList.toggle('low', S.integrity <= ST.maxInt * .3); }
-  const sw = (duel ? clamp(S.duelT / 90 * 100, 0, 100) : S.bossSpawned ? 100 : Math.min(100, S.sectorKills / S.quota * 100)) + '%';
+  setText('sector', duel ? (tl / 60 | 0) + ':' + pad2(tl % 60) : S.levelN < 100 ? pad2(S.levelN) : String(S.levelN));
+  const iw = clamp(P.int / P.maxInt * 100, 0, 100) + '%';
+  if (hudCache.iw !== iw) { hudCache.iw = iw; $('intFill').style.width = iw; $('intBar').classList.toggle('low', P.int <= P.maxInt * .3); }
+  const sw = (duel ? clamp(S.duelT / 90 * 100, 0, 100) : S.bossSpawned ? 100 : Math.min(100, S.wavesDone / S.wavesTotal * 100)) + '%';
   if (hudCache.sw !== sw) { hudCache.sw = sw; $('secFill').style.width = sw; }
-  const nb = S.bombs <= 0;
+  const nb = P.bombs <= 0 || P.out > 0;
   if (hudCache.nb !== nb) { hudCache.nb = nb; $('btnBomb').disabled = nb; }
   if (duel) {
-    setText('rivName', Duel.opp.name); setText('rivScore', fmt(Duel.opp.score));
-    const rw = clamp(Duel.opp.hp * 100, 0, 100) + '%';
+    setText('rivName', Q.name); setText('rivScore', String(Q.kills));
+    const rw = clamp(Q.int, 0, 100) + '%';
     if (hudCache.rw !== rw) { hudCache.rw = rw; $('rivFill').style.width = rw; }
   }
 }
 function show(id, on) { $(id).hidden = !on; }
-const PANELS = ['menu', 'pause', 'over', 'duelEnd'], SHEETS = ['levels', 'codex', 'shop', 'rank', 'duel'];
+const PANELS = ['menu', 'pause', 'over', 'duelEnd'], SHEETS = ['levels', 'codex', 'shop', 'rank', 'duel', 'invite'];
 function hideAll() { for (const p of PANELS) show(p, false); for (const s of SHEETS) show(s, false); }
 function refreshMenu() {
   $('walletMenu').textContent = fmt(save.bits); $('walletShop').textContent = fmt(save.bits);
@@ -1480,7 +1649,6 @@ function refreshMenu() {
 }
 function refreshAudioUi() {
   $('btnMute').classList.toggle('off', !save.music && !save.sfx);
-  $('btnMute').textContent = (save.music || save.sfx) ? 'Sonido' : 'Silencio';
   $('togMusicS').textContent = save.music ? 'Activada' : 'Desactivada';
   $('togSfxS').textContent = save.sfx ? 'Activados' : 'Desactivados';
   Sfx.applyVolumes();
@@ -1488,21 +1656,22 @@ function refreshAudioUi() {
 function startLevel(n) {
   n = clamp(n, 1, MAXLV);
   Sfx.init(); Sfx.ui(); Sfx.warp(); reset();
-  S.kind = 'level'; S.levelN = n; S.diff = n; S.bossLevel = n % 5 === 0;
-  S.quota = Math.min(80, S.bossLevel ? 10 + n : 12 + 2 * n);
+  S.kind = 'level'; S.levelN = n; S.diff = n; S.bossLevel = n % 5 === 0; S.replay = (save.stars[n] || 0) > 0;
+  const gap = Math.max(.3, 1.2 * Math.pow(.955, n - 1)), secs = Math.min(CONFIG.game.maxLevelSeconds, CONFIG.game.levelSeconds + CONFIG.game.secondsPerLevel * n) * (S.bossLevel ? .6 : 1);
+  S.wavesTotal = Math.max(1, Math.round(secs / gap)); S.wavesDone = 0; S.quota = 1e9;
   setZone(zoneOfLevel(n)); S.mode = 'play';
-  hideAll(); show('hud', true); show('rival', false); show('btnPause', true);
-  banner('NIVEL ' + pad2(n), S.bossLevel ? 'Jefe de zona: Rootkit' : ZONES[S.zone].name);
+  hideAll(); show('hud', true); show('rival', false); show('btnPause', true); show('bitsStat', true);
+  banner('NIVEL ' + pad2(n), S.replay ? 'Repetición: sin bits ni misiones' : S.bossLevel ? 'Jefe de zona: Rootkit' : ZONES[S.zone].name);
 }
 function startDuelGame(name) {
   Sfx.init(); Sfx.warp(); reset();
-  S.kind = 'duel'; S.levelN = 0; S.diff = 2; S.duelT = 90; S.quota = 1e9; S.bossLevel = false;
+  S.kind = 'duel'; S.replay = false; S.levelN = 0; S.diff = 3; S.duelT = 90; S.quota = 1e9; S.bossLevel = false;
   setZone(Math.random() * ZONES.length | 0); S.mode = 'play';
-  hideAll(); show('hud', true); show('rival', true); show('btnPause', false);
-  banner('DUELO', 'contra ' + name);
+  hideAll(); show('hud', true); show('rival', true); show('btnPause', false); show('bitsStat', false);
+  banner('DUELO', 'Elimina más virus que ' + name);
 }
 function goMenu() {
-  S.mode = 'menu'; S.kind = 'level'; S.diff = 1; S.boss = null; S.alive = true; S.banner = null; S.toasts = [];
+  S.mode = 'menu'; S.kind = 'level'; S.net = 'solo'; S.diff = 1; S.boss = null; S.alive = true; S.banner = null; S.toasts = [];
   enemies = []; ebullets = []; bullets = []; picks = []; P.rapid = P.spread = 0; P.shield = false; P.inv = 0;
   hideAll(); show('hud', false); show('menu', true); refreshMenu();
 }
@@ -1510,29 +1679,35 @@ function starsHtml(el, n) { el.textContent = ''; for (let i = 0; i < 3; i++) { i
 function showResult() {
   const win = S.win, n = S.levelN;
   S.mode = 'over'; bullets = []; ebullets = [];
-  let stars = 0;
+  let stars = 0, winNote = '';
   if (win) {
-    const q = S.integrity / ST.maxInt; stars = q >= .7 ? 3 : q >= .35 ? 2 : 1;
-    S.runBits += 20 + 5 * n;
+    const q = P.int / P.maxInt; stars = q >= .7 ? 3 : q >= .35 ? 2 : 1;
+    if (S.replay) winNote = 'Nivel repetido: no da bits ni avanza misiones. ';
+    else {
+      S.runBits += 20 + 5 * Math.min(n, 60);
+      if (save.refBonus > 0) { S.runBits = Math.round(S.runBits * (1 + save.refBonus / 100)); winNote = 'Bono de invitados +' + save.refBonus + ' %. '; }
+      const before = shipLevel().L; save.xp += 10 + n; ST = stats();
+      if (ST.L > before) winNote += 'Tu nave sube al nivel ' + ST.L + '. ';
+    }
     if (stars > (save.stars[n] || 0)) save.stars[n] = stars;
     if (n >= save.level && n < MAXLV) save.level = n + 1;
     if (n >= 15) unlock('aureo');
   }
-  creditBits();
+  if (win) creditBits();   /* los bits del intento solo se suman al superar el nivel */
   const rec = win && S.score > (save.best[n] || 0);
   if (rec) save.best[n] = S.score;
-  persist(); Online.submit();
+  persist(); Online.submit(); Online.refPush();
   const t = $('overTitle'); t.textContent = win ? 'Nivel ' + pad2(n) + ' superado' : 'Sistema comprometido'; t.className = win ? 'good' : 'bad';
   show('overStars', win); if (win) starsHtml($('overStars'), stars);
   $('finalScore').textContent = fmt(S.score); $('finalKills').textContent = fmt(S.kills);
   $('finalBest').textContent = fmt(save.best[n] || 0);
-  $('finalBits').textContent = '+' + fmt(S.runBits) + (S.doubled ? ' ×2' : '');
-  $('overNote').textContent = win ? (rec ? 'Nueva mejor marca. ' : '') + (stars < 3 ? 'Termina con el 70 % de integridad para las 3 estrellas.' : '') : 'Mejora el Centinela en el Arsenal y vuelve a intentarlo.';
+  $('finalBits').textContent = win ? '+' + fmt(S.runBits) + (S.doubled ? ' ×2' : '') : '0';
+  $('overNote').textContent = win ? winNote + (rec ? 'Nueva mejor marca. ' : '') + (stars < 3 ? 'Termina con el 70 % de integridad para las 3 estrellas.' : '') : (S.runBits > 0 ? 'Los ' + fmt(S.runBits) + ' bits de este intento solo se suman si superas el nivel.' + (S.revived ? '' : ' Con Continuar aún puedes salvarlos.') : 'Los bits solo se suman al superar el nivel.');
   $('btnNext').textContent = win ? (n < MAXLV ? 'Siguiente nivel' : 'Volver al menú') : 'Reintentar';
   syncOverButtons(); show('hud', false); show('over', true);
 }
 function syncOverButtons() {
-  const canRevive = !S.win && !S.revived, canDouble = !S.doubled && S.runBits > 0;
+  const canRevive = !S.win && !S.revived, canDouble = S.win && !S.doubled && S.runBits > 0;
   show('btnRevive', canRevive); show('btnDouble', canDouble); show('adPair', canRevive || canDouble);
 }
 function setPause(on) {
@@ -1551,15 +1726,21 @@ function iconCanvas(fn) {
 }
 
 /* Niveles */
+let lvPage = -1;
 function renderLevels() {
-  const body = $('levelsBody'); body.textContent = '';
+  const body = $('levelsBody'), pages = Math.ceil(MAXLV / 50); body.textContent = '';
+  if (lvPage < 0) lvPage = (save.level - 1) / 50 | 0;
+  lvPage = clamp(lvPage, 0, pages - 1);
   $('lvStars').textContent = totalStars();
-  for (let r = 0; r < MAXLV / 5; r++) {
-    body.append(el('div', 'zone-lbl', ZONES[r % ZONES.length].name + (r >= ZONES.length ? ' II' : '') + ' · niveles ' + (r * 5 + 1) + ' a ' + (r * 5 + 5)));
+  $('lvRange').textContent = (lvPage * 50 + 1) + ' – ' + (lvPage * 50 + 50);
+  $('lvPrev').disabled = lvPage === 0; $('lvNext').disabled = lvPage === pages - 1;
+  for (let r = lvPage * 10; r < lvPage * 10 + 10; r++) {
+    const cyc = r / ZONES.length | 0;
+    body.append(el('div', 'zone-lbl', ZONES[r % ZONES.length].name + (cyc ? ' · ciclo ' + (cyc + 1) : '') + ' · niveles ' + (r * 5 + 1) + ' a ' + (r * 5 + 5)));
     const row = el('div', 'lv-row');
     for (let i = 1; i <= 5; i++) {
       const n = r * 5 + i, b = el('button', 'lv' + (n % 5 === 0 ? ' boss' : '') + (n === save.level ? ' cur' : ''));
-      b.append(document.createTextNode(pad2(n)));
+      b.append(document.createTextNode(n < 100 ? pad2(n) : String(n)));
       const st = el('small'); starsHtml(st, save.stars[n] || 0); b.append(st);
       b.setAttribute('aria-label', 'Nivel ' + n + (n % 5 === 0 ? ', jefe' : ''));
       if (n > save.level) b.disabled = true; else b.addEventListener('click', () => startLevel(n));
@@ -1567,6 +1748,7 @@ function renderLevels() {
     }
     body.append(row);
   }
+  body.scrollTop = 0;
 }
 
 /* Códice: leyenda de amenazas, misiones y tarjetas */
@@ -1616,7 +1798,7 @@ function renderCodex() {
 }
 
 /* Arsenal */
-let shopTab = 'skins';
+let shopTab = 'ship';
 function priceBtn(cost) {
   const b = el('button', 'buy' + (save.bits < cost ? ' poor' : ''));
   b.append(el('i', 'gem'), document.createTextNode(fmt(cost)));
@@ -1630,8 +1812,28 @@ function buy(cost, apply) {
 function renderShop() {
   const body = $('shopBody'), top = body.scrollTop; body.textContent = '';
   refreshMenu();
-  $('tabSkins').classList.toggle('on', shopTab === 'skins'); $('tabUps').classList.toggle('on', shopTab === 'ups');
-  if (shopTab === 'skins') {
+  $('tabSkins').classList.toggle('on', shopTab === 'skins'); $('tabUps').classList.toggle('on', shopTab === 'ups'); $('tabShip').classList.toggle('on', shopTab === 'ship');
+  if (shopTab === 'ship') {
+    ST = stats();
+    const u = save.up, lv = shipLevel(), head = el('div', 'item sel'), hi = el('div', 'info'), tr = el('div', 'track'), fill = el('i');
+    fill.style.width = clamp(lv.cur / lv.need * 100, 0, 100) + '%'; tr.append(fill);
+    const pr = el('div', 'prog'); pr.append(tr, el('span', null, fmt(lv.cur) + ' / ' + fmt(lv.need) + ' XP'));
+    hi.append(el('b', null, SK.name + ' · nivel ' + lv.L), el('span', null, 'Sube superando niveles nuevos. Cada nivel de nave da +5 % de daño y +2 de integridad.'), pr);
+    head.append(iconCanvas(g => { g.translate(0, 2); g.scale(1.1, 1.1); drawShip(g, SK, .9); }), hi, el('span', 'statv', String(lv.L)));
+    body.append(head);
+    const stat = (name, value, detail) => { const row = el('div', 'item up'), info = el('div', 'info'); info.append(el('b', null, name), el('span', null, detail)); row.append(info, el('span', 'statv', value)); body.append(row); };
+    stat('Daño por disparo', ST.dmg.toFixed(2), 'Potencia ' + u.power + '/5 · nivel de nave +' + 5 * (lv.L - 1) + ' %');
+    stat('Disparos por segundo', (1 / ST.fire).toFixed(1), 'Cadencia ' + u.rate + '/5');
+    stat('Integridad máxima', String(ST.maxInt), 'Blindaje ' + u.armor + '/5 · nivel de nave +' + 2 * (lv.L - 1));
+    stat('Alcance del imán', String(ST.magnet), 'Imán ' + u.magnet + '/3');
+    stat('Cuarentenas', ST.bombs + ' (máx. ' + ST.maxBombs + ')', 'Reserva ' + u.bomb + '/2');
+    stat('Duración de potenciadores', '×' + ST.dur.toFixed(2), 'Persistencia ' + u.time + '/3');
+    stat('Bono de bits', '+' + save.refBonus + ' %', 'Por los niveles que superan tus invitados');
+    let kills = 0; for (const c of CARDS) if (!c.dodge) kills += save.kills[c.id] || 0;
+    stat('Nivel alcanzado', save.level + ' / ' + MAXLV, totalStars() + ' estrellas · ' + fmt(kills) + ' virus eliminados');
+    stat('Duelos ganados', String(save.duelWins), save.duelPlayed + ' jugados');
+    body.append(el('p', 'tag', 'En los duelos todas las naves usan las mismas características.'));
+  } else if (shopTab === 'skins') {
     for (const s of SKINS) {
       const owned = save.skins.includes(s.id), row = el('div', 'item' + (save.skin === s.id ? ' sel' : ''));
       const c = iconCanvas(g => { g.translate(0, 2); g.scale(1.1, 1.1); if (!owned) g.globalAlpha = .55; drawShip(g, s, .9); });
@@ -1662,10 +1864,10 @@ let rankReq = 0;
 async function renderRank() {
   const body = $('rankBody'), mine = rankPoints(), req = ++rankReq;
   $('rankMine').textContent = fmt(mine);
-  $('rankBreak').textContent = 'Niveles ' + fmt(levelPoints()) + ' · Tarjetas ' + fmt(collectionPoints()) + ' · Duelos ' + fmt(save.duelWins * 300);
+  $('rankBreak').textContent = 'Niveles ' + fmt(levelPoints()) + ' · Tarjetas ' + fmt(collectionPoints()) + ' · Duelos ganados ' + fmt(save.duelWins * 300) + ' (300 por victoria)';
   show('nameField', !tgUser); $('nameInput').value = myName();
   body.textContent = ''; $('rankNote').textContent = '';
-  const meRow = pos => { const r = el('div', 'rrow me'), nm = el('span', 'nm', myName()); nm.append(el('small', null, 'Nivel ' + save.level)); r.append(el('span', null, pos), nm, el('b', null, fmt(mine))); return r; };
+  const meRow = pos => { const r = el('div', 'rrow me'), nm = el('span', 'nm', myName()); nm.append(el('small', null, 'Nivel ' + save.level + ' · ' + save.duelWins + ' duelos ganados')); r.append(el('span', null, pos), nm, el('b', null, fmt(mine))); return r; };
   if (!Online.enabled) {
     body.append(meRow('—'));
     $('rankNote').textContent = 'El ranking global todavía no está conectado. Se activa al poner la base de datos en CONFIG.';
@@ -1678,11 +1880,11 @@ async function renderRank() {
     if (req !== rankReq) return;
     $('rankNote').textContent = list.length ? '' : 'Todavía no hay nadie en el ranking.';
     const uid = myUid(); let found = false;
-    for (const p of list) if (p.id === uid) { p.p = mine; p.n = myName(); p.l = save.level; }
+    for (const p of list) if (p.id === uid) { p.p = mine; p.n = myName(); p.l = save.level; p.w = save.duelWins; }
     list.sort((a, b) => b.p - a.p);
     list.forEach((p, i) => {
       const me = p.id === uid; if (me) found = true;
-      const r = el('div', 'rrow' + (me ? ' me' : '')), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l));
+      const r = el('div', 'rrow' + (me ? ' me' : '')), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l + ' · ' + p.w + ' duelos ganados'));
       r.append(el('span', null, String(i + 1)), nm, el('b', null, fmt(p.p))); body.append(r);
     });
     if (!found) body.append(meRow('—'));
@@ -1692,10 +1894,116 @@ async function renderRank() {
   }
 }
 
-/* ---------------- Duelos entre jugadores (P2P con PeerJS) ---------------- */
+/* ---------------- Invitaciones y premios por compartir ---------------- */
+const REF_REWARDS = [{ n: 3, bits: 1500 }, { n: 5, bits: 3000 }, { n: 10, bits: 8000 }, { n: 25, bits: 25000 }];
+const SHARES = [
+  { id: 'story', name: 'Historia de Telegram', bits: 100 }, { id: 'tg', name: 'Telegram', bits: 40 }, { id: 'wa', name: 'WhatsApp', bits: 40 },
+  { id: 'fb', name: 'Facebook', bits: 40 }, { id: 'x', name: 'X', bits: 40 }, { id: 'ig', name: 'Instagram', bits: 40 }
+];
+const today = () => new Date().toISOString().slice(0, 10);
+function inviteLink() {
+  const base = CONFIG.telegram.shareUrl;
+  if (!base || !tgUser) return '';
+  return base + (base.includes('?') ? '&' : '?') + 'startapp=ref_' + myUid();
+}
+/* lee tus invitados, recalcula el bono (2 % por cada 10 niveles superados de cada uno) y entrega los premios pendientes */
+async function refreshRefs() {
+  if (!Online.enabled) return null;
+  try {
+    const list = (await Online.refList()).sort((a, b) => b.l - a.l);
+    save.refQual = list.filter(p => p.l >= 10).length;
+    save.refBonus = Math.min(100, list.reduce((s, p) => s + Math.floor((p.l - 1) / 10) * 2, 0));
+    const got = [];
+    for (const r of REF_REWARDS) if (save.refQual >= r.n && save.refClaim < r.n) { save.refClaim = r.n; save.bits += r.bits; save.earned += r.bits; got.push(r); }
+    persist();
+    return { list, got };
+  } catch (e) { return { error: true }; }
+}
+function copyText(text, input) {
+  const done = () => { $('inviteNote').textContent = 'Enlace copiado.'; };
+  const manual = () => { try { input.focus(); input.select(); } catch (e) {} $('inviteNote').textContent = 'Mantén pulsado el enlace para copiarlo.'; };
+  try { navigator.clipboard.writeText(text).then(done).catch(manual); } catch (e) { manual(); }
+}
+function renderInvite(res) {
+  const body = $('inviteBody'), top = body.scrollTop; body.textContent = '';
+  $('invBonus').textContent = '+' + save.refBonus + ' %'; refreshMenu();
+  const link = inviteLink(), share = link || CONFIG.telegram.shareUrl || location.href;
+  const text = 'Soy el antivirus en Centinela y voy por el nivel ' + save.level + '. ¿Me superas?';
+  body.append(el('p', 'tag', 'Invita a jugar con tu enlace. Cuando 3 invitados llegan al nivel 10 empiezas a ganar premios, y por cada 10 niveles que supera cada invitado tus niveles dan un 2 % más de bits (máximo 100 %).'));
+  const f = el('div', 'field'), inp = el('input'), cp = el('button', 'btn alt', 'Copiar');
+  inp.readOnly = true; inp.value = share; inp.id = 'invLink'; inp.setAttribute('aria-label', 'Tu enlace de invitación');
+  cp.addEventListener('click', () => copyText(share, inp)); f.append(inp, cp); body.append(f);
+  if (!link) body.append(el('p', 'note', tgUser ? 'Pon el enlace de tu juego (shareUrl) en CONFIG para que las invitaciones cuenten.' : 'Las invitaciones cuentan cuando el juego se abre dentro de Telegram.'));
+
+  body.append(el('span', 'lbl', 'Premios por invitados que llegan al nivel 10'));
+  for (const r of REF_REWARDS) {
+    const got = save.refClaim >= r.n, row = el('div', 'rrow' + (got ? ' me' : ''));
+    row.append(el('b', null, String(r.n)), el('span', 'nm', fmt(r.bits) + ' bits'), el('span', null, got ? 'Conseguido' : Math.min(save.refQual, r.n) + ' / ' + r.n));
+    body.append(row);
+  }
+
+  body.append(el('span', 'lbl', 'Tus invitados'));
+  if (!Online.enabled) body.append(el('p', 'tag', 'La lista de invitados se activa al conectar la base de datos en CONFIG, igual que el ranking.'));
+  else if (!res) body.append(el('p', 'tag', 'Cargando invitados…'));
+  else if (res.error) body.append(el('p', 'tag', 'No se pudo cargar la lista. Revisa tu conexión.'));
+  else if (!res.list.length) body.append(el('p', 'tag', 'Todavía no ha entrado nadie con tu enlace.'));
+  else for (const p of res.list) {
+    const row = el('div', 'rrow'), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l));
+    row.append(el('span', null, p.l >= 10 ? '✓' : '·'), nm, el('b', null, '+' + Math.floor((p.l - 1) / 10) * 2 + ' %'));
+    body.append(row);
+  }
+  if (res && res.got && res.got.length) $('inviteNote').textContent = 'Premio por invitados: +' + fmt(res.got.reduce((s, r) => s + r.bits, 0)) + ' bits.';
+
+  body.append(el('span', 'lbl', 'Compartir y ganar bits · una vez al día por red'));
+  const enc = encodeURIComponent, hrefs = {
+    tg: 'https://t.me/share/url?url=' + enc(share) + '&text=' + enc(text),
+    wa: 'https://wa.me/?text=' + enc(text + ' ' + share),
+    fb: 'https://www.facebook.com/sharer/sharer.php?u=' + enc(share),
+    x: 'https://twitter.com/intent/tweet?text=' + enc(text) + '&url=' + enc(share)
+  };
+  const canStory = inTg && typeof tg.shareToStory === 'function' && tg.isVersionAtLeast && tg.isVersionAtLeast('7.8');
+  for (const s of SHARES) {
+    const done = save.shares[s.id] === today(), row = el('div', 'item up'), info = el('div', 'info');
+    info.append(el('b', null, s.name), el('span', null, done ? 'Hecho hoy' : s.id === 'story' && !canStory ? 'Solo dentro de Telegram' : '+' + s.bits + ' bits'));
+    const pay = () => {
+      if (save.shares[s.id] !== today()) { save.shares[s.id] = today(); save.bits += s.bits; save.earned += s.bits; persist(); Sfx.buy(); $('inviteNote').textContent = 'Has recibido ' + s.bits + ' bits por compartir.'; }
+      renderInvite(res);
+    };
+    let act;
+    if (s.id === 'story') {
+      act = el('button', 'buy own', 'Publicar'); act.disabled = !canStory;
+      act.addEventListener('click', () => { try { tg.shareToStory(new URL(CONFIG.telegram.storyImage, location.href).href, { text: text + ' ' + share }); pay(); } catch (e) { $('inviteNote').textContent = 'No se pudo abrir el editor de historias.'; } });
+    } else if (s.id === 'ig') {
+      act = el('button', 'buy own', 'Copiar enlace');
+      act.addEventListener('click', () => { copyText(share, inp); pay(); $('inviteNote').textContent = 'Enlace copiado. Pégalo en tu historia o en tu perfil de Instagram.'; });
+    } else {
+      act = el('a', 'buy own', 'Compartir'); act.href = hrefs[s.id]; act.target = '_blank'; act.rel = 'noopener';
+      act.addEventListener('click', ev => {
+        if (inTg) { ev.preventDefault(); try { s.id === 'tg' ? tg.openTelegramLink(hrefs.tg) : tg.openLink(hrefs[s.id]); } catch (e) {} }
+        setTimeout(pay, 50);
+      });
+    }
+    row.append(info, act); body.append(row);
+  }
+  body.append(el('p', 'tag', 'El premio se entrega al pulsar el botón: el juego no puede comprobar que la publicación se haya hecho.'));
+  body.scrollTop = top;
+}
+function openInvite() {
+  renderInvite(null);
+  if (Online.enabled) refreshRefs().then(res => { if (!$('invite').hidden) renderInvite(res); });
+}
+
+/* ---------------- Duelos: las dos naves en la misma pantalla ----------------
+   El anfitrión calcula la partida y envía el estado unas 12 veces por segundo; el invitado
+   envía la posición de su nave y dibuja lo que recibe. Conexión directa entre jugadores con PeerJS. */
+const DUEL_REWARDS = [
+  { wins: 1, bits: 200 }, { wins: 3, skin: 'duelista' }, { wins: 5, bits: 500 }, { wins: 10, bits: 1000 },
+  { wins: 15, skin: 'campeon' }, { wins: 25, bits: 2500 }, { wins: 50, bits: 6000 }
+];
 const Duel = (() => {
-  const D = { active: false, bot: false, host: false, code: '', peer: null, conn: null, opp: { name: 'Rival', score: 0, hp: 1, fin: null },
-    ended: true, syncT: 0, kills: 0, botT: 0, botAtk: 0, skill: 1, finT: 0, wantAgain: false, oppAgain: false };
+  const TYPES = Object.keys(DEF), PKT = Object.keys(PK), DUR = 90, r = Math.round;
+  const D = { bot: false, host: false, code: '', peer: null, conn: null, ended: true, snapT: 0, inT: 0, ky: 1, map: {}, shockN: 0,
+    botX: 260, skill: 1, wantAgain: false, oppAgain: false, oppName: 'Rival', oppSkin: 'centinela' };
   const canOnline = () => typeof window.Peer === 'function';
   const note = t => { $('duelNote').textContent = t; };
   function send(m) { if (D.conn && D.conn.open) { try { D.conn.send(m); } catch (e) {} } }
@@ -1706,7 +2014,7 @@ const Duel = (() => {
   function lobby(room) { show('roomBox', room); show('duelActions', !room); }
   function newCode() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 4; i++) s += A[Math.random() * A.length | 0]; return s; }
   function wire(c) {
-    c.on('open', () => { if (D.conn && D.conn !== c) { try { c.close(); } catch (e) {} return; } D.conn = c; send({ t: 'hello', name: myName() }); });
+    c.on('open', () => { if (D.conn && D.conn !== c) { try { c.close(); } catch (e) {} return; } D.conn = c; send({ t: 'hello', name: myName(), skin: save.skin }); });
     c.on('data', onMsg); c.on('close', () => onClose(c)); c.on('error', () => onClose(c));
   }
   function create() {
@@ -1727,114 +2035,210 @@ const Duel = (() => {
     p.on('open', () => wire(p.connect(CONFIG.online.duelPrefix + code, { reliable: true })));
     p.on('error', e => { if (p !== D.peer) return; note(e && e.type === 'peer-unavailable' ? 'No existe ninguna sala con ese código.' : 'No se pudo conectar. Revisa tu conexión.'); });
   }
-  function begin(bot) {
-    D.active = true; D.bot = bot; D.ended = false; D.kills = 0; D.syncT = 0; D.wantAgain = D.oppAgain = false;
-    D.opp.score = 0; D.opp.hp = 1; D.opp.fin = null;
-    if (bot) { D.opp.name = 'Bot de práctica'; D.skill = rand(.75, 1.2); D.botT = 5; D.botAtk = 9; }
-    startDuelGame(D.opp.name);
+  function begin(bot, hostH) {
+    D.bot = bot; D.ended = false; D.wantAgain = D.oppAgain = false; D.snapT = D.inT = 0; D.map = {}; D.shockN = 0;
+    D.t0 = D.rx = performance.now();
+    if (bot) { D.host = true; D.oppName = 'Bot'; D.oppSkin = pick(SKINS).id; D.skill = rand(.7, 1.15); }
+    startDuelGame(D.oppName);
+    S.net = bot ? 'solo' : D.host ? 'host' : 'guest';
+    D.ky = S.net === 'guest' && hostH > 0 ? H / hostH : 1;
+    /* duelo justo: las dos naves tienen las mismas características, sin contar las mejoras del Arsenal */
+    const std = { maxInt: 100, int: 100, bombs: 1, maxBombs: 3, gap: .15, dmg: 1.3, magnet: 100, dur: 1, kills: 0 };
+    Object.assign(P, std); Object.assign(Q, std, { name: D.oppName, sk: SKINS.find(s => s.id === D.oppSkin) || SKINS[0] });
+    const mineX = W * (S.net === 'guest' ? .68 : .32);
+    P.x = P.tx = mineX; Q.x = Q.tx = D.botX = W - mineX; P.y = P.ty = Q.y = Q.ty = H - 120;
   }
   function onMsg(m) {
     if (!m || typeof m !== 'object') return;
+    D.rx = performance.now();
     switch (m.t) {
-      case 'hello': D.opp.name = String(m.name || 'Rival').slice(0, 16); if (D.host && D.ended) { send({ t: 'start' }); begin(false); } break;
-      case 'start': if (!D.host && D.ended) begin(false); break;
-      case 's': D.opp.score = Number(m.sc) || 0; D.opp.hp = clamp(Number(m.hp) || 0, 0, 1); break;
-      case 'atk': if (S.mode === 'play' && S.kind === 'duel') incoming(m.k); break;
-      case 'dead': D.opp.score = Number(m.sc) || 0; D.opp.hp = 0; if (!D.ended) end('win', D.opp.name + ' ha caído.'); break;
-      case 'fin': D.opp.fin = Number(m.sc) || 0; D.opp.score = D.opp.fin; break;
+      case 'hello':
+        D.oppName = String(m.name || 'Rival').slice(0, 16); D.oppSkin = String(m.skin || 'centinela');
+        if (D.host && D.ended && S.mode !== 'duelend') { send({ t: 'start', h: H }); begin(false); }
+        break;
+      case 'start': if (!D.host && D.ended) begin(false, Number(m.h) || H); break;
+      case 'i': if (S.net === 'host' && !D.ended) { Q.tx = Number(m.x) || Q.tx; Q.ty = Number(m.y) || Q.ty; } break;
+      case 'bomb': if (S.net === 'host' && !D.ended && S.mode === 'play' && Q.bombs > 0 && Q.out <= 0) { Q.bombs--; shockwave(Q); } break;
+      case 'w': if (S.net === 'guest' && !D.ended) apply(m); break;
+      case 'end':
+        if (S.net === 'guest' && !D.ended) { Q.kills = Number(m.a) || 0; P.kills = Number(m.b) || 0; finish(P.kills > Q.kills ? 'win' : P.kills < Q.kills ? 'lose' : 'draw', ''); }
+        break;
       case 'again':
         D.oppAgain = true;
-        if (D.wantAgain && D.host) { send({ t: 'start' }); begin(false); }
-        else if (!D.wantAgain && S.mode === 'duelend') $('duelEndNote').textContent = D.opp.name + ' quiere la revancha.';
+        if (D.wantAgain && D.host) { send({ t: 'start', h: H }); begin(false); }
+        else if (!D.wantAgain && S.mode === 'duelend') $('duelEndNote').textContent = D.oppName + ' quiere la revancha.';
         break;
     }
   }
   function onClose(c) {
     if (c !== D.conn) return;
     D.conn = null;
-    if (!D.ended && S.kind === 'duel') end('win', 'El rival se desconectó.');
+    if (!D.ended && S.kind === 'duel') { closeNet(); finish('win', 'El rival se desconectó.'); }
     else if (S.mode === 'duelend') { $('duelEndNote').textContent = 'El rival ha salido.'; $('btnRematch').disabled = true; }
     else { lobby(false); note('Se cerró la conexión con el rival.'); }
   }
-  function incoming(k) {
-    if (k === 'hacker') spawnHacker(false, true); else swarm(rand(60, W - 60));
-    toast('ATAQUE DE ' + D.opp.name.toUpperCase(), C.red); Sfx.alarm();
+
+  /* --- anfitrión (y duelo contra el bot) --- */
+  function shipArr(pl) { return [r(pl.x), r(pl.y), r(pl.int), r(pl.out * 10), pl.shield ? 1 : 0, r(pl.rapid * 10), r(pl.spread * 10), r(pl.inv * 10), pl.bombs, pl.kills]; }
+  function snap() {
+    return { t: 'w', T: r(S.duelT * 10) / 10, z: S.zone, n: S.shockN, s: S.shock ? [r(S.shock.x), r(S.shock.y)] : null,
+      e: enemies.map(e => [e.id, TYPES.indexOf(e.type), r(e.x), r(e.y), e.type === 'hacker' ? 100 : r(e.hp / e.max * 100), e.kind, e.state, r(e.ang * 100)]),
+      eb: ebullets.map(b => [r(b.x), r(b.y), r(b.vx), r(b.vy)]),
+      pk: picks.map(p => [PKT.indexOf(p.type), r(p.x), r(p.y)]),
+      a: shipArr(P), b: shipArr(Q) };
   }
-  function onKill() {
-    D.kills++;
-    if (D.kills % 8) return;
-    const k = D.kills % 24 === 0 ? 'hacker' : 'adware';
-    send({ t: 'atk', k }); if (D.bot) D.opp.hp -= k === 'hacker' ? .08 : .04;
-    floatText(P.x, P.y - 44, 'ATAQUE ENVIADO', C.amber);
+  function botTick(dt) {
+    let best = null;
+    for (const e of enemies) if (!e.dead && e.type !== 'hacker' && e.y > 0 && e.y < Q.y - 30 && (!best || e.y > best.y)) best = e;
+    let tx = best ? best.x : W * .68;
+    for (const e of enemies) if (e.type === 'hacker' && Math.abs(e.x - Q.x) < 64 && Math.abs(e.y - Q.y) < 140) tx = Q.x + (Q.x >= e.x ? 100 : -100);
+    const v = 170 * D.skill * dt;
+    D.botX = clamp(D.botX + clamp(tx - D.botX, -v, v), 20, W - 20);
+    Q.tx = D.botX; Q.ty = H - 170;
+    if (Q.bombs > 0 && Q.out <= 0 && enemies.length > 10 && Math.random() < dt * .2) { Q.bombs--; shockwave(Q); }
   }
-  function tick(dt) {
-    S.duelT -= dt; S.diff = 2 + (1 - Math.max(0, S.duelT) / 90) * 10;
-    D.syncT -= dt; if (D.syncT <= 0) { D.syncT = .3; send({ t: 's', sc: S.score, hp: clamp(S.integrity / ST.maxInt, 0, 1) }); }
-    if (D.bot) {
-      D.opp.score += (60 + (90 - S.duelT) * 2.2) * D.skill * dt;
-      D.botT -= dt; if (D.botT <= 0) { D.botT = rand(4, 9); if (Math.random() < .7) D.opp.hp -= rand(.04, .1); }
-      D.botAtk -= dt; if (D.botAtk <= 0) { D.botAtk = rand(8, 13); incoming(Math.random() < .25 ? 'hacker' : 'adware'); }
-      if (D.opp.hp <= 0) { D.opp.hp = 0; end('win', 'El bot ha caído.'); return; }
+  function hostTick(dt) {
+    /* el tiempo del duelo va por reloj real; si el rival deja de responder unos segundos, se da por desconectado */
+    S.duelT = DUR - (performance.now() - D.t0) / 1000; S.diff = 3 + (1 - Math.max(0, S.duelT) / DUR) * 9;
+    if (!D.bot && performance.now() - D.rx > 6000) { closeNet(); finish('win', 'El rival se desconectó.'); return; }
+    if (D.bot) botTick(dt);
+    moveShip(Q, dt);
+    if (!D.bot) { D.snapT -= dt; if (D.snapT <= 0) { D.snapT = 1 / 12; send(snap()); } }
+    if (S.duelT <= 0) {
+      S.duelT = 0; send({ t: 'end', a: P.kills, b: Q.kills });
+      finish(P.kills > Q.kills ? 'win' : P.kills < Q.kills ? 'lose' : 'draw', '');
     }
-    if (S.duelT <= 0) { S.duelT = 0; S.mode = 'duelwait'; D.finT = 1.5; send({ t: 'fin', sc: S.score }); banner('TIEMPO', 'Comparando puntuaciones'); }
   }
-  function waitTick(dt) {
-    D.finT -= dt;
-    if (!D.bot && D.opp.fin == null && D.finT > 0) return;
-    const mine = S.score, theirs = Math.round(D.opp.fin != null ? D.opp.fin : D.opp.score);
-    D.opp.score = theirs;
-    end(mine > theirs ? 'win' : mine < theirs ? 'lose' : 'draw', '');
+
+  /* --- invitado: aplica el estado que llega del anfitrión --- */
+  function applyShip(pl, a, pos) {
+    const ky = D.ky, wasOut = pl.out > 0, was = pl.int;
+    if (pos) { pl.tx = a[0]; pl.ty = a[1] * ky; }
+    pl.int = a[2]; pl.out = a[3] / 10; pl.shield = !!a[4]; pl.rapid = a[5] / 10; pl.spread = a[6] / 10; pl.inv = a[7] / 10; pl.bombs = a[8]; pl.kills = a[9];
+    if (pl.out > 0 && !wasOut) {
+      burst(pl.x, pl.y, pl.sk.main, 50, 300);
+      if (pl === P) { S.shake = 16; S.glitch = .5; Sfx.boom(true); haptic('error'); }
+    } else if (pl === P && pl.int < was && !wasOut) { S.shake = 10; S.glitch = .3; S.flash = .25; Sfx.hurt(); haptic('heavy'); }
   }
-  function localDead() { send({ t: 'dead', sc: S.score }); end('lose', 'Tu sistema ha caído.'); }
-  function end(result, msg) {
+  function apply(m) {
+    const ky = D.ky, seen = {};
+    S.duelT = Number(m.T) || 0; if (m.z != null) setZone(m.z | 0);
+    for (const a of m.e || []) {
+      const id = a[0]; seen[id] = 1; let e = D.map[id];
+      if (!e) {
+        const type = TYPES[a[1]] || 'worm', d = DEF[type];
+        e = D.map[id] = { id, type, x: a[2], y: a[3] * ky, tx: a[2], ty: a[3] * ky, r: d.r, color: d.color, t: 0, rot: rand(0, TAU), hit: 0, lx: 0,
+          hp: 100, max: 100, kind: 0, state: 0, st: 1, ang: 0, dead: false };
+        enemies.push(e);
+      }
+      e.tx = a[2]; e.ty = a[3] * ky; if (a[4] < e.hp) e.hit = .08; e.hp = a[4]; e.kind = a[5]; e.state = a[6];
+      const ang = a[7] / 100; e.ang = Math.atan2(Math.sin(ang) * ky, Math.cos(ang));
+    }
+    for (const e of enemies) if (!seen[e.id]) {
+      e.dead = true; delete D.map[e.id];
+      if (e.type !== 'hacker' && e.y > -10 && e.y < H + 10) { burst(e.x, e.y, e.color, e.r > 16 ? 28 : 15, 190); Sfx.boom(false); }
+    }
+    enemies = enemies.filter(e => !e.dead);
+    ebullets = (m.eb || []).map(b => ({ x: b[0], y: b[1] * ky, vx: b[2], vy: b[3] * ky, dead: false }));
+    picks = (m.pk || []).map(p => ({ type: PKT[p[0]] || 'patch', x: p[1], y: p[2] * ky, t: S.t, dead: false }));
+    if (m.a) applyShip(Q, m.a, true);
+    if (m.b) applyShip(P, m.b, false);
+    if (m.n !== D.shockN) { D.shockN = m.n; if (m.s) { S.shock = { x: m.s[0], y: m.s[1] * ky, t: 0 }; S.flash = .3; S.shake = 12; Sfx.bomb(); } }
+  }
+  function guestTick(dt) {
+    S.duelT = Math.max(0, S.duelT - dt);
+    if (performance.now() - D.rx > 6000) { closeNet(); finish('win', 'El rival se desconectó.'); return; }
+    D.inT -= dt; if (D.inT <= 0) { D.inT = .05; send({ t: 'i', x: r(P.x), y: r(P.y / D.ky) }); }
+    moveShip(Q, dt);
+    const f = Math.min(1, dt * 14);
+    for (const e of enemies) {
+      e.t += dt; e.rot += dt; if (e.hit > 0) e.hit -= dt;
+      e.x += (e.tx - e.x) * f; e.y += (e.ty - e.y) * f;
+      if (e.type === 'spy') e.lx = clamp((P.x - e.x) / 60, -1, 1);
+    }
+    for (const b of bullets) {   /* disparos solo visuales: el anfitrión decide los impactos */
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.y < -20 || b.x < -20 || b.x > W + 20) { b.dead = true; continue; }
+      for (const e of enemies) { const dx = e.x - b.x, dy = e.y - b.y, rr = e.r + 4; if (dx * dx + dy * dy < rr * rr) { b.dead = true; e.hit = .08; break; } }
+    }
+    bullets = bullets.filter(b => !b.dead);
+    for (const b of ebullets) { b.x += b.vx * dt; b.y += b.vy * dt; }
+    for (const p of picks) p.y += 70 * dt;
+  }
+  function sendBomb() { send({ t: 'bomb' }); }
+
+  function finish(result, msg) {
     if (D.ended) return;
     D.ended = true; S.mode = 'duelend'; S.boss = null;
-    const prize = result === 'win' ? 80 : result === 'draw' ? 40 : 20;
-    S.runBits += prize; creditBits();
-    if (!D.bot) { save.duelPlayed++; if (result === 'win') save.duelWins++; }
-    persist(); if (!D.bot) Online.submit();
-    const t = $('duelTitle'); t.textContent = result === 'win' ? 'Victoria' : result === 'lose' ? 'Derrota' : 'Empate'; t.className = result === 'lose' ? 'bad' : 'good';
-    $('duelMe').textContent = fmt(S.score); $('duelOpp').textContent = fmt(D.opp.score); $('duelOppName').textContent = D.opp.name;
-    $('duelBits').textContent = '+' + fmt(S.runBits);
-    $('duelEndNote').textContent = (msg ? msg + ' ' : '') + (D.bot ? 'Duelo de práctica: no suma puntos de rango.' : result === 'win' ? '+300 puntos de rango.' : '');
-    $('btnRematch').disabled = !D.bot && !(D.conn && D.conn.open);
-    if (result === 'win') { Sfx.win(); haptic('success'); } else haptic('error');
+    const real = !D.bot, won = result === 'win';
+    const prize = real ? (won ? 150 : result === 'draw' ? 60 : 25) : (won ? 40 : result === 'draw' ? 20 : 10);
+    save.bits += prize; save.earned += prize;
+    const extra = [];
+    if (real) {
+      save.duelPlayed++;
+      if (won) {
+        save.duelWins++;
+        for (const rw of DUEL_REWARDS) if (rw.wins === save.duelWins) {
+          if (rw.bits) { save.bits += rw.bits; save.earned += rw.bits; extra.push('+' + fmt(rw.bits) + ' bits'); }
+          else { const sk = SKINS.find(s => s.id === rw.skin); unlock(rw.skin); if (sk) extra.push('skin ' + sk.name); }
+        }
+      }
+    }
+    persist(); if (real) Online.submit();
+    const t = $('duelTitle'); t.textContent = won ? 'Victoria' : result === 'lose' ? 'Derrota' : 'Empate'; t.className = result === 'lose' ? 'bad' : 'good';
+    $('duelMe').textContent = String(P.kills); $('duelOpp').textContent = String(Q.kills); $('duelOppName').textContent = 'Eliminados de ' + Q.name;
+    $('duelBits').textContent = '+' + fmt(prize);
+    $('duelEndNote').textContent = (msg ? msg + ' ' : '') + (!real ? 'Duelo de práctica: no cuenta para el ranking ni para las recompensas.'
+      : won ? '+300 puntos de rango. Llevas ' + save.duelWins + (save.duelWins === 1 ? ' victoria.' : ' victorias.') + (extra.length ? ' Recompensa de duelo: ' + extra.join(', ') + '.' : '') : '');
+    $('btnRematch').disabled = real && !(D.conn && D.conn.open);
+    if (won) { Sfx.win(); haptic('success'); } else haptic('error');
     show('hud', false); show('duelEnd', true);
   }
   function rematch() {
     if (D.bot) { begin(true); return; }
     D.wantAgain = true; send({ t: 'again' });
-    if (D.oppAgain && D.host) { send({ t: 'start' }); begin(false); }
-    else $('duelEndNote').textContent = 'Esperando a que ' + D.opp.name + ' acepte la revancha…';
+    if (D.oppAgain && D.host) { send({ t: 'start', h: H }); begin(false); }
+    else $('duelEndNote').textContent = 'Esperando a que ' + D.oppName + ' acepte la revancha…';
   }
-  function leave() { D.active = false; D.ended = true; closeNet(); lobby(false); }
-  function cancelLobby() { if (D.ended && (D.peer || D.conn)) { closeNet(); } lobby(false); }
+  function leave() { D.ended = true; closeNet(); lobby(false); }
+  function cancelLobby() { if (D.ended && (D.peer || D.conn)) closeNet(); lobby(false); }
   function open() {
     $('duelWins').textContent = fmt(save.duelWins); lobby(false);
     const on = canOnline(); $('btnCreate').disabled = !on; $('btnJoin').disabled = !on; $('codeInput').disabled = !on;
     note(on ? '' : 'El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.');
+    const box = $('duelRewards'); box.textContent = '';
+    for (const rw of DUEL_REWARDS) {
+      const got = save.duelWins >= rw.wins, sk = rw.skin && SKINS.find(s => s.id === rw.skin);
+      const row = el('div', 'rrow' + (got ? ' me' : '')), nm = el('span', 'nm', rw.bits ? fmt(rw.bits) + ' bits' : 'Skin ' + (sk ? sk.name : ''));
+      row.append(el('b', null, String(rw.wins)), nm, el('span', null, got ? 'Conseguida' : 'Faltan ' + (rw.wins - save.duelWins)));
+      box.append(row);
+    }
   }
   function share() {
     const url = CONFIG.telegram.shareUrl + (CONFIG.telegram.shareUrl.includes('?') ? '&' : '?') + 'startapp=duel_' + D.code;
     try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent('Te reto a un duelo en Centinela. Sala ' + D.code)); } catch (e) {}
   }
-  return { opp: D.opp, create, join, begin, tick, waitTick, localDead, onKill, rematch, leave, cancelLobby, open, share };
+  return { create, join, begin, hostTick, guestTick, sendBomb, rematch, leave, cancelLobby, open, share };
 })();
 
 /* ---------------- Botones ---------------- */
 $('btnPlay').addEventListener('click', () => startLevel(save.level));
-$('btnLevels').addEventListener('click', () => openSheet('levels', renderLevels));
+$('btnLevels').addEventListener('click', () => { lvPage = -1; openSheet('levels', renderLevels); });
+$('lvPrev').addEventListener('click', () => { lvPage--; Sfx.ui(); renderLevels(); });
+$('lvNext').addEventListener('click', () => { lvPage++; Sfx.ui(); renderLevels(); });
 $('btnCodex').addEventListener('click', () => openSheet('codex', renderCodex));
 $('btnShop').addEventListener('click', () => openSheet('shop', () => { $('shopNote').textContent = ''; renderShop(); }));
 $('btnRank').addEventListener('click', () => openSheet('rank', renderRank));
 $('btnDuel').addEventListener('click', () => openSheet('duel', Duel.open));
+$('btnInvite').addEventListener('click', () => openSheet('invite', openInvite));
 for (const b of document.querySelectorAll('[data-close]')) b.addEventListener('click', closeSheet);
 $('tabSkins').addEventListener('click', () => { shopTab = 'skins'; $('shopBody').scrollTop = 0; renderShop(); });
+$('tabShip').addEventListener('click', () => { shopTab = 'ship'; $('shopBody').scrollTop = 0; renderShop(); });
 $('tabUps').addEventListener('click', () => { shopTab = 'ups'; $('shopBody').scrollTop = 0; renderShop(); });
 $('btnBitsAd').addEventListener('click', async () => {
-  const ok = await withAd(Ads.rewarded);
+  const ok = await withAd(() => Ads.rewarded('arsenal'));
   if (ok) { const n = CONFIG.ads.shopReward; save.bits += n; save.earned += n; persist(); Sfx.buy(); $('shopNote').textContent = 'Has recibido ' + fmt(n) + ' bits.'; renderShop(); }
-  else $('shopNote').textContent = 'No hay ningún anuncio disponible ahora. Inténtalo más tarde.';
+  else $('shopNote').textContent = 'El anuncio no se completó o no hay ninguno disponible ahora.';
 });
 $('btnName').addEventListener('click', () => {
   const v = $('nameInput').value.replace(/\s+/g, ' ').trim().slice(0, 16);
@@ -1849,29 +2253,29 @@ $('btnRoomShare').addEventListener('click', Duel.share);
 $('btnRematch').addEventListener('click', Duel.rematch);
 $('btnDuelExit').addEventListener('click', () => { Duel.leave(); goMenu(); });
 $('btnResume').addEventListener('click', () => setPause(false));
-$('btnQuit').addEventListener('click', () => { creditBits(); persist(); goMenu(); });
+$('btnQuit').addEventListener('click', goMenu);
 $('btnPause').addEventListener('click', () => setPause(true));
-$('btnBomb').addEventListener('click', bomb);
+$('btnBomb').addEventListener('click', () => bomb());
 $('btnMute').addEventListener('click', () => { Sfx.init(); const on = !(save.music || save.sfx); save.music = save.sfx = on; persist(); refreshAudioUi(); });
 $('togMusic').addEventListener('click', () => { save.music = !save.music; persist(); refreshAudioUi(); });
 $('togSfx').addEventListener('click', () => { save.sfx = !save.sfx; persist(); refreshAudioUi(); Sfx.ui(); });
 $('btnRevive').addEventListener('click', async () => {
   if (S.mode !== 'over' || S.revived || S.win) return;
   show('over', false);
-  const ok = await withAd(Ads.rewarded);
+  const ok = await withAd(() => Ads.rewarded('continuar'));
   if (ok) {
-    S.revived = true; S.alive = true; S.integrity = Math.round(ST.maxInt * .6); S.mode = 'play'; P.inv = 3; P.tx = P.x; P.ty = P.y;
+    S.revived = true; S.alive = true; P.int = Math.round(P.maxInt * .6); S.mode = 'play'; P.inv = 3; P.tx = P.x; P.ty = P.y;
     show('hud', true); shockwave(); banner('SISTEMA RESTAURADO', 'Integridad al 60 %');
-  } else { $('overNote').textContent = 'No hay ningún anuncio disponible ahora. Inténtalo más tarde.'; show('over', true); }
+  } else { $('overNote').textContent = 'El anuncio no se completó o no hay ninguno disponible ahora.'; show('over', true); }
 });
 $('btnDouble').addEventListener('click', async () => {
   if (S.mode !== 'over' || S.doubled) return;
   show('over', false);
-  const ok = await withAd(Ads.rewarded);
+  const ok = await withAd(() => Ads.rewarded('bits_x2'));
   if (ok) {
     S.doubled = true; save.bits += S.runBits; save.earned += S.runBits; persist(); Sfx.buy();
     $('finalBits').textContent = '+' + fmt(S.runBits) + ' ×2'; $('overNote').textContent = 'Bits duplicados.';
-  } else $('overNote').textContent = 'No hay ningún anuncio disponible ahora. Inténtalo más tarde.';
+  } else $('overNote').textContent = 'El anuncio no se completó o no hay ninguno disponible ahora.';
   syncOverButtons(); show('over', true);
 });
 $('btnNext').addEventListener('click', async () => {
@@ -1924,23 +2328,34 @@ let last = 0;
 function frame(ts) {
   const dt = last ? Math.min(.033, (ts - last) / 1000) : 0; last = ts;
   update(dt); draw();
-  if (S.mode === 'play' || S.mode === 'dying' || S.mode === 'clearing' || S.mode === 'duelwait') syncHud();
+  if (S.mode === 'play' || S.mode === 'dying' || S.mode === 'clearing') syncHud();
   requestAnimationFrame(frame);
 }
 function boot(data) {
   try { applySave(JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) {}
   if (data && data.save && Number(data.save.earned) >= save.earned) applySave(data.save);
   syncSkin(); ST = stats();
+  /* quién te invitó: solo cuenta para jugadores nuevos que abren el juego desde un enlace de invitación en Telegram */
+  const afterLoad = () => {
+    try {
+      const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param, rm = sp && /^ref_(tg\d{3,15})$/.exec(sp);
+      if (rm && tgUser && !save.ref && rm[1] !== myUid() && save.level === 1 && !save.earned) { save.ref = rm[1]; persist(); }
+    } catch (e) {}
+    Online.refPush(); refreshRefs().then(() => refreshMenu());
+  };
   try {
-    if (cloudOK) tg.CloudStorage.getItem('save', (err, v) => {
-      if (err || !v) return;
-      try { const d = JSON.parse(v); if (Number(d.earned) > save.earned || Number(d.level) > save.level) { applySave(d); syncSkin(); ST = stats(); refreshMenu(); refreshAudioUi(); } } catch (e) {}
+    if (cloudOK) tg.CloudStorage.getItems(['save', 'st', 'b0', 'b1', 'b2', 'b3'], (err, v) => {
+      try {
+        if (!err && v && v.save) { const d = cloudUnpack(v); if (Number(d.earned) > save.earned || Number(d.level) > save.level) { applySave(d); syncSkin(); ST = stats(); refreshMenu(); refreshAudioUi(); } }
+      } catch (e) {}
+      afterLoad();
     });
+    else afterLoad();
     if (tgUser && tgUser.first_name) $('greet').textContent = 'Agente ' + tgUser.first_name + ': eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.';
   } catch (e) {}
   if (window.matchMedia && window.matchMedia('(pointer: fine)').matches)
     $('howto').textContent = 'Mueve el ratón o usa las flechas. Disparo automático. Espacio: cuarentena.';
-  resize(); refreshMenu(); refreshAudioUi();
+  resize(); refreshMenu(); refreshAudioUi(); Ads.preload();
   S.zone = S.zonePrev = zoneOfLevel(save.level);
   P.x = P.tx = W / 2; P.y = P.ty = H - 80;
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { zoneAssets.length = 0; }).catch(() => {});
