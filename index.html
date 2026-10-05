@@ -190,6 +190,17 @@ a.buy{text-decoration:none}
 /* Ranking y duelo */
 .rrow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);background:rgba(10,13,34,.8);font-family:var(--mono);font-size:13px;color:var(--dim)}
 .rrow.me{border-color:var(--core);background:rgba(92,240,255,.08)}
+.rrow .buy{min-width:0;padding:7px 12px}
+.dot{width:9px;height:9px;border-radius:50%;background:#4a557f;justify-self:center}
+.dot.on{background:var(--mint);box-shadow:0 0 8px var(--mint)}
+.veil{position:absolute;inset:0;z-index:7;background:rgba(3,4,12,.88)}
+.stack12{display:flex;flex-direction:column;gap:12px}
+.linkbtn{background:none;border:0;color:var(--dim);font-family:var(--mono);font-size:13px;text-decoration:underline;cursor:pointer;padding:6px;align-self:center}
+.dots{display:flex;gap:8px;justify-content:center}
+.dots i{width:8px;height:8px;background:#39446f;transform:rotate(45deg)}
+.dots i.on{background:var(--core)}
+#tutPic{width:100%;height:auto;aspect-ratio:300/130;display:block;background:rgba(5,6,15,.7);border:1px solid var(--line)}
+#tutText{min-height:4.4em}
 .rrow b{font-family:var(--display);font-size:15px;font-variant-numeric:tabular-nums;color:var(--ink)}
 .rrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
 .rrow .nm small{color:var(--dim);font-size:11px;margin-left:6px}
@@ -246,7 +257,7 @@ a.buy{text-decoration:none}
           <span class="wallet"><i class="gem"></i><strong id="walletMenu">0</strong></span>
           <button class="ico" id="btnMute" aria-label="Activar o silenciar el sonido"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path class="wave" d="M15.5 12a4 4 0 0 0-2-3.5v7a4 4 0 0 0 2-3.5zm-2-8.3v2.1a7 7 0 0 1 0 12.4v2.1a9 9 0 0 0 0-16.6z"/></svg></button>
         </div>
-        <p class="tag" id="howto">Arrastra para moverte. El disparo es automático.</p>
+        <button class="linkbtn" id="btnHelp">Cómo se juega</button>
       </div>
     </section>
 
@@ -303,6 +314,44 @@ a.buy{text-decoration:none}
         </div>
       </div>
     </section>
+
+    <div class="veil" id="ask" hidden>
+      <section class="panel">
+        <div class="panel-in">
+          <h2>Reto de duelo</h2>
+          <p class="tag" id="askText"></p>
+          <div class="pair">
+            <button class="btn go" id="askYes">Aceptar</button>
+            <button class="btn alt" id="askNo">Rechazar</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="veil" id="intro" hidden>
+      <section class="panel">
+        <div class="panel-in">
+          <div class="stack12" id="introName">
+            <h2 id="introTitle">Bienvenido, agente</h2>
+            <p class="tag">Ponle nombre a tu Centinela. Es el nombre que verán los demás en el ranking y en los duelos.</p>
+            <div class="field"><input id="introInput" maxlength="16" placeholder="Nombre del Centinela" autocomplete="off" aria-label="Nombre de tu Centinela"></div>
+            <p class="note" id="introNote"></p>
+            <button class="btn go" id="introOk">Continuar</button>
+          </div>
+          <div class="stack12" id="introTut" hidden>
+            <canvas id="tutPic" width="600" height="260"></canvas>
+            <h2 id="tutTitle"></h2>
+            <p class="tag" id="tutText"></p>
+            <div class="dots" id="tutDots"></div>
+            <div class="pair">
+              <button class="btn alt" id="tutBack">Atrás</button>
+              <button class="btn go" id="tutNext">Siguiente</button>
+            </div>
+            <button class="linkbtn" id="tutSkip">Saltar el tutorial</button>
+          </div>
+        </div>
+      </section>
+    </div>
 
     <section class="sheet" id="levels" hidden>
       <div class="sheet-top"><h2>Niveles</h2><span class="tagline"><strong id="lvStars">0</strong> / 3000 estrellas</span></div>
@@ -372,6 +421,8 @@ a.buy{text-decoration:none}
           <button class="btn alt" id="btnBot">Practicar contra un bot<small>No cuenta para el ranking ni las recompensas</small></button>
         </div>
         <p class="note" id="duelNote"></p>
+        <span class="lbl">Jugadores conectados</span>
+        <div class="stack" id="lobbyList"></div>
         <span class="lbl">Recompensas por victorias en duelo</span>
         <div class="stack" id="duelRewards"></div>
       </div>
@@ -414,7 +465,7 @@ const CONFIG = {
     maxLevelSeconds: 120       // tope de duración de las oleadas de un nivel
   },
   telegram: {
-    shareUrl: 'https://t.me/CentinelaGame_bot/juego',              // enlace de tu juego, p. ej. https://t.me/TuBot/centinela (necesario para invitar y compartir)
+    shareUrl: '',              // enlace de tu juego, p. ej. https://t.me/TuBot/centinela (necesario para invitar y compartir)
     storyImage: 'historia.jpg' // imagen para las historias de Telegram; súbela junto a index.html
   },
   online: {
@@ -427,6 +478,9 @@ const CONFIG = {
     //     "$uid": { ".write": true, ".validate": "newData.child('l').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } }
     // } }
     databaseUrl: '',
+    // SERVIDOR CONTRA TRAMPAS (carpeta de Firebase): si lo usas, pon aquí su dirección y deja databaseUrl vacío.
+    // '/api' si el juego está en Firebase Hosting; o la dirección completa de la función si el juego está en otro sitio.
+    apiUrl: '',
     duelPrefix: 'centinela-duelo-'   // prefijo de las salas de duelo (cámbialo si quieres salas solo para tu juego)
   }
 };
@@ -482,10 +536,11 @@ const RANKS = ['Bronce', 'Plata', 'Oro'], RANK_BITS = [60, 200, 600];
 const MILESTONES = [[3, 500], [6, 1000], [9, 1500], [12, 2500], [15, 3500], [18, 5000], [21, 7000], [24, 9000], [27, 12000]];
 
 /* ---------------- Guardado ---------------- */
+const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
 const SAVE_KEY = 'cen_save';
 const save = { v: 2, bits: 0, earned: 0, level: 1, best: {}, stars: {}, skin: 'centinela', skins: ['centinela'], up: {}, kills: {}, seen: {},
   bossKills: 0, duelWins: 0, duelPlayed: 0, uid: '', name: '', music: true, sfx: true,
-  xp: 0, ref: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {} };
+  xp: 0, ref: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, intro: false };
 for (const u of UPS) save.up[u.id] = 0;
 function applySave(d) {
   if (!d || typeof d !== 'object') return;
@@ -507,7 +562,8 @@ function applySave(d) {
   if (typeof d.skin === 'string' && save.skins.includes(d.skin)) save.skin = d.skin;
   if (d.up && typeof d.up === 'object') for (const u of UPS) save.up[u.id] = clamp(num(d.up[u.id], save.up[u.id]), 0, u.max);
   if (typeof d.uid === 'string' && /^[a-z0-9]{6,20}$/.test(d.uid) && !save.uid) save.uid = d.uid;
-  if (typeof d.name === 'string') save.name = d.name.slice(0, 16);
+  if (typeof d.name === 'string' && d.name) save.name = cleanName(d.name);
+  if (d.intro === true) save.intro = true;
   if (typeof d.music === 'boolean') save.music = d.music;
   if (typeof d.sfx === 'boolean') save.sfx = d.sfx;
 }
@@ -584,9 +640,9 @@ function myUid() {
   if (!save.uid) { save.uid = 'w' + Math.random().toString(36).slice(2, 12); persist(); }
   return save.uid;
 }
+/* el nombre que el jugador le puso a su Centinela; si no, el de Telegram */
 function myName() {
-  if (tgUser && tgUser.first_name) return String(tgUser.first_name).slice(0, 16);
-  return save.name || 'Agente-' + myUid().slice(-4).toUpperCase();
+  return save.name || (tgUser && tgUser.first_name && cleanName(tgUser.first_name)) || 'Agente-' + myUid().slice(-4).toUpperCase();
 }
 
 /* ---------------- Anuncios ---------------- */
@@ -643,28 +699,41 @@ const Ads = (() => {
 
 /* ---------------- Ranking en línea (Firebase Realtime Database por REST) ---------------- */
 const Online = (() => {
+  /* Dos modos: con servidor (apiUrl), que valida la identidad de Telegram y el progreso; o directo a la base de datos (databaseUrl) */
+  const api = String(CONFIG.online.apiUrl || '').replace(/\/+$/, ''), useApi = !!api;
   const base = String(CONFIG.online.databaseUrl || '').replace(/\/+$/, '');
-  const enabled = /^https:\/\//.test(base);
-  let lastSent = '';
+  const enabled = useApi || /^https:\/\//.test(base);
+  const row = (id, d) => ({ id, n: String((d && d.n) || 'Agente').slice(0, 16), p: Number(d && d.p) || 0, l: clamp(Number(d && d.l) || 1, 1, MAXLV), w: Number(d && d.w) || 0 });
+  let lastSent = '', lastRef = '', me = null;
+  async function sync() {
+    if (!inTg) return false;
+    const r = await fetch(api + '/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData: tg.initData, name: myName(), level: save.level, points: rankPoints(), wins: save.duelWins }) });
+    if (!r.ok) return false;
+    const d = await r.json(); if (!d || !d.ok) return false;
+    me = d; return true;
+  }
   async function submit() {
     if (!enabled) return false;
-    const body = JSON.stringify({ n: myName(), p: rankPoints(), l: save.level, w: save.duelWins });
-    if (body === lastSent) return true;
     try {
+      if (useApi) return await sync();
+      const body = JSON.stringify({ n: myName(), p: rankPoints(), l: save.level, w: save.duelWins });
+      if (body === lastSent) return true;
       const r = await fetch(base + '/ranking/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
       if (r.ok) lastSent = body;
       return r.ok;
     } catch (e) { return false; }
   }
   async function top() {
-    const r = await fetch(base + '/ranking.json?orderBy=%22p%22&limitToLast=50');
+    const r = await fetch(useApi ? api + '/top' : base + '/ranking.json?orderBy=%22p%22&limitToLast=50');
     if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
-    return Object.keys(d).map(k => ({ id: k, n: String((d[k] && d[k].n) || 'Agente').slice(0, 16), p: Number(d[k] && d[k].p) || 0, l: Number(d[k] && d[k].l) || 1, w: Number(d[k] && d[k].w) || 0 })).sort((a, b) => b.p - a.p);
+    if (useApi) return (d.list || []).map(x => row(String(x.id), x)).sort((a, b) => b.p - a.p);
+    return Object.keys(d).map(k => row(k, d[k])).sort((a, b) => b.p - a.p);
   }
-  /* invitaciones: cada jugador invitado anota su nivel bajo el identificador de quien lo invitó */
-  let lastRef = '';
+  /* invitaciones: con servidor las anota él a partir del enlace firmado por Telegram; sin servidor, las anota el propio juego */
   async function refPush() {
+    if (useApi) return true;
     if (!enabled || !save.ref || !tgUser) return false;
     const body = JSON.stringify({ n: myName(), l: save.level });
     if (body === lastRef) return true;
@@ -672,12 +741,13 @@ const Online = (() => {
     catch (e) { return false; }
   }
   async function refList() {
+    if (useApi) { if (!(await sync())) throw new Error('sync'); return ((me.ref && me.ref.list) || []).map((x, i) => row('i' + i, x)); }
     const r = await fetch(base + '/refs/' + encodeURIComponent(myUid()) + '.json');
     if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
-    return Object.keys(d).map(k => ({ id: k, n: String((d[k] && d[k].n) || 'Agente').slice(0, 16), l: clamp(Number(d[k] && d[k].l) || 1, 1, MAXLV) }));
+    return Object.keys(d).map(k => row(k, d[k]));
   }
-  return { enabled, submit, top, refPush, refList };
+  return { enabled, useApi, myId: () => useApi ? (me ? me.id : '') : myUid(), submit, top, refPush, refList };
 })();
 
 /* ---------------- Sonido y música (todo sintetizado) ---------------- */
@@ -1646,6 +1716,7 @@ function refreshMenu() {
   $('walletMenu').textContent = fmt(save.bits); $('walletShop').textContent = fmt(save.bits);
   $('rankMenu').textContent = fmt(rankPoints());
   $('playSub').textContent = 'Nivel ' + pad2(save.level) + ' · ' + ZONES[zoneOfLevel(save.level)].name;
+  if (save.name || tgUser) $('greet').textContent = myName() + ': eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.';
 }
 function refreshAudioUi() {
   $('btnMute').classList.toggle('off', !save.music && !save.sfx);
@@ -1818,7 +1889,7 @@ function renderShop() {
     const u = save.up, lv = shipLevel(), head = el('div', 'item sel'), hi = el('div', 'info'), tr = el('div', 'track'), fill = el('i');
     fill.style.width = clamp(lv.cur / lv.need * 100, 0, 100) + '%'; tr.append(fill);
     const pr = el('div', 'prog'); pr.append(tr, el('span', null, fmt(lv.cur) + ' / ' + fmt(lv.need) + ' XP'));
-    hi.append(el('b', null, SK.name + ' · nivel ' + lv.L), el('span', null, 'Sube superando niveles nuevos. Cada nivel de nave da +5 % de daño y +2 de integridad.'), pr);
+    hi.append(el('b', null, myName() + ' · nivel ' + lv.L), el('span', null, 'Sube superando niveles nuevos. Cada nivel de nave da +5 % de daño y +2 de integridad.'), pr);
     head.append(iconCanvas(g => { g.translate(0, 2); g.scale(1.1, 1.1); drawShip(g, SK, .9); }), hi, el('span', 'statv', String(lv.L)));
     body.append(head);
     const stat = (name, value, detail) => { const row = el('div', 'item up'), info = el('div', 'info'); info.append(el('b', null, name), el('span', null, detail)); row.append(info, el('span', 'statv', value)); body.append(row); };
@@ -1832,6 +1903,7 @@ function renderShop() {
     let kills = 0; for (const c of CARDS) if (!c.dodge) kills += save.kills[c.id] || 0;
     stat('Nivel alcanzado', save.level + ' / ' + MAXLV, totalStars() + ' estrellas · ' + fmt(kills) + ' virus eliminados');
     stat('Duelos ganados', String(save.duelWins), save.duelPlayed + ' jugados');
+    const rn = el('button', 'btn alt', 'Cambiar el nombre del Centinela'); rn.addEventListener('click', () => Intro.open('rename')); body.append(rn);
     body.append(el('p', 'tag', 'En los duelos todas las naves usan las mismas características.'));
   } else if (shopTab === 'skins') {
     for (const s of SKINS) {
@@ -1865,7 +1937,7 @@ async function renderRank() {
   const body = $('rankBody'), mine = rankPoints(), req = ++rankReq;
   $('rankMine').textContent = fmt(mine);
   $('rankBreak').textContent = 'Niveles ' + fmt(levelPoints()) + ' · Tarjetas ' + fmt(collectionPoints()) + ' · Duelos ganados ' + fmt(save.duelWins * 300) + ' (300 por victoria)';
-  show('nameField', !tgUser); $('nameInput').value = myName();
+  $('nameInput').value = myName();
   body.textContent = ''; $('rankNote').textContent = '';
   const meRow = pos => { const r = el('div', 'rrow me'), nm = el('span', 'nm', myName()); nm.append(el('small', null, 'Nivel ' + save.level + ' · ' + save.duelWins + ' duelos ganados')); r.append(el('span', null, pos), nm, el('b', null, fmt(mine))); return r; };
   if (!Online.enabled) {
@@ -1879,15 +1951,15 @@ async function renderRank() {
     const list = await Online.top();
     if (req !== rankReq) return;
     $('rankNote').textContent = list.length ? '' : 'Todavía no hay nadie en el ranking.';
-    const uid = myUid(); let found = false;
-    for (const p of list) if (p.id === uid) { p.p = mine; p.n = myName(); p.l = save.level; p.w = save.duelWins; }
-    list.sort((a, b) => b.p - a.p);
+    const uid = Online.myId(); let found = false;
+    if (!Online.useApi) { for (const p of list) if (p.id === uid) { p.p = mine; p.n = myName(); p.l = save.level; p.w = save.duelWins; } list.sort((a, b) => b.p - a.p); }
     list.forEach((p, i) => {
       const me = p.id === uid; if (me) found = true;
       const r = el('div', 'rrow' + (me ? ' me' : '')), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l + ' · ' + p.w + ' duelos ganados'));
       r.append(el('span', null, String(i + 1)), nm, el('b', null, fmt(p.p))); body.append(r);
     });
     if (!found) body.append(meRow('—'));
+    if (Online.useApi) $('rankNote').textContent = inTg ? (found ? 'El servidor valida el progreso: si acabas de subir mucho, tus puntos se actualizan poco a poco.' : 'Tu fila aparecerá cuando el servidor confirme tu progreso.') : 'Abre el juego dentro de Telegram para aparecer en el ranking.';
   } catch (e) {
     if (req !== rankReq) return;
     body.append(meRow('—')); $('rankNote').textContent = 'No se pudo cargar el ranking. Revisa tu conexión e inténtalo de nuevo.';
@@ -1927,7 +1999,8 @@ function copyText(text, input) {
 function renderInvite(res) {
   const body = $('inviteBody'), top = body.scrollTop; body.textContent = '';
   $('invBonus').textContent = '+' + save.refBonus + ' %'; refreshMenu();
-  const link = inviteLink(), share = link || CONFIG.telegram.shareUrl || location.href;
+  /* nunca se comparte la dirección completa de la página: dentro de Telegram lleva pegados los datos privados de la sesión */
+  const pageUrl = location.origin + location.pathname, link = inviteLink(), share = link || CONFIG.telegram.shareUrl || pageUrl;
   const text = 'Soy el antivirus en Centinela y voy por el nivel ' + save.level + '. ¿Me superas?';
   body.append(el('p', 'tag', 'Invita a jugar con tu enlace. Cuando 3 invitados llegan al nivel 10 empiezas a ganar premios, y por cada 10 niveles que supera cada invitado tus niveles dan un 2 % más de bits (máximo 100 %).'));
   const f = el('div', 'field'), inp = el('input'), cp = el('button', 'btn alt', 'Copiar');
@@ -1972,7 +2045,7 @@ function renderInvite(res) {
     let act;
     if (s.id === 'story') {
       act = el('button', 'buy own', 'Publicar'); act.disabled = !canStory;
-      act.addEventListener('click', () => { try { tg.shareToStory(new URL(CONFIG.telegram.storyImage, location.href).href, { text: text + ' ' + share }); pay(); } catch (e) { $('inviteNote').textContent = 'No se pudo abrir el editor de historias.'; } });
+      act.addEventListener('click', () => { try { tg.shareToStory(new URL(CONFIG.telegram.storyImage, pageUrl).href, { text: text + ' ' + share }); pay(); } catch (e) { $('inviteNote').textContent = 'No se pudo abrir el editor de historias.'; } });
     } else if (s.id === 'ig') {
       act = el('button', 'buy own', 'Copiar enlace');
       act.addEventListener('click', () => { copyText(share, inp); pay(); $('inviteNote').textContent = 'Enlace copiado. Pégalo en tu historia o en tu perfil de Instagram.'; });
@@ -2079,6 +2152,11 @@ const Duel = (() => {
   }
 
   /* --- anfitrión (y duelo contra el bot) --- */
+  /* un reto aceptado desde la sala de conectados reutiliza esa misma conexión para el duelo */
+  function adopt(c, host, name, skin) {
+    closeNet(); D.conn = c; D.host = host; D.bot = false; D.ended = true; D.oppName = name; D.oppSkin = skin; D.rx = performance.now();
+    if (host) { send({ t: 'start', h: H }); begin(false); }
+  }
   function shipArr(pl) { return [r(pl.x), r(pl.y), r(pl.int), r(pl.out * 10), pl.shield ? 1 : 0, r(pl.rapid * 10), r(pl.spread * 10), r(pl.inv * 10), pl.bombs, pl.kills]; }
   function snap() {
     return { t: 'w', T: r(S.duelT * 10) / 10, z: S.zone, n: S.shockN, s: S.shock ? [r(S.shock.x), r(S.shock.y)] : null,
@@ -2206,6 +2284,7 @@ const Duel = (() => {
     $('duelWins').textContent = fmt(save.duelWins); lobby(false);
     const on = canOnline(); $('btnCreate').disabled = !on; $('btnJoin').disabled = !on; $('codeInput').disabled = !on;
     note(on ? '' : 'El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.');
+    Lobby.render();
     const box = $('duelRewards'); box.textContent = '';
     for (const rw of DUEL_REWARDS) {
       const got = save.duelWins >= rw.wins, sk = rw.skin && SKINS.find(s => s.id === rw.skin);
@@ -2218,7 +2297,217 @@ const Duel = (() => {
     const url = CONFIG.telegram.shareUrl + (CONFIG.telegram.shareUrl.includes('?') ? '&' : '?') + 'startapp=duel_' + D.code;
     try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent('Te reto a un duelo en Centinela. Sala ' + D.code)); } catch (e) {}
   }
-  return { create, join, begin, hostTick, guestTick, sendBomb, rematch, leave, cancelLobby, open, share };
+  return { create, join, begin, hostTick, guestTick, sendBomb, rematch, leave, cancelLobby, open, share, adopt, onMsg, onClose };
+})();
+
+/* ---------------- Sala de jugadores conectados ----------------
+   Sin servidor propio: el primer jugador que entra abre la sala (un identificador fijo de PeerJS) y los
+   demás se conectan a él para verse. Si quien la abrió se va, otro jugador la vuelve a abrir.
+   Los retos van directos de jugador a jugador y esa misma conexión se usa después para el duelo. */
+const Lobby = (() => {
+  const ID = CONFIG.online.duelPrefix + 'lobby';
+  const L = { me: null, hub: null, link: null, members: new Map(), list: [], sig: '', beat: 0, since: 0, out: null, inc: null, cool: {}, joinT: 0, castT: 0 };
+  const can = () => typeof window.Peer === 'function';
+  const note = t => { $('duelNote').textContent = t; };
+  const status = () => (S.mode === 'menu' && !document.hidden && !L.out && !L.inc && $('intro').hidden) ? 'libre' : 'ocupado';
+  const card = () => ({ id: L.me ? L.me.id : '', n: myName(), l: save.level, s: status() });
+  const clean = x => ({ id: String((x && x.id) || '').slice(0, 64), n: String((x && x.n) || 'Agente').slice(0, 16), l: clamp(Number(x && x.l) || 1, 1, MAXLV), s: x && x.s === 'libre' ? 'libre' : 'ocupado' });
+  const later = fn => { clearTimeout(L.joinT); L.joinT = setTimeout(fn, 600 + Math.random() * 2200); };
+  const closeSoon = c => setTimeout(() => { try { c.close(); } catch (e) {} }, 400);
+
+  function setList(list) {
+    L.list = list.map(clean).filter(x => x.id && L.me && x.id !== L.me.id).slice(0, 40);
+    if (!$('duel').hidden) render();
+  }
+  /* --- como miembro de la sala --- */
+  function join() {
+    if (!L.me || L.me.destroyed || L.hub) return;
+    L.since = Date.now();
+    const old = L.link; if (old) { L.link = null; try { old.close(); } catch (e) {} }
+    const c = L.link = L.me.connect(ID, { reliable: true });
+    c.on('open', () => { L.sig = ''; tick(); });
+    c.on('data', m => { if (m && m.t === 'list' && Array.isArray(m.list)) setList(m.list); });
+    const lost = () => { if (L.link === c) { L.link = null; setList([]); later(join); } };
+    c.on('close', lost); c.on('error', lost);
+  }
+  /* --- como anfitrión de la sala --- */
+  function broadcast() {
+    const list = [card()]; for (const m of L.members.values()) list.push({ id: m.id, n: m.n, l: m.l, s: m.s });
+    for (const conn of L.members.keys()) { try { conn.send({ t: 'list', list: list.slice(0, 41) }); } catch (e) {} }
+    setList(list);
+  }
+  const broadcastSoon = () => { clearTimeout(L.castT); L.castT = setTimeout(broadcast, 300); };
+  function claim() {
+    if (L.hub || !L.me) return;
+    const h = L.hub = new window.Peer(ID);
+    const release = () => { if (L.hub === h) { L.hub = null; L.members.clear(); } try { h.destroy(); } catch (e) {} later(join); };
+    h.on('open', () => { const old = L.link; L.link = null; if (old) { try { old.close(); } catch (e) {} } L.members.clear(); broadcast(); });
+    h.on('connection', c => {
+      c.on('data', m => { if (m && m.t === 'me') { L.members.set(c, Object.assign(clean(m), { t: Date.now() })); broadcastSoon(); } });
+      const gone = () => { if (L.members.delete(c)) broadcastSoon(); };
+      c.on('close', gone); c.on('error', gone);
+    });
+    h.on('disconnected', () => { try { h.reconnect(); } catch (e) { release(); } });
+    h.on('error', e => { if ((e && e.type === 'unavailable-id') || !h.open) release(); });
+  }
+  function tick() {
+    if (!L.me) return;
+    const c = card(), sig = c.n + '|' + c.l + '|' + c.s, now = Date.now();
+    if (L.hub && L.hub.open) {
+      for (const [conn, m] of L.members) if (now - m.t > 45000) { L.members.delete(conn); try { conn.close(); } catch (e) {} }
+      if (sig !== L.sig || ++L.beat % 5 === 0) { L.sig = sig; broadcast(); }
+    } else if (L.link && L.link.open) {
+      if (sig !== L.sig || ++L.beat % 7 === 0) { L.sig = sig; try { L.link.send(Object.assign({ t: 'me' }, c)); } catch (e) {} }
+    } else if (!L.hub && now - L.since > 9000) join();
+    if (L.out && now - L.out.t > 25000) endOut(L.out.n + ' no respondió.');
+    if (L.inc && now - L.inc.t > 20000) answer(false);
+  }
+  /* --- retos --- */
+  function challenge(id, name) {
+    if (L.out || L.inc || !L.me || S.mode !== 'menu') return;
+    const c = L.me.connect(id, { reliable: true });
+    L.out = { c, n: name, t: Date.now() }; note('Esperando la respuesta de ' + name + '…'); render();
+    c.on('open', () => { try { c.send({ t: 'invite', n: myName(), skin: save.skin }); } catch (e) {} });
+    c.on('data', m => {
+      if (c._duel) { Duel.onMsg(m); return; }
+      if (!L.out || L.out.c !== c || !m) return;
+      if (m.t === 'ok') { L.out = null; c._duel = true; Duel.adopt(c, true, name, String(m.skin || 'centinela')); }
+      else if (m.t === 'no') endOut(name + ' ha rechazado el duelo.');
+      else if (m.t === 'busy') endOut(name + ' está ocupado ahora.');
+    });
+    const gone = () => { if (c._duel) Duel.onClose(c); else if (L.out && L.out.c === c) endOut(name + ' se desconectó.'); };
+    c.on('close', gone); c.on('error', gone);
+  }
+  function endOut(text) { const o = L.out; L.out = null; if (o) closeSoon(o.c); note(text || ''); render(); }
+  function cancel() { if (!L.out) return; try { L.out.c.send({ t: 'cancel' }); } catch (e) {} endOut('Reto cancelado.'); }
+  function incoming(c) {
+    c.on('data', m => {
+      if (c._duel) { Duel.onMsg(m); return; }
+      if (!m) return;
+      if (m.t === 'invite') {
+        if (L.inc || L.out || S.mode !== 'menu' || document.hidden || !$('intro').hidden || (L.cool[c.peer] || 0) > Date.now()) { try { c.send({ t: 'busy' }); } catch (e) {} closeSoon(c); return; }
+        L.inc = { c, n: String(m.n || 'Agente').slice(0, 16), skin: String(m.skin || 'centinela'), t: Date.now() };
+        $('askText').textContent = L.inc.n + ' te reta a un duelo. Los dos jugáis en la misma pantalla durante 90 segundos.';
+        show('ask', true); Sfx.init(); Sfx.alarm(); haptic('success');
+      } else if (m.t === 'cancel' && L.inc && L.inc.c === c) { L.inc = null; show('ask', false); }
+    });
+    const gone = () => { if (c._duel) Duel.onClose(c); else if (L.inc && L.inc.c === c) { L.inc = null; show('ask', false); } };
+    c.on('close', gone); c.on('error', gone);
+  }
+  function answer(yes) {
+    const i = L.inc; if (!i) return;
+    L.inc = null; show('ask', false);
+    if (yes) { i.c._duel = true; Duel.adopt(i.c, false, i.n, i.skin); try { i.c.send({ t: 'ok', skin: save.skin }); } catch (e) {} }
+    else { L.cool[i.c.peer] = Date.now() + 30000; try { i.c.send({ t: 'no' }); } catch (e) {} closeSoon(i.c); }
+  }
+  function render() {
+    const box = $('lobbyList'); box.textContent = '';
+    if (!can()) { box.append(el('p', 'tag', 'La lista de jugadores conectados funciona en la versión alojada del juego.')); return; }
+    if (L.out) {
+      const row = el('div', 'rrow me'), b = el('button', 'buy own', 'Cancelar'); b.addEventListener('click', cancel);
+      row.append(el('span', null, '…'), el('span', 'nm', 'Esperando a ' + L.out.n), b); box.append(row);
+    }
+    if (!L.list.length) { box.append(el('p', 'tag', (L.hub && L.hub.open) || (L.link && L.link.open) ? 'No hay nadie más conectado ahora mismo.' : 'Conectando con la sala…')); return; }
+    for (const p of L.list) {
+      const free = p.s === 'libre', row = el('div', 'rrow'), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l));
+      let act;
+      if (free) { act = el('button', 'buy own', 'Retar'); act.disabled = !!L.out; act.addEventListener('click', () => { Sfx.ui(); challenge(p.id, p.n); }); }
+      else act = el('span', null, 'Ocupado');
+      row.append(el('span', free ? 'dot on' : 'dot'), nm, act); box.append(row);
+    }
+  }
+  function start() {
+    if (!can() || L.me) return;
+    const p = L.me = new window.Peer();
+    p.on('open', join);
+    p.on('connection', incoming);
+    p.on('disconnected', () => { try { p.reconnect(); } catch (e) {} });
+    p.on('error', e => {
+      if (!e || e.type !== 'peer-unavailable') return;
+      const lobbyMiss = String(e.message || '').includes(ID) || (!L.out && !(L.link && L.link.open));
+      if (lobbyMiss) { L.link = null; claim(); }          /* no hay sala abierta: la abro yo */
+      else if (L.out) endOut(L.out.n + ' ya no está conectado.');
+    });
+    setInterval(tick, 2000);
+  }
+  return { start, render, answer };
+})();
+
+/* ---------------- Primera vez: nombre del Centinela y mini tutorial ---------------- */
+const Intro = (() => {
+  let step = 0, kind = 'first';
+  const fine = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+  const TUT = [
+    { t: 'Mueve tu Centinela', d: fine ? 'Mueve el ratón o usa las flechas. El disparo es automático.' : 'Arrastra el dedo por la pantalla para moverte. El disparo es automático.' },
+    { t: 'Destruye los virus', d: 'Elimínalos antes de que crucen la pantalla: cada virus que escapa daña la integridad del sistema.' },
+    { t: 'Esquiva a los hackers', d: 'Son indestructibles. Aléjate de ellos y muévete cuando su línea roja parpadee.' },
+    { t: 'Recoge los parches', d: 'Reparan tu nave y dan disparo triple, cortafuegos o una cuarentena, que limpia toda la pantalla.' },
+    { t: 'Supera niveles', d: 'Cada nivel superado da bits para el Arsenal y experiencia para tu nave. Si pierdes el nivel, no se suman.' }
+  ];
+  function picture(i) {
+    const g = $('tutPic').getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 300, 130);
+    const at = (x, y, s, col, fn) => { g.save(); g.translate(x, y); g.scale(s, s); g.shadowColor = col; g.shadowBlur = 10; fn(); g.restore(); };
+    const ship = (x, y) => at(x, y, 1.3, SK.main, () => drawShip(g, SK, .9));
+    const enemy = (type, x, y) => at(x, y, 1, DEF[type].color, () => drawEnemy(g, { type, r: DEF[type].r, color: DEF[type].color, hit: 0, rot: .4, t: .2, lx: 0 }));
+    const shots = (x, y, n) => { g.save(); g.fillStyle = '#ffffff'; g.shadowColor = SK.main; g.shadowBlur = 8; for (let k = 0; k < n; k++) g.fillRect(x - 1.2, y - k * 22, 2.4, 11); g.restore(); };
+    const arrow = (x1, y1, x2, y2, col) => {
+      const a = Math.atan2(y2 - y1, x2 - x1); g.save(); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 2; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 9 * Math.cos(a - .45), y2 - 9 * Math.sin(a - .45)); g.lineTo(x2 - 9 * Math.cos(a + .45), y2 - 9 * Math.sin(a + .45)); g.closePath(); g.fill(); g.restore();
+    };
+    const dashed = (x1, y1, x2, y2) => { g.save(); g.strokeStyle = C.red; g.lineWidth = 1.5; g.setLineDash([6, 5]); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.restore(); };
+    g.textAlign = 'center';
+    if (i === 0) { ship(150, 96); shots(150, 62, 3); arrow(118, 98, 66, 98, C.core); arrow(182, 98, 234, 98, C.core); }
+    else if (i === 1) { enemy('worm', 84, 34); enemy('spy', 150, 22); enemy('adware', 206, 42); enemy('adware', 228, 26); ship(150, 96); shots(150, 64, 2); dashed(12, 124, 288, 124); arrow(84, 58, 84, 112, C.red); }
+    else if (i === 2) { dashed(74, 44, 196, 150); enemy('hacker', 74, 40); ship(222, 92); arrow(176, 108, 200, 100, C.mint); }
+    else if (i === 3) { for (const [k, x] of [['patch', 84], ['spread', 150], ['shield', 216]]) at(x, 40, 1.35, PK[k].color, () => drawPick(g, k, .5)); ship(150, 98); arrow(100, 58, 132, 84, C.mint); arrow(200, 58, 168, 84, C.mint); }
+    else {
+      g.font = '34px Oxanium, sans-serif'; g.fillStyle = C.amber; g.shadowColor = C.amber; g.shadowBlur = 12; g.fillText('★ ★ ★', 150, 52); g.shadowBlur = 0;
+      g.save(); g.translate(104, 94); g.rotate(Math.PI / 4); g.fillStyle = C.amber; g.fillRect(-6, -6, 12, 12); g.restore();
+      g.font = '800 17px Oxanium, sans-serif'; g.textAlign = 'left'; g.fillStyle = C.amber; g.fillText('+ bits', 120, 100);
+      g.fillStyle = C.core; g.fillText('+ XP', 196, 100);
+    }
+  }
+  function slide() {
+    const s = TUT[step], last = step === TUT.length - 1;
+    $('tutTitle').textContent = s.t; $('tutText').textContent = s.d; picture(step);
+    const dots = $('tutDots'); dots.textContent = ''; for (let i = 0; i < TUT.length; i++) dots.append(el('i', i === step ? 'on' : null));
+    $('tutBack').disabled = step === 0;
+    $('tutNext').textContent = last ? (kind === 'first' ? 'Jugar' : 'Entendido') : 'Siguiente';
+    show('tutSkip', !last);
+  }
+  function open(k) {
+    kind = k;
+    const name = k !== 'help';
+    show('introName', name); show('introTut', !name);
+    if (name) {
+      $('introTitle').textContent = k === 'first' ? 'Bienvenido, agente' : 'Nombre del Centinela';
+      $('introOk').textContent = k === 'first' ? 'Continuar' : 'Guardar';
+      $('introInput').value = save.name || (tgUser && tgUser.first_name ? cleanName(tgUser.first_name) : '');
+      $('introNote').textContent = '';
+    } else { step = 0; slide(); }
+    show('intro', true);
+  }
+  function close() { show('intro', false); }
+  function okName() {
+    const v = cleanName($('introInput').value);
+    if (v.length < 2) { $('introNote').textContent = 'Escribe un nombre de al menos 2 caracteres.'; return; }
+    save.name = v; persist(); Sfx.init(); Sfx.ui(); refreshMenu();
+    if (kind === 'rename') { close(); if (!$('shop').hidden) renderShop(); Online.submit(); return; }
+    show('introName', false); show('introTut', true); step = 0; slide();
+  }
+  function finish() {
+    const first = kind === 'first';
+    if (first) { save.intro = true; persist(); }
+    close(); Sfx.init(); Sfx.ui();
+    if (first) startLevel(1);
+  }
+  $('introOk').addEventListener('click', okName);
+  $('introInput').addEventListener('keydown', e => { if (e.key === 'Enter') okName(); });
+  $('tutBack').addEventListener('click', () => { if (step > 0) { step--; Sfx.ui(); slide(); } });
+  $('tutNext').addEventListener('click', () => { if (step < TUT.length - 1) { step++; Sfx.init(); Sfx.ui(); slide(); } else finish(); });
+  $('tutSkip').addEventListener('click', finish);
+  return { open };
 })();
 
 /* ---------------- Botones ---------------- */
@@ -2231,6 +2520,7 @@ $('btnShop').addEventListener('click', () => openSheet('shop', () => { $('shopNo
 $('btnRank').addEventListener('click', () => openSheet('rank', renderRank));
 $('btnDuel').addEventListener('click', () => openSheet('duel', Duel.open));
 $('btnInvite').addEventListener('click', () => openSheet('invite', openInvite));
+$('btnHelp').addEventListener('click', () => { Sfx.init(); Sfx.ui(); Intro.open('help'); });
 for (const b of document.querySelectorAll('[data-close]')) b.addEventListener('click', closeSheet);
 $('tabSkins').addEventListener('click', () => { shopTab = 'skins'; $('shopBody').scrollTop = 0; renderShop(); });
 $('tabShip').addEventListener('click', () => { shopTab = 'ship'; $('shopBody').scrollTop = 0; renderShop(); });
@@ -2241,13 +2531,15 @@ $('btnBitsAd').addEventListener('click', async () => {
   else $('shopNote').textContent = 'El anuncio no se completó o no hay ninguno disponible ahora.';
 });
 $('btnName').addEventListener('click', () => {
-  const v = $('nameInput').value.replace(/\s+/g, ' ').trim().slice(0, 16);
-  if (!v) { $('rankNote').textContent = 'Escribe un nombre.'; return; }
+  const v = cleanName($('nameInput').value);
+  if (v.length < 2) { $('rankNote').textContent = 'Escribe un nombre de al menos 2 caracteres.'; return; }
   save.name = v; persist(); Sfx.ui(); renderRank();
 });
 $('btnCreate').addEventListener('click', () => { Sfx.ui(); Duel.create(); });
 $('btnJoin').addEventListener('click', () => { Sfx.ui(); Duel.join($('codeInput').value); });
 $('btnBot').addEventListener('click', () => Duel.begin(true));
+$('askYes').addEventListener('click', () => Lobby.answer(true));
+$('askNo').addEventListener('click', () => Lobby.answer(false));
 $('btnRoomCancel').addEventListener('click', () => { Duel.cancelLobby(); $('duelNote').textContent = ''; });
 $('btnRoomShare').addEventListener('click', Duel.share);
 $('btnRematch').addEventListener('click', Duel.rematch);
@@ -2342,6 +2634,12 @@ function boot(data) {
       if (rm && tgUser && !save.ref && rm[1] !== myUid() && save.level === 1 && !save.earned) { save.ref = rm[1]; persist(); }
     } catch (e) {}
     Online.refPush(); refreshRefs().then(() => refreshMenu());
+    Lobby.start(); refreshMenu();
+    if (!save.intro) {
+      const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+      if (save.level > 1 || save.earned) { save.intro = true; persist(); }        /* jugadores que ya tenían progreso */
+      else if (!/^duel_/.test(sp || '')) Intro.open('first');
+    }
   };
   try {
     if (cloudOK) tg.CloudStorage.getItems(['save', 'st', 'b0', 'b1', 'b2', 'b3'], (err, v) => {
@@ -2351,10 +2649,7 @@ function boot(data) {
       afterLoad();
     });
     else afterLoad();
-    if (tgUser && tgUser.first_name) $('greet').textContent = 'Agente ' + tgUser.first_name + ': eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.';
   } catch (e) {}
-  if (window.matchMedia && window.matchMedia('(pointer: fine)').matches)
-    $('howto').textContent = 'Mueve el ratón o usa las flechas. Disparo automático. Espacio: cuarentena.';
   resize(); refreshMenu(); refreshAudioUi(); Ads.preload();
   S.zone = S.zonePrev = zoneOfLevel(save.level);
   P.x = P.tx = W / 2; P.y = P.ty = H - 80;
