@@ -470,14 +470,14 @@ const CONFIG = {
   },
   online: {
     // RANKING GLOBAL E INVITACIONES: pega aquí la URL de tu Firebase Realtime Database (plan gratuito), p. ej.
-    // 'https://tu-proyecto-default-rtdb.firebaseio.com'. Reglas que debes pegar en Firebase:
+    // 'https://centinela-juego-default-rtdb.firebaseio.com'. Reglas que debes pegar en Firebase:
     // { "rules": {
     //   "ranking": { ".read": true, ".indexOn": ["p"],
     //     "$uid": { ".write": true, ".validate": "newData.child('p').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } },
     //   "refs": { "$ref": { ".read": true,
     //     "$uid": { ".write": true, ".validate": "newData.child('l').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } }
     // } }
-    databaseUrl: '',
+    databaseUrl: 'https://centinela-juego-default-rtdb.firebaseio.com',
     // SERVIDOR CONTRA TRAMPAS (carpeta de Firebase): si lo usas, pon aquí su dirección y deja databaseUrl vacío.
     // '/api' si el juego está en Firebase Hosting; o la dirección completa de la función si el juego está en otro sitio.
     apiUrl: '',
