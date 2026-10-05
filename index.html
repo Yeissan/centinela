@@ -8,20 +8,13 @@
 <!-- Telegram Mini App: necesario para que el juego hable con Telegram -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- DUELOS EN LINEA: libreria PeerJS (conexion directa entre jugadores) -->
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-
-<!-- ============ ANUNCIOS (Monetag) ============
-     Pega justo debajo de este comentario la etiqueta que te da Monetag en
-     "Telegram Mini Apps" > "Get SDK" > "Get instructions". Se parece a esta:
-     <script src="https://DOMINIO/sdk.js" data-zone="1234567" data-sdk="show_1234567"></script>
-     No hay que tocar nada mas: el juego la detecta y la usa. -->
-<script src='//libtl.com/sdk.js' data-zone='11959116' data-sdk='show_11959116'></script>
+<!-- DUELOS EN LINEA: libreria PeerJS (conexion directa entre jugadores). Se carga aparte para no frenar el juego. -->
+<script async src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" onload="window.__peerReady&&window.__peerReady()"></script>
 
 <style>html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
 <title>Centinela Antivirus</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;800&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;800&family=Share+Tech+Mono&display=swap" media="print" onload="this.media='all'">
 <style>
 /* Layout: one portrait arcade stage centred on a dark void. HUD pinned to the stage edges,
    menus as chamfered panels floating over the live playfield, and full-stage sheets for
@@ -681,15 +674,16 @@ const Ads = (() => {
     });
   }
   /* Monetag: su etiqueta <script data-zone="..." data-sdk="show_..."> crea la función global show_...() */
-  const mtTag = document.querySelector('script[data-zone][data-sdk]');
-  const mtName = mtTag ? mtTag.getAttribute('data-sdk') : '';
-  function provider() { const p = CONFIG.ads.provider; return p === 'auto' ? (mtName ? 'monetag' : 'demo') : p; }
+  /* La etiqueta va al final de la página para que el juego arranque aunque el servidor de anuncios tarde: por eso se busca al usarla. */
+  let mtName = '';
+  function mtFind() { if (!mtName) { const t = document.querySelector('script[data-zone][data-sdk]'); mtName = (t && t.getAttribute('data-sdk')) || ''; } return mtName; }
+  function provider() { const p = CONFIG.ads.provider; return p === 'auto' ? (mtFind() ? 'monetag' : 'demo') : p; }
   function preload() {
-    if (provider() !== 'monetag' || typeof window[mtName] !== 'function') return;
+    if (provider() !== 'monetag' || typeof window[mtFind()] !== 'function') return;
     try { const r = window[mtName]({ type: 'preload', ymid: myUid() }); if (r && r.catch) r.catch(() => {}); } catch (e) {}
   }
   async function monetag(place) {
-    const show = window[mtName];
+    const show = window[mtFind()];
     if (typeof show !== 'function') return false;
     /* la promesa se cumple cuando el anuncio se ha visto y cerrado; falla si se salta o no hay anuncio */
     await show({ ymid: myUid(), requestVar: place, catchIfNoFeed: true });
@@ -2883,10 +2877,21 @@ function boot(data) {
     if (m) { openSheet('duel', Duel.open); $('codeInput').value = m[1].toUpperCase(); Duel.join(m[1]); }
   } catch (e) {}
 }
+/* las librerías externas (duelos y anuncios) se cargan sin frenar el juego: cuando llegan, se activan */
+window.__peerReady = () => { try { Lobby.start(); if (!$('duel').hidden && S.mode === 'menu') Duel.open(); } catch (e) {} };
+window.addEventListener('load', () => { try { Ads.preload(); window.__peerReady(); } catch (e) {} });
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => ({ save })); } catch (e) {}
 if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
 })();
 </script>
+
+<!-- ============ ANUNCIOS (Monetag) ============
+     Pega justo debajo de este comentario la etiqueta que te da Monetag en
+     "Telegram Mini Apps" > "Get SDK" > "Get instructions". Se parece a esta:
+     <script src="https://DOMINIO/sdk.js" data-zone="1234567" data-sdk="show_1234567"></script>
+     Va aqui, al final, para que el juego arranque aunque el servidor de anuncios tarde en responder.
+     No hay que tocar nada mas: el juego la detecta y la usa. -->
+<script src='//libtl.com/sdk.js' data-zone='11959116' data-sdk='show_11959116'></script>
 </body>
 </html>
