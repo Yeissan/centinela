@@ -107,6 +107,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
 .tile{font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:13px 2px;
   background:#131a40;border:1px solid var(--line);color:var(--ink);cursor:pointer;min-width:0}
 .tile:hover{border-color:var(--core)}
+.tile.hot{border-color:var(--amber);color:var(--amber)}
 .tile.off{color:var(--dim)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;color:var(--dim)}
 .row strong{font-family:var(--display);font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -133,6 +134,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
   background:transparent;border:1px solid var(--line);color:var(--dim);cursor:pointer}
 .tab.on{border-color:var(--core);color:var(--ink);background:rgba(92,240,255,.1)}
 .tab:disabled{opacity:.4;cursor:default}
+.bets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.bets .tab{padding:10px 4px;font-size:12px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
 span.tab{text-align:center;cursor:default;font-variant-numeric:tabular-nums}
 .statv{font-family:var(--display);font-weight:800;font-size:18px;color:var(--core);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
 a.buy{text-decoration:none}
@@ -140,6 +143,7 @@ a.buy{text-decoration:none}
 .ico.off{color:var(--dim)}
 .ico.off svg .wave{display:none}
 .field input[readonly]{font-size:13px}
+.invcard{display:block;width:100%;aspect-ratio:1200/630;object-fit:cover;border:1px solid var(--line);background:#0a0d22;flex:none}
 .item.sel{grid-template-columns:56px minmax(0,1fr) auto}
 .sheet-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain;touch-action:pan-y}
 .item{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:rgba(10,13,34,.8)}
@@ -308,6 +312,7 @@ a.buy{text-decoration:none}
           <div><span class="lbl" id="duelOppName">Rival</span><div class="big sm" id="duelOpp">0</div></div>
         </div>
         <div class="row"><span>Recompensa</span><span class="wallet"><i class="gem"></i><strong id="duelBits">0</strong></span></div>
+        <div class="row" id="duelBetRow" hidden><span>Apuesta</span><span class="wallet"><i class="gem"></i><strong id="duelBet">0</strong></span></div>
         <p class="note" id="duelEndNote"></p>
         <div class="stack">
           <button class="btn go" id="btnRematch">Revancha</button>
@@ -319,7 +324,7 @@ a.buy{text-decoration:none}
     <div class="veil" id="ask" hidden>
       <section class="panel">
         <div class="panel-in">
-          <h2>Reto de duelo</h2>
+          <h2 id="askTitle">Reto de duelo</h2>
           <p class="tag" id="askText"></p>
           <div class="pair">
             <button class="btn go" id="askYes">Aceptar</button>
@@ -408,10 +413,16 @@ a.buy{text-decoration:none}
         <div class="box" id="roomBox" hidden>
           <span class="lbl">Código de tu sala</span>
           <div class="code" id="roomCode">----</div>
+          <p class="tag" id="roomBet"></p>
           <div class="pair">
             <button class="btn alt" id="btnRoomShare" hidden>Invitar</button>
             <button class="btn alt" id="btnRoomCancel">Cancelar</button>
           </div>
+        </div>
+        <div class="stack" id="betBox">
+          <span class="lbl">Apuesta de bits</span>
+          <div class="bets" id="betRow"></div>
+          <p class="tag" id="betInfo"></p>
         </div>
         <div class="stack" id="duelActions">
           <button class="btn go" id="btnCreate">Crear sala</button>
@@ -467,7 +478,9 @@ const CONFIG = {
   },
   telegram: {
     shareUrl: 'https://t.me/CentinelaGame_bot/juego',              // enlace de tu juego, p. ej. https://t.me/TuBot/centinela (necesario para invitar y compartir)
-    storyImage: 'historia.jpg' // imagen para las historias de Telegram; súbela junto a index.html
+    storyImage: 'historia.jpg', // imagen para las historias de Telegram; súbela junto a index.html
+    inviteImage: 'invitacion.jpg', // tarjeta de invitación que se ve al compartir; súbela junto a index.html
+    invitePage: 'unete.html'    // página de invitación con vista previa para WhatsApp, Facebook, X...; súbela junto a index.html
   },
   online: {
     // RANKING GLOBAL E INVITACIONES: pega aquí la URL de tu Firebase Realtime Database (plan gratuito), p. ej.
@@ -541,7 +554,7 @@ const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').replace
 const SAVE_KEY = 'cen_save';
 const save = { v: 2, bits: 0, earned: 0, level: 1, best: {}, stars: {}, skin: 'centinela', skins: ['centinela'], up: {}, kills: {}, seen: {},
   bossKills: 0, duelWins: 0, duelPlayed: 0, uid: '', name: '', music: true, sfx: true,
-  xp: 0, ref: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, intro: false };
+  xp: 0, ref: '', refSrc: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, sharePaid: {}, intro: false, bet: 0 };   /* bet: apuesta en juego de un duelo sin terminar */
 for (const u of UPS) save.up[u.id] = 0;
 function applySave(d) {
   if (!d || typeof d !== 'object') return;
@@ -554,7 +567,9 @@ function applySave(d) {
   save.xp = Math.max(save.xp, num(d.xp, 0));
   if (typeof d.ref === 'string' && /^tg\d{3,15}$/.test(d.ref) && !save.ref) save.ref = d.ref;
   save.refBonus = clamp(num(d.refBonus, save.refBonus), 0, 100); save.refQual = num(d.refQual, save.refQual); save.refClaim = Math.max(save.refClaim, num(d.refClaim, 0));
+  if (typeof d.refSrc === 'string' && /^[a-z]{1,5}$/.test(d.refSrc) && !save.refSrc) save.refSrc = d.refSrc;
   if (d.shares && typeof d.shares === 'object') for (const k in d.shares) if (typeof d.shares[k] === 'string') save.shares[k] = d.shares[k].slice(0, 10);
+  if (d.sharePaid && typeof d.sharePaid === 'object') for (const k in d.sharePaid) if (/^[a-z]{1,5}$/.test(k)) save.sharePaid[k] = Math.max(save.sharePaid[k] || 0, num(d.sharePaid[k], 0));
   for (const c of CARDS) {
     if (d.kills && typeof d.kills === 'object') save.kills[c.id] = Math.max(save.kills[c.id] || 0, num(d.kills[c.id], 0));
     if (d.seen && typeof d.seen === 'object' && d.seen[c.id]) save.seen[c.id] = true;
@@ -704,7 +719,8 @@ const Online = (() => {
   const api = String(CONFIG.online.apiUrl || '').replace(/\/+$/, ''), useApi = !!api;
   const base = String(CONFIG.online.databaseUrl || '').replace(/\/+$/, '');
   const enabled = useApi || /^https:\/\//.test(base);
-  const row = (id, d) => ({ id, n: String((d && d.n) || 'Agente').slice(0, 16), p: Number(d && d.p) || 0, l: clamp(Number(d && d.l) || 1, 1, MAXLV), w: Number(d && d.w) || 0 });
+  const row = (id, d) => ({ id, n: String((d && d.n) || 'Agente').slice(0, 16), p: Number(d && d.p) || 0, l: clamp(Number(d && d.l) || 1, 1, MAXLV), w: Number(d && d.w) || 0,
+    s: /^[a-z]{1,5}$/.test(String((d && d.s) || '')) ? String(d.s) : '' });
   let lastSent = '', lastRef = '', me = null;
   async function sync() {
     if (!inTg) return false;
@@ -736,13 +752,14 @@ const Online = (() => {
   async function refPush() {
     if (useApi) return true;
     if (!enabled || !save.ref || !tgUser) return false;
-    const body = JSON.stringify({ n: myName(), l: save.level });
+    const o = { n: myName(), l: save.level }; if (save.refSrc) o.s = save.refSrc;   /* s: red desde la que llegó este jugador */
+    const body = JSON.stringify(o);
     if (body === lastRef) return true;
     try { const r = await fetch(base + '/refs/' + encodeURIComponent(save.ref) + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) lastRef = body; return r.ok; }
     catch (e) { return false; }
   }
   async function refList() {
-    if (useApi) { if (!(await sync())) throw new Error('sync'); return ((me.ref && me.ref.list) || []).map((x, i) => row('i' + i, x)); }
+    if (useApi) { if (!(await sync())) throw new Error('sync'); const l = ((me.ref && me.ref.list) || []).map((x, i) => row('i' + i, x)); l.src = (me.ref && me.ref.src) || null; return l; }
     const r = await fetch(base + '/refs/' + encodeURIComponent(myUid()) + '.json');
     if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
@@ -754,11 +771,29 @@ const Online = (() => {
 /* ---------------- Sonido y música (todo sintetizado) ---------------- */
 const Sfx = (() => {
   let ac = null, master, sfxBus, musBus, musIn, delay, step = 0, nextT = 0, nbuf = null;
-  const PROG  = [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]];     // Am  F  C  G
-  const PROGB = [[0, 3, 7], [0, 3, 7], [-4, 0, 3], [-5, -1, 2]];     // Am  Am F  E  (jefe)
-  const ARP   = [0, 1, 2, 1, 3, 2, 1, 2, 0, 1, 2, 1, 3, 2, 4, 2];
-  const LEAD  = [12, null, 7, null, 10, 7, null, 3,   8, null, 5, null, 8, 7, null, 3,
-                 7, null, 3, null, 7, 10, null, 12,   10, null, 7, 5, 2, null, null, null];
+  /* Pistas: cada zona tiene su música (acordes, ritmo, bajo, arpegio y melodía propios); hay otra para los jefes y otra para los duelos.
+     Los números son semitonos sobre la nota La; null es silencio. La melodía va en corcheas: 4 compases de 8. */
+  const K = { Am: [0, 3, 7], F: [-4, 0, 3], C: [3, 7, 10], G: [-2, 2, 5], Dm: [5, 8, 12], E: [-5, -1, 2], Dl: [-7, -4, 0] }, _ = null;
+  const TRACKS = {
+    z0: { d: .125, prog: [K.Am, K.F, K.C, K.G], bass: 'eighth', drums: 'four', wave: 'square', from: 8,
+          arp:  [0, 1, 2, 1, 3, 2, 1, 2, 0, 1, 2, 1, 3, 2, 4, 2],
+          lead: [12, _, 7, _, 10, 7, _, 3,   8, _, 5, _, 8, 7, _, 3,   7, _, 3, _, 7, 10, _, 12,   10, _, 7, 5, 2, _, _, _] },
+    z1: { d: .118, prog: [K.Am, K.G, K.F, K.G], bass: 'off', drums: 'four', wave: 'triangle', from: 4,
+          arp:  [0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1],
+          lead: [7, _, 12, _, 10, _, 7, _,   5, _, 10, _, 7, 5, _, 2,   3, _, 8, _, 7, _, 3, _,   2, _, 5, _, 7, _, _, _] },
+    z2: { d: .107, prog: [K.Am, K.Dm, K.F, K.E], bass: 'gallop', drums: 'break', wave: 'sawtooth', from: 8,
+          arp:  [0, _, 2, _, 3, _, 2, 1, 0, _, 2, _, 4, _, 3, _],
+          lead: [12, _, _, 7, _, _, 3, _,   8, _, _, 5, _, _, 12, _,   12, _, _, 8, _, _, 3, _,   11, _, _, 7, _, _, 14, _] },
+    z3: { d: .115, prog: [K.Am, K.C, K.G, K.Dl], bass: 'sixteenth', drums: 'half', wave: 'square', from: 4,
+          arp:  [3, 2, 1, 0, 3, 2, 1, 0, 4, 2, 1, 0, 4, 3, 2, 1],
+          lead: [0, 3, 7, _, 12, _, 7, _,   3, 7, 10, _, 15, _, 10, _,   2, 5, 10, _, 14, _, 10, _,   5, 8, 12, _, 8, _, 5, _] },
+    boss: { d: .112, prog: [K.Am, K.Am, K.F, K.E], bass: 'eighth', drums: 'drive', hi: true,
+          arp:  [0, 1, 2, 1, 3, 2, 1, 2, 0, 1, 2, 1, 3, 2, 4, 2] },
+    duel: { d: .1, prog: [K.Am, K.Am, K.F, K.G], bass: 'gallop', drums: 'drive', wave: 'square', from: 2,
+          arp:  [0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1],
+          lead: [0, _, 0, 3, _, 5, _, 7,   0, _, 0, 3, _, 5, 7, _,   8, _, 8, 7, _, 3, _, 0,   10, _, 10, 7, _, 5, _, 2] }
+  };
+  let curK = '';
   function init() {
     if (ac) { if (ac.state === 'suspended' && !document.hidden) ac.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -819,37 +854,55 @@ const Sfx = (() => {
     s.connect(f); f.connect(g); g.connect(musIn); s.start(t, Math.random() * .3); s.stop(t + d + .02);
   }
   function schedule(s, w, st) {
-    const bar = s >> 4, q = s & 15, I = st.I, ch = (I === 2 ? PROGB : PROG)[bar & 3], sec = bar & 15, d = I === 2 ? .112 : .125;
+    const T = TRACKS[st.k] || TRACKS.z0, bar = s >> 4, q = s & 15, ch = T.prog[bar & 3], sec = bar & 15, d = T.d;
     const F = (base, semi) => base * Math.pow(2, (semi + st.tr) / 12);
-    const tones = [ch[0], ch[1], ch[2], ch[0] + 12, ch[1] + 12];
+    const tones = [ch[0], ch[1], ch[2], ch[0] + 12, ch[1] + 12], root = ch[0];
     if (q === 0) for (const n of ch) { padNote(F(220, n), d * 16, w, -7); padNote(F(220, n), d * 16, w, 7); }
-    if (I >= 1) {
-      if (q % 4 === 0 || (I === 2 && q === 14)) kick(w);
-      if (q === 4 || q === 12) { perc(w, .16, .13, 'bandpass', 1800); note(200, .1, 'triangle', .1, w, false); }
-      if (q % 4 === 2) perc(w, .06, .04, 'highpass', 7000);
-      else if (q % 2 === 1 && (I === 2 || sec >= 4)) perc(w, .028, .03, 'highpass', 8000);
-      if (q % 2 === 0) note(F(110, ch[0] + (q % 8 === 6 ? 12 : 0)), d * 1.7, 'sawtooth', .15, w, false, 320 + I * 160);
-      note(F(I === 2 ? 880 : 440, tones[ARP[q]]), d * 1.4, 'triangle', I === 2 ? .035 : .05, w, true);
-      if (I === 1 && sec >= 8 && q % 2 === 0) {
-        const i = (bar & 3) * 8 + (q >> 1), n = LEAD[i];
-        if (n != null) note(F(440, n), d * (LEAD[(i + 1) % 32] == null ? 3.6 : 1.8), 'square', .04, w, true, 1500);
-      }
-    } else {
-      if (q === 0) note(F(110, ch[0]), d * 14, 'triangle', .12, w, false);
-      if (q % 2 === 0) note(F(220, tones[ARP[q]]), d * 2.6, 'triangle', .055, w, true);
+    if (st.I === 0) {   /* menú: versión tranquila de la pista de la zona en la que estás */
+      if (q === 0) note(F(110, root), d * 14, 'triangle', .12, w, false);
+      if (q % 2 === 0) { const a = T.arp[q]; note(F(220, tones[a == null ? 0 : a]), d * 2.6, 'triangle', .055, w, true); }
+      return;
+    }
+    const dr = T.drums, full = dr === 'drive' || sec >= 4;
+    const snare = () => { perc(w, .16, .13, 'bandpass', 1800); note(200, .1, 'triangle', .1, w, false); };
+    const hat = v => perc(w, v, v > .04 ? .04 : .03, 'highpass', v > .04 ? 7000 : 8000);
+    if (dr === 'break') {            /* ritmo roto */
+      if (q === 0 || q === 7 || q === 10) kick(w);
+      if (q === 4 || q === 12) snare();
+      if (q % 2 === 0) hat(.045); else if (full && q % 4 === 3) hat(.028);
+    } else if (dr === 'half') {      /* medio tiempo, pesado */
+      if (q === 0 || q === 10 || (full && q === 6)) kick(w);
+      if (q === 8) snare();
+      if (q % 2 === 0) hat(.045); else if (full) hat(.024);
+    } else {                         /* cuatro por cuatro; 'drive' añade empuje */
+      if (q % 4 === 0 || (dr === 'drive' && q === 14)) kick(w);
+      if (q === 4 || q === 12) snare();
+      if (q % 4 === 2) hat(.06); else if (q % 2 === 1 && full) hat(.028);
+    }
+    const cut = T.hi ? 640 : 480, bass = (semi, len, v) => note(F(110, semi), d * len, 'sawtooth', v, w, false, cut);
+    if (T.bass === 'off') { if (q % 4 === 2) bass(root, 1.6, .16); else if (q % 4 === 3) bass(root + 12, .9, .1); }
+    else if (T.bass === 'gallop') { const m = q % 4; if (m !== 1) bass(root + (q === 14 ? 12 : 0), m === 0 ? 1.7 : .9, m === 0 ? .15 : .11); }
+    else if (T.bass === 'sixteenth') bass(root + (q % 4 === 3 ? 12 : 0), .9, q % 4 === 0 ? .14 : .09);
+    else if (q % 2 === 0) bass(root + (q % 8 === 6 ? 12 : 0), 1.7, .15);
+    const a = T.arp[q];
+    if (a != null) note(F(T.hi ? 880 : 440, tones[a]), d * 1.4, 'triangle', T.hi ? .035 : .05, w, true);
+    if (T.lead && sec >= T.from && q % 2 === 0) {
+      const i = (bar & 3) * 8 + (q >> 1), n = T.lead[i];
+      if (n != null) { let k = 1; while (k < 3 && T.lead[(i + k) % 32] == null) k++; note(F(440, n), d * 1.8 * k, T.wave, T.wave === 'sawtooth' ? .03 : .04, w, true, 1500); }
     }
   }
   function tick() {
     if (!ac || ac.state !== 'running') return;
-    const now = ac.currentTime, st = musicState();
+    const now = ac.currentTime, st = musicState(), T = TRACKS[st.k] || TRACKS.z0;
     musIn.frequency.setTargetAtTime(st.muffle ? 650 : 16000, now, .2);
     musBus.gain.setTargetAtTime(save.music && !st.ad ? .5 : 0, now, .08);
     if (!save.music) { nextT = now + .1; return; }
+    if (st.k !== curK) { curK = st.k; step = 0; }   /* al cambiar de pista se empieza desde el primer compás */
     if (nextT < now) nextT = now + .05;
-    while (nextT < now + .22) { schedule(step, nextT - now, st); step++; nextT += st.I === 2 ? .112 : .125; }
+    while (nextT < now + .22) { schedule(step, nextT - now, st); step++; nextT += T.d; }
   }
   return {
-    init,
+    init, track: () => curK,
     applyVolumes() { if (ac) sfxBus.gain.value = save.sfx ? .5 : 0; },
     suspend() { if (ac && ac.state === 'running') ac.suspend(); },
     resume() { if (ac && ac.state === 'suspended') ac.resume(); },
@@ -984,7 +1037,7 @@ const S = {
 };
 function musicState() {
   const m = S.mode;
-  return { I: m === 'menu' ? 0 : S.boss ? 2 : 1, tr: ZONES[S.zone].tr, muffle: m === 'pause' || m === 'over' || m === 'ad' || m === 'duelend', ad: m === 'ad' };
+  return { I: m === 'menu' ? 0 : 1, k: m !== 'menu' && S.kind === 'duel' ? 'duel' : m !== 'menu' && S.boss ? 'boss' : 'z' + S.zone, tr: ZONES[S.zone].tr, muffle: m === 'pause' || m === 'over' || m === 'ad' || m === 'duelend', ad: m === 'ad' };
 }
 let bullets = [], enemies = [], ebullets = [], parts = [], picks = [], texts = [], eid = 0;
 const nebulae = [{ x: 70, y: 120, r: 230, k: 'b', ph: 0 }, { x: 340, y: 420, r: 260, k: 'c', ph: 2 }, { x: 150, y: 760, r: 220, k: 'a', ph: 4 }];
@@ -1714,6 +1767,7 @@ function show(id, on) { $(id).hidden = !on; }
 const PANELS = ['menu', 'pause', 'over', 'duelEnd'], SHEETS = ['levels', 'codex', 'shop', 'rank', 'duel', 'invite'];
 function hideAll() { for (const p of PANELS) show(p, false); for (const s of SHEETS) show(s, false); }
 function refreshMenu() {
+  $('btnInvite').classList.toggle('hot', !!refNews); $('btnDuel').classList.toggle('hot', Duel.hasNews());   /* hay un premio nuevo que ver en Invitar */
   $('walletMenu').textContent = fmt(save.bits); $('walletShop').textContent = fmt(save.bits);
   $('rankMenu').textContent = fmt(rankPoints());
   $('playSub').textContent = 'Nivel ' + pad2(save.level) + ' · ' + ZONES[zoneOfLevel(save.level)].name;
@@ -1969,17 +2023,34 @@ async function renderRank() {
 
 /* ---------------- Invitaciones y premios por compartir ---------------- */
 const REF_REWARDS = [{ n: 3, bits: 1500 }, { n: 5, bits: 3000 }, { n: 10, bits: 8000 }, { n: 25, bits: 25000 }];
+/* premio por cada jugador nuevo que llega desde lo que compartiste en esa red y supera el nivel 1 */
 const SHARES = [
-  { id: 'story', name: 'Historia de Telegram', bits: 100 }, { id: 'tg', name: 'Telegram', bits: 40 }, { id: 'wa', name: 'WhatsApp', bits: 40 },
-  { id: 'fb', name: 'Facebook', bits: 40 }, { id: 'x', name: 'X', bits: 40 }, { id: 'ig', name: 'Instagram', bits: 40 }
+  { id: 'story', name: 'Historia de Telegram', bits: 300 }, { id: 'tg', name: 'Telegram', bits: 200 }, { id: 'wa', name: 'WhatsApp', bits: 200 },
+  { id: 'fb', name: 'Facebook', bits: 200 }, { id: 'x', name: 'X', bits: 200 }, { id: 'ig', name: 'Instagram', bits: 200 }
 ];
 const today = () => new Date().toISOString().slice(0, 10);
-function inviteLink() {
+/* nunca se comparte la dirección completa de la página: dentro de Telegram lleva pegados los datos privados de la sesión */
+const pageUrl = location.origin + location.pathname;
+const assetUrl = f => { try { return new URL(f, pageUrl).href; } catch (e) { return ''; } };
+/* enlace directo al juego en Telegram; "src" dice en qué red se compartió, para saber desde dónde llega cada jugador */
+function inviteLink(src) {
   const base = CONFIG.telegram.shareUrl;
   if (!base || !tgUser) return '';
-  return base + (base.includes('?') ? '&' : '?') + 'startapp=ref_' + myUid();
+  return base + (base.includes('?') ? '&' : '?') + 'startapp=ref_' + myUid() + (src ? '_' + src : '');
+}
+/* fuera de Telegram se comparte la página de invitación, que es la que enseña la imagen en la vista previa y reenvía al juego */
+let landOK = false, landAsked = false, refNews = '';
+function checkLanding() {
+  if (landAsked || !CONFIG.telegram.invitePage || location.protocol !== 'https:') return;
+  landAsked = true;
+  try { fetch(assetUrl(CONFIG.telegram.invitePage), { method: 'HEAD', cache: 'no-store' }).then(r => { landOK = r.ok; if (landOK && !$('invite').hidden) renderInvite(lastRefs); }).catch(() => {}); } catch (e) {}
+}
+function previewLink(src) {
+  const direct = inviteLink(src);
+  return landOK && direct ? assetUrl(CONFIG.telegram.invitePage) + '?r=' + myUid() + '&s=' + src : direct;
 }
 /* lee tus invitados, recalcula el bono (2 % por cada 10 niveles superados de cada uno) y entrega los premios pendientes */
+let lastRefs = null;
 async function refreshRefs() {
   if (!Online.enabled) return null;
   try {
@@ -1988,26 +2059,85 @@ async function refreshRefs() {
     save.refBonus = Math.min(100, list.reduce((s, p) => s + Math.floor((p.l - 1) / 10) * 2, 0));
     const got = [];
     for (const r of REF_REWARDS) if (save.refQual >= r.n && save.refClaim < r.n) { save.refClaim = r.n; save.bits += r.bits; save.earned += r.bits; got.push(r); }
+    /* compartir verificado: cuenta los jugadores nuevos que llegaron desde cada red y ya superaron el nivel 1 */
+    let cnt = list.src;
+    if (!cnt) { cnt = {}; for (const p of list) if (p.s && p.l >= 2) cnt[p.s] = (cnt[p.s] || 0) + 1; }
+    let shareBits = 0;
+    for (const sh of SHARES) {
+      const n = Math.max(0, Math.floor(Number(cnt[sh.id]) || 0)), had = save.sharePaid[sh.id] || 0;
+      if (n > had) { shareBits += (n - had) * sh.bits; save.sharePaid[sh.id] = n; }
+    }
+    if (shareBits) { save.bits += shareBits; save.earned += shareBits; }
+    const news = [];
+    if (got.length) news.push('Premio por invitados: +' + fmt(got.reduce((s, r) => s + r.bits, 0)) + ' bits.');
+    if (shareBits) news.push('Compartir verificado: +' + fmt(shareBits) + ' bits.');
+    if (news.length) { refNews = news.join(' '); if (S.mode === 'menu') Sfx.buy(); }
     persist();
-    return { list, got };
+    return (lastRefs = { list, got, cnt });
   } catch (e) { return { error: true }; }
 }
-function copyText(text, input) {
-  const done = () => { $('inviteNote').textContent = 'Enlace copiado.'; };
-  const manual = () => { try { input.focus(); input.select(); } catch (e) {} $('inviteNote').textContent = 'Mantén pulsado el enlace para copiarlo.'; };
+function copyText(text, input, okMsg) {
+  const done = () => { $('inviteNote').textContent = okMsg || 'Enlace copiado.'; };
+  const manual = () => { try { input.value = text; input.focus(); input.select(); } catch (e) {} $('inviteNote').textContent = 'Mantén pulsado el enlace para copiarlo.'; };
   try { navigator.clipboard.writeText(text).then(done).catch(manual); } catch (e) { manual(); }
 }
 function renderInvite(res) {
   const body = $('inviteBody'), top = body.scrollTop; body.textContent = '';
   $('invBonus').textContent = '+' + save.refBonus + ' %'; refreshMenu();
-  /* nunca se comparte la dirección completa de la página: dentro de Telegram lleva pegados los datos privados de la sesión */
-  const pageUrl = location.origin + location.pathname, link = inviteLink(), share = link || CONFIG.telegram.shareUrl || pageUrl;
-  const text = 'Soy el antivirus en Centinela y voy por el nivel ' + save.level + '. ¿Me superas?';
+  const link = inviteLink(''), share = link || CONFIG.telegram.shareUrl || pageUrl;
+  const text = 'Te invito a Centinela: sé el antivirus, limpia la red y esquiva a los hackers. Voy por el nivel ' + save.level + ', ¿me superas?';
+
+  /* tarjeta de invitación: la misma imagen que verán quienes reciban tu enlace */
+  if (CONFIG.telegram.inviteImage && location.protocol === 'https:') {
+    const card = el('img', 'invcard'); card.alt = 'Tarjeta de invitación de Centinela'; card.decoding = 'async';
+    card.addEventListener('error', () => card.remove()); card.src = assetUrl(CONFIG.telegram.inviteImage); body.append(card);
+  }
   body.append(el('p', 'tag', 'Invita a jugar con tu enlace. Cuando 3 invitados llegan al nivel 10 empiezas a ganar premios, y por cada 10 niveles que supera cada invitado tus niveles dan un 2 % más de bits (máximo 100 %).'));
   const f = el('div', 'field'), inp = el('input'), cp = el('button', 'btn alt', 'Copiar');
   inp.readOnly = true; inp.value = share; inp.id = 'invLink'; inp.setAttribute('aria-label', 'Tu enlace de invitación');
   cp.addEventListener('click', () => copyText(share, inp)); f.append(inp, cp); body.append(f);
   if (!link) body.append(el('p', 'note', tgUser ? 'Pon el enlace de tu juego (shareUrl) en CONFIG para que las invitaciones cuenten.' : 'Las invitaciones cuentan cuando el juego se abre dentro de Telegram.'));
+
+  body.append(el('span', 'lbl', 'Compartir y ganar bits · premio verificado'));
+  body.append(el('p', 'tag', Online.enabled
+    ? 'El premio llega cuando un jugador nuevo entra desde lo que compartiste y supera el nivel 1. Así se comprueba que la invitación se publicó de verdad. Sin límite: cada jugador nuevo cuenta.'
+    : 'Puedes compartir tu invitación. Los premios se activan al conectar la base de datos en CONFIG, que es la que comprueba quién entra desde tu enlace.'));
+  const enc = encodeURIComponent, hrefs = {
+    tg: 'https://t.me/share/url?url=' + enc(inviteLink('tg') || share) + '&text=' + enc(text),
+    wa: 'https://wa.me/?text=' + enc(text + ' ' + (previewLink('wa') || share)),
+    fb: 'https://www.facebook.com/sharer/sharer.php?u=' + enc(previewLink('fb') || share),
+    x: 'https://twitter.com/intent/tweet?text=' + enc(text) + '&url=' + enc(previewLink('x') || share)
+  };
+  const canStory = inTg && typeof tg.shareToStory === 'function' && tg.isVersionAtLeast && tg.isVersionAtLeast('7.8');
+  for (const s of SHARES) {
+    const n = save.sharePaid[s.id] || 0, sent = save.shares[s.id] === today(), row = el('div', 'item up'), info = el('div', 'info');
+    const sub = s.id === 'story' && !canStory ? 'Solo dentro de Telegram'
+      : n ? n + (n === 1 ? ' jugador verificado' : ' jugadores verificados') + ' · +' + fmt(n * s.bits) + ' bits'
+      : sent ? 'Compartido hoy · esperando a que entre alguien' : '+' + s.bits + ' bits por cada jugador nuevo';
+    info.append(el('b', null, s.name), el('span', null, sub));
+    const mark = msg => {
+      save.shares[s.id] = today(); persist(); renderInvite(res);
+      $('inviteNote').textContent = msg || (Online.enabled ? 'Compartido. El premio llega cuando un jugador nuevo entre desde ahí y supere el nivel 1.' : 'Compartido.');
+    };
+    let act;
+    if (s.id === 'story') {
+      act = el('button', 'buy own', 'Publicar'); act.disabled = !canStory;
+      act.addEventListener('click', () => {
+        try { tg.shareToStory(assetUrl(CONFIG.telegram.storyImage), { text: 'Te reto en Centinela, el juego del antivirus. Voy por el nivel ' + save.level + '. ' + (inviteLink('story') || share) }); mark(); }
+        catch (e) { $('inviteNote').textContent = 'No se pudo abrir el editor de historias.'; }
+      });
+    } else if (s.id === 'ig') {
+      act = el('button', 'buy own', 'Copiar enlace');
+      act.addEventListener('click', () => { const l = previewLink('ig') || share; mark(' '); copyText(l, $('invLink'), 'Enlace copiado. Pégalo en tu historia (pegatina de enlace) o en tu perfil de Instagram.'); });
+    } else {
+      act = el('a', 'buy own', 'Compartir'); act.href = hrefs[s.id]; act.target = '_blank'; act.rel = 'noopener';
+      act.addEventListener('click', ev => {
+        if (inTg) { ev.preventDefault(); try { s.id === 'tg' ? tg.openTelegramLink(hrefs.tg) : tg.openLink(hrefs[s.id]); } catch (e) {} }
+        setTimeout(mark, 50);
+      });
+    }
+    row.append(info, act); body.append(row);
+  }
 
   body.append(el('span', 'lbl', 'Premios por invitados que llegan al nivel 10'));
   for (const r of REF_REWARDS) {
@@ -2022,48 +2152,17 @@ function renderInvite(res) {
   else if (res.error) body.append(el('p', 'tag', 'No se pudo cargar la lista. Revisa tu conexión.'));
   else if (!res.list.length) body.append(el('p', 'tag', 'Todavía no ha entrado nadie con tu enlace.'));
   else for (const p of res.list) {
-    const row = el('div', 'rrow'), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l));
+    const row = el('div', 'rrow'), nm = el('span', 'nm', p.n), via = SHARES.find(x => x.id === p.s);
+    nm.append(el('small', null, 'Nivel ' + p.l + (via ? ' · llegó por ' + via.name : '')));
     row.append(el('span', null, p.l >= 10 ? '✓' : '·'), nm, el('b', null, '+' + Math.floor((p.l - 1) / 10) * 2 + ' %'));
     body.append(row);
   }
-  if (res && res.got && res.got.length) $('inviteNote').textContent = 'Premio por invitados: +' + fmt(res.got.reduce((s, r) => s + r.bits, 0)) + ' bits.';
-
-  body.append(el('span', 'lbl', 'Compartir y ganar bits · una vez al día por red'));
-  const enc = encodeURIComponent, hrefs = {
-    tg: 'https://t.me/share/url?url=' + enc(share) + '&text=' + enc(text),
-    wa: 'https://wa.me/?text=' + enc(text + ' ' + share),
-    fb: 'https://www.facebook.com/sharer/sharer.php?u=' + enc(share),
-    x: 'https://twitter.com/intent/tweet?text=' + enc(text) + '&url=' + enc(share)
-  };
-  const canStory = inTg && typeof tg.shareToStory === 'function' && tg.isVersionAtLeast && tg.isVersionAtLeast('7.8');
-  for (const s of SHARES) {
-    const done = save.shares[s.id] === today(), row = el('div', 'item up'), info = el('div', 'info');
-    info.append(el('b', null, s.name), el('span', null, done ? 'Hecho hoy' : s.id === 'story' && !canStory ? 'Solo dentro de Telegram' : '+' + s.bits + ' bits'));
-    const pay = () => {
-      if (save.shares[s.id] !== today()) { save.shares[s.id] = today(); save.bits += s.bits; save.earned += s.bits; persist(); Sfx.buy(); $('inviteNote').textContent = 'Has recibido ' + s.bits + ' bits por compartir.'; }
-      renderInvite(res);
-    };
-    let act;
-    if (s.id === 'story') {
-      act = el('button', 'buy own', 'Publicar'); act.disabled = !canStory;
-      act.addEventListener('click', () => { try { tg.shareToStory(new URL(CONFIG.telegram.storyImage, pageUrl).href, { text: text + ' ' + share }); pay(); } catch (e) { $('inviteNote').textContent = 'No se pudo abrir el editor de historias.'; } });
-    } else if (s.id === 'ig') {
-      act = el('button', 'buy own', 'Copiar enlace');
-      act.addEventListener('click', () => { copyText(share, inp); pay(); $('inviteNote').textContent = 'Enlace copiado. Pégalo en tu historia o en tu perfil de Instagram.'; });
-    } else {
-      act = el('a', 'buy own', 'Compartir'); act.href = hrefs[s.id]; act.target = '_blank'; act.rel = 'noopener';
-      act.addEventListener('click', ev => {
-        if (inTg) { ev.preventDefault(); try { s.id === 'tg' ? tg.openTelegramLink(hrefs.tg) : tg.openLink(hrefs[s.id]); } catch (e) {} }
-        setTimeout(pay, 50);
-      });
-    }
-    row.append(info, act); body.append(row);
-  }
-  body.append(el('p', 'tag', 'El premio se entrega al pulsar el botón: el juego no puede comprobar que la publicación se haya hecho.'));
+  if (refNews) { $('inviteNote').textContent = refNews; refNews = ''; }
   body.scrollTop = top;
 }
 function openInvite() {
-  renderInvite(null);
+  $('inviteNote').textContent = '';
+  renderInvite(lastRefs); checkLanding();
   if (Online.enabled) refreshRefs().then(res => { if (!$('invite').hidden) renderInvite(res); });
 }
 
@@ -2074,26 +2173,37 @@ const DUEL_REWARDS = [
   { wins: 1, bits: 200 }, { wins: 3, skin: 'duelista' }, { wins: 5, bits: 500 }, { wins: 10, bits: 1000 },
   { wins: 15, skin: 'campeon' }, { wins: 25, bits: 2500 }, { wins: 50, bits: 6000 }
 ];
+/* Apuestas: cada jugador pone la misma cantidad de bits al empezar y el ganador se lleva las dos. Con empate se devuelven.
+   Quien sale del duelo (cierra o minimiza el juego) o se queda sin conexión pierde su apuesta. Si el rival deja de responder
+   sin avisar, la apuesta se devuelve: así ningún corte de conexión puede crear bits de la nada. */
+const BETS = [0, 50, 100, 250, 500, 1000];
 const Duel = (() => {
   const TYPES = Object.keys(DEF), PKT = Object.keys(PK), DUR = 90, r = Math.round;
   const D = { bot: false, host: false, code: '', peer: null, conn: null, ended: true, snapT: 0, inT: 0, ky: 1, map: {}, shockN: 0,
-    botX: 260, skill: 1, wantAgain: false, oppAgain: false, oppName: 'Rival', oppSkin: 'centinela' };
+    botX: 260, skill: 1, wantAgain: false, oppAgain: false, oppName: 'Rival', oppSkin: 'centinela',
+    sel: 0, bet: 0, betOk: 0, pot: 0, roomBet: 0, askBet: 0, wait: false, againBet: 0, oppAgainBet: 0, oppAway: false, off: false, hidAt: 0, news: '' };
+  /* cantidad válida que llega del otro jugador; -1 si no es una de las permitidas */
+  const betOf = v => { v = Number(v) || 0; return BETS.includes(v) ? v : -1; };
+  const stake = () => (D.sel > 0 && D.sel <= save.bits ? D.sel : 0);
   const canOnline = () => typeof window.Peer === 'function';
   const note = t => { $('duelNote').textContent = t; };
   function send(m) { if (D.conn && D.conn.open) { try { D.conn.send(m); } catch (e) {} } }
   function closeNet() {
-    const c = D.conn, p = D.peer; D.conn = D.peer = null;
+    const c = D.conn, p = D.peer; D.conn = D.peer = null; D.wait = false;
+    if (D.askBet) { D.askBet = 0; show('ask', false); }
     try { c && c.close(); } catch (e) {} try { p && p.destroy(); } catch (e) {}
   }
-  function lobby(room) { show('roomBox', room); show('duelActions', !room); }
+  function lobby(room) { show('roomBox', room); show('duelActions', !room); show('betBox', !room); }
   function newCode() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 4; i++) s += A[Math.random() * A.length | 0]; return s; }
   function wire(c) {
-    c.on('open', () => { if (D.conn && D.conn !== c) { try { c.close(); } catch (e) {} return; } D.conn = c; send({ t: 'hello', name: myName(), skin: save.skin }); });
+    c.on('open', () => { if (D.conn && D.conn !== c) { try { c.close(); } catch (e) {} return; } D.conn = c; send({ t: 'hello', name: myName(), skin: save.skin, bet: D.host ? D.roomBet : 0 }); });
     c.on('data', onMsg); c.on('close', () => onClose(c)); c.on('error', () => onClose(c));
   }
   function create() {
     if (!canOnline()) return;
     closeNet(); D.host = true; D.bot = false; D.code = newCode(); $('roomCode').textContent = D.code; lobby(true); note('Creando sala…');
+    D.roomBet = stake(); D.bet = D.betOk = 0;
+    $('roomBet').textContent = D.roomBet ? 'Sala con apuesta: ' + fmt(D.roomBet) + ' bits por jugador.' : 'Sala sin apuesta.';
     show('btnRoomShare', inTg && !!CONFIG.telegram.shareUrl);
     const p = D.peer = new window.Peer(CONFIG.online.duelPrefix + D.code);
     p.on('open', () => note('Sala lista. Pásale el código a tu rival y espera a que entre.'));
@@ -2104,16 +2214,23 @@ const Duel = (() => {
     code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length !== 4) { note('Escribe el código de 4 caracteres de la sala.'); return; }
     if (!canOnline()) return;
-    closeNet(); D.host = false; D.bot = false; D.code = code; note('Conectando con la sala ' + code + '…');
+    closeNet(); D.host = false; D.bot = false; D.code = code; D.roomBet = 0; D.bet = D.betOk = 0; note('Conectando con la sala ' + code + '…');
     const p = D.peer = new window.Peer();
     p.on('open', () => wire(p.connect(CONFIG.online.duelPrefix + code, { reliable: true })));
     p.on('error', e => { if (p !== D.peer) return; note(e && e.type === 'peer-unavailable' ? 'No existe ninguna sala con ese código.' : 'No se pudo conectar. Revisa tu conexión.'); });
   }
+  /* el anfitrión da la salida con la apuesta acordada */
+  function go() { if (D.bet > save.bits) D.bet = 0; send({ t: 'start', h: H, bet: D.bet }); begin(false); }
   function begin(bot, hostH) {
     D.bot = bot; D.ended = false; D.wantAgain = D.oppAgain = false; D.snapT = D.inT = 0; D.map = {}; D.shockN = 0;
+    D.againBet = D.oppAgainBet = 0; D.oppAway = false; D.off = false; D.hidAt = 0; D.wait = false;
     D.t0 = D.rx = performance.now();
-    if (bot) { D.host = true; D.oppName = 'Bot'; D.oppSkin = pick(SKINS).id; D.skill = rand(.7, 1.15); }
+    if (bot) { D.host = true; D.oppName = 'Bot'; D.oppSkin = pick(SKINS).id; D.skill = rand(.7, 1.15); D.bet = D.betOk = 0; }
+    /* la apuesta se aparta al empezar y queda guardada: si el juego se cierra a mitad, se pierde */
+    D.pot = !bot && D.bet > 0 && D.bet <= save.bits ? D.bet : 0;
+    if (D.pot) { save.bits -= D.pot; save.bet = D.pot; persist(); }
     startDuelGame(D.oppName);
+    if (D.pot) banner('DUELO · ' + fmt(D.pot) + ' BITS', 'El ganador se lleva ' + fmt(2 * D.pot) + ' bits');
     S.net = bot ? 'solo' : D.host ? 'host' : 'guest';
     D.ky = S.net === 'guest' && hostH > 0 ? H / hostH : 1;
     /* duelo justo: las dos naves tienen las mismas características, sin contar las mejoras del Arsenal */
@@ -2128,9 +2245,43 @@ const Duel = (() => {
     switch (m.t) {
       case 'hello':
         D.oppName = String(m.name || 'Rival').slice(0, 16); D.oppSkin = String(m.skin || 'centinela');
-        if (D.host && D.ended && S.mode !== 'duelend') { send({ t: 'start', h: H }); begin(false); }
+        if (!D.ended || S.mode === 'duelend') break;
+        if (D.host) {
+          if (D.wait) break;
+          if (D.roomBet > 0) { D.wait = true; note(D.oppName + ' ha entrado. Esperando a que acepte la apuesta de ' + fmt(D.roomBet) + ' bits…'); }
+          else { D.bet = 0; go(); }
+        } else {   /* al entrar en una sala, el anfitrión dice cuánto se apuesta */
+          const b = betOf(m.bet);
+          if (b < 0) { closeNet(); note('Esa sala usa una apuesta que esta versión del juego no admite.'); }
+          else if (b > save.bits) { closeNet(); note('Esa sala apuesta ' + fmt(b) + ' bits por jugador y no tienes suficientes.'); }
+          else if (b > 0) {
+            D.askBet = b; $('askTitle').textContent = 'Sala con apuesta';
+            $('askText').textContent = 'La sala de ' + D.oppName + ' apuesta ' + fmt(b) + ' bits por jugador. El ganador se lleva ' + fmt(2 * b) + '. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.';
+            show('ask', true);
+          } else D.betOk = 0;
+        }
         break;
-      case 'start': if (!D.host && D.ended) begin(false, Number(m.h) || H); break;
+      case 'betok':
+        if (D.host && D.wait && D.ended) {
+          D.wait = false;
+          if (betOf(m.bet) === D.roomBet && D.roomBet <= save.bits) { D.bet = D.roomBet; go(); }
+          else { closeNet(); lobby(false); note('No se pudo acordar la apuesta. Crea la sala de nuevo.'); }
+        }
+        break;
+      case 'start':
+        if (!D.host && D.ended) {   /* solo se acepta una apuesta igual o menor que la que este jugador aprobó */
+          const b = betOf(m.bet);
+          if (b < 0 || b > D.betOk || b > save.bits) {
+            const again = S.mode === 'duelend'; closeNet();
+            if (again) { $('duelEndNote').textContent = 'La apuesta no coincide con la acordada. Revancha cancelada.'; $('btnRematch').disabled = true; }
+            else { lobby(false); note('La apuesta no coincide con la acordada. Duelo cancelado.'); }
+            break;
+          }
+          D.bet = b; begin(false, Number(m.h) || H);
+        }
+        break;
+      case 'away': D.oppAway = true; break;      /* el rival ha minimizado o cerrado el juego */
+      case 'back': D.oppAway = false; break;
       case 'i': if (S.net === 'host' && !D.ended) { Q.tx = Number(m.x) || Q.tx; Q.ty = Number(m.y) || Q.ty; } break;
       case 'bomb': if (S.net === 'host' && !D.ended && S.mode === 'play' && Q.bombs > 0 && Q.out <= 0) { Q.bombs--; shockwave(Q); } break;
       case 'w': if (S.net === 'guest' && !D.ended) apply(m); break;
@@ -2138,25 +2289,53 @@ const Duel = (() => {
         if (S.net === 'guest' && !D.ended) { Q.kills = Number(m.a) || 0; P.kills = Number(m.b) || 0; finish(P.kills > Q.kills ? 'win' : P.kills < Q.kills ? 'lose' : 'draw', ''); }
         break;
       case 'again':
-        D.oppAgain = true;
-        if (D.wantAgain && D.host) { send({ t: 'start', h: H }); begin(false); }
-        else if (!D.wantAgain && S.mode === 'duelend') $('duelEndNote').textContent = D.oppName + ' quiere la revancha.';
+        D.oppAgain = true; D.oppAgainBet = Math.max(0, betOf(m.bet));
+        if (D.wantAgain && D.host) { D.bet = Math.min(D.againBet, D.oppAgainBet); go(); }
+        else if (!D.wantAgain && S.mode === 'duelend') $('duelEndNote').textContent = D.oppName + ' quiere la revancha' + (D.bet > 0 ? (D.oppAgainBet ? ' apostando ' + fmt(D.oppAgainBet) + ' bits.' : ' sin apuesta.') : '.');
         break;
     }
   }
   function onClose(c) {
     if (c !== D.conn) return;
-    D.conn = null;
-    if (!D.ended && S.kind === 'duel') { closeNet(); finish('win', 'El rival se desconectó.'); }
+    const waited = D.wait; D.conn = null; D.wait = false;
+    if (D.askBet) { D.askBet = 0; show('ask', false); }
+    if (!D.ended && S.kind === 'duel') dropped();
     else if (S.mode === 'duelend') { $('duelEndNote').textContent = 'El rival ha salido.'; $('btnRematch').disabled = true; }
+    else if (D.host && D.peer && !$('roomBox').hidden) note(waited ? D.oppName + ' no aceptó la apuesta. La sala sigue abierta.' : 'El rival no llegó a entrar. La sala sigue abierta.');
     else { lobby(false); note('Se cerró la conexión con el rival.'); }
   }
 
   /* --- anfitrión (y duelo contra el bot) --- */
   /* un reto aceptado desde la sala de conectados reutiliza esa misma conexión para el duelo */
-  function adopt(c, host, name, skin) {
+  function adopt(c, host, name, skin, bet) {
     closeNet(); D.conn = c; D.host = host; D.bot = false; D.ended = true; D.oppName = name; D.oppSkin = skin; D.rx = performance.now();
-    if (host) { send({ t: 'start', h: H }); begin(false); }
+    D.roomBet = 0; D.bet = D.betOk = Math.max(0, betOf(bet));
+    if (host) go();
+  }
+  /* el rival deja de responder en pleno duelo */
+  function dropped() {
+    closeNet();
+    if (D.off || navigator.onLine === false) finish('lose', 'Te quedaste sin conexión y el duelo se da por perdido.', 'forfeit');
+    else if (D.oppAway) finish('win', 'El rival abandonó el duelo.', 'left');
+    else finish('win', 'El rival se desconectó.', 'void');
+  }
+  /* salir del juego en pleno duelo (minimizarlo o cerrarlo) cuenta como abandono */
+  function vis(hidden) {
+    if (D.ended || D.bot || S.kind !== 'duel') return;
+    if (hidden) { if (!D.hidAt) D.hidAt = Date.now(); send({ t: 'away' }); }
+    else if (D.hidAt) {
+      const gone = Date.now() - D.hidAt; D.hidAt = 0;
+      if (gone >= 5500) { closeNet(); finish('lose', 'Saliste del duelo y se da por perdido.', 'forfeit'); } else send({ t: 'back' });
+    }
+  }
+  function offline() { if (!D.ended && !D.bot && S.kind === 'duel') D.off = true; }
+  /* respuesta al aviso de "sala con apuesta" */
+  function answerBet(yes) {
+    if (!D.askBet) return false;
+    const b = D.askBet; D.askBet = 0; show('ask', false);
+    if (yes && b <= save.bits) { D.betOk = b; send({ t: 'betok', bet: b }); note('Apuesta aceptada. Empezando…'); }
+    else { closeNet(); note('No has aceptado la apuesta de la sala.'); }
+    return true;
   }
   function shipArr(pl) { return [r(pl.x), r(pl.y), r(pl.int), r(pl.out * 10), pl.shield ? 1 : 0, r(pl.rapid * 10), r(pl.spread * 10), r(pl.inv * 10), pl.bombs, pl.kills]; }
   function snap() {
@@ -2179,7 +2358,7 @@ const Duel = (() => {
   function hostTick(dt) {
     /* el tiempo del duelo va por reloj real; si el rival deja de responder unos segundos, se da por desconectado */
     S.duelT = DUR - (performance.now() - D.t0) / 1000; S.diff = 3 + (1 - Math.max(0, S.duelT) / DUR) * 9;
-    if (!D.bot && performance.now() - D.rx > 6000) { closeNet(); finish('win', 'El rival se desconectó.'); return; }
+    if (!D.bot && performance.now() - D.rx > 6000) { dropped(); return; }
     if (D.bot) botTick(dt);
     moveShip(Q, dt);
     if (!D.bot) { D.snapT -= dt; if (D.snapT <= 0) { D.snapT = 1 / 12; send(snap()); } }
@@ -2226,7 +2405,7 @@ const Duel = (() => {
   }
   function guestTick(dt) {
     S.duelT = Math.max(0, S.duelT - dt);
-    if (performance.now() - D.rx > 6000) { closeNet(); finish('win', 'El rival se desconectó.'); return; }
+    if (performance.now() - D.rx > 6000) { dropped(); return; }
     D.inT -= dt; if (D.inT <= 0) { D.inT = .05; send({ t: 'i', x: r(P.x), y: r(P.y / D.ky) }); }
     moveShip(Q, dt);
     const f = Math.min(1, dt * 14);
@@ -2246,10 +2425,18 @@ const Duel = (() => {
   }
   function sendBomb() { send({ t: 'bomb' }); }
 
-  function finish(result, msg) {
+  function finish(result, msg, how) {
     if (D.ended) return;
     D.ended = true; S.mode = 'duelend'; S.boss = null;
     const real = !D.bot, won = result === 'win';
+    /* reparto de la apuesta: 'void' = el rival dejó de responder sin avisar, se devuelve */
+    let betRow = '', betMsg = '';
+    if (D.pot > 0) {
+      const st = D.pot; D.pot = 0; save.bet = 0;
+      if (how === 'void' || result === 'draw') { save.bits += st; betRow = '0'; betMsg = 'Apuesta devuelta.'; }
+      else if (won) { save.bits += 2 * st; save.earned += st; betRow = '+' + fmt(st); betMsg = 'Ganas la apuesta: +' + fmt(st) + ' bits.'; }
+      else { betRow = '−' + fmt(st); betMsg = 'Pierdes la apuesta: −' + fmt(st) + ' bits.'; }
+    }
     const prize = real ? (won ? 150 : result === 'draw' ? 60 : 25) : (won ? 40 : result === 'draw' ? 20 : 10);
     save.bits += prize; save.earned += prize;
     const extra = [];
@@ -2267,7 +2454,10 @@ const Duel = (() => {
     const t = $('duelTitle'); t.textContent = won ? 'Victoria' : result === 'lose' ? 'Derrota' : 'Empate'; t.className = result === 'lose' ? 'bad' : 'good';
     $('duelMe').textContent = String(P.kills); $('duelOpp').textContent = String(Q.kills); $('duelOppName').textContent = 'Eliminados de ' + Q.name;
     $('duelBits').textContent = '+' + fmt(prize);
-    $('duelEndNote').textContent = (msg ? msg + ' ' : '') + (!real ? 'Duelo de práctica: no cuenta para el ranking ni para las recompensas.'
+    show('duelBetRow', !!betRow); $('duelBet').textContent = betRow;
+    const again = D.bet > 0 && save.bits >= D.bet ? D.bet : 0;
+    $('btnRematch').textContent = 'Revancha' + (real && D.bet > 0 ? (again ? ' · ' + fmt(again) + ' bits' : ' sin apuesta') : '');
+    $('duelEndNote').textContent = (msg ? msg + ' ' : '') + (betMsg ? betMsg + ' ' : '') + (!real ? 'Duelo de práctica: no cuenta para el ranking ni para las recompensas.'
       : won ? '+300 puntos de rango. Llevas ' + save.duelWins + (save.duelWins === 1 ? ' victoria.' : ' victorias.') + (extra.length ? ' Recompensa de duelo: ' + extra.join(', ') + '.' : '') : '');
     $('btnRematch').disabled = real && !(D.conn && D.conn.open);
     if (won) { Sfx.win(); haptic('success'); } else haptic('error');
@@ -2275,16 +2465,19 @@ const Duel = (() => {
   }
   function rematch() {
     if (D.bot) { begin(true); return; }
-    D.wantAgain = true; send({ t: 'again' });
-    if (D.oppAgain && D.host) { send({ t: 'start', h: H }); begin(false); }
+    /* revancha con la misma apuesta si los dos pueden pagarla; si no, se juega con la menor de las dos ofertas */
+    D.againBet = D.betOk = D.bet > 0 && save.bits >= D.bet ? D.bet : 0;
+    D.wantAgain = true; send({ t: 'again', bet: D.againBet });
+    if (D.oppAgain && D.host) { D.bet = Math.min(D.againBet, D.oppAgainBet); go(); }
     else $('duelEndNote').textContent = 'Esperando a que ' + D.oppName + ' acepte la revancha…';
   }
-  function leave() { D.ended = true; closeNet(); lobby(false); }
+  function leave() { D.ended = true; closeNet(); lobby(false); D.bet = D.betOk = 0; }
   function cancelLobby() { if (D.ended && (D.peer || D.conn)) closeNet(); lobby(false); }
   function open() {
     $('duelWins').textContent = fmt(save.duelWins); lobby(false);
     const on = canOnline(); $('btnCreate').disabled = !on; $('btnJoin').disabled = !on; $('codeInput').disabled = !on;
-    note(on ? '' : 'El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.');
+    note(D.news || (on ? '' : 'El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.'));
+    D.news = ''; renderBets();
     Lobby.render();
     const box = $('duelRewards'); box.textContent = '';
     for (const rw of DUEL_REWARDS) {
@@ -2294,11 +2487,23 @@ const Duel = (() => {
       box.append(row);
     }
   }
+  function renderBets() {
+    if (D.sel > save.bits) D.sel = 0;
+    const box = $('betRow'); box.textContent = '';
+    for (const b of BETS) {
+      const t = el('button', 'tab' + (b === D.sel ? ' on' : ''), b ? fmt(b) : 'Sin apuesta'); t.disabled = b > save.bits;
+      t.addEventListener('click', () => { Sfx.ui(); D.sel = b; renderBets(); Lobby.render(); }); box.append(t);
+    }
+    $('betInfo').textContent = D.sel
+      ? 'Cada jugador pone ' + fmt(D.sel) + ' bits y el ganador se lleva ' + fmt(2 * D.sel) + '. Con empate se devuelven. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.'
+      : 'Duelo amistoso. Elige una cantidad si quieres apostar: tienes ' + fmt(save.bits) + ' bits.';
+  }
   function share() {
     const url = CONFIG.telegram.shareUrl + (CONFIG.telegram.shareUrl.includes('?') ? '&' : '?') + 'startapp=duel_' + D.code;
-    try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent('Te reto a un duelo en Centinela. Sala ' + D.code)); } catch (e) {}
+    try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent('Te reto a un duelo en Centinela. Sala ' + D.code + (D.roomBet ? ' · apuesta de ' + fmt(D.roomBet) + ' bits' : ''))); } catch (e) {}
   }
-  return { create, join, begin, hostTick, guestTick, sendBomb, rematch, leave, cancelLobby, open, share, adopt, onMsg, onClose };
+  return { create, join, begin, hostTick, guestTick, sendBomb, rematch, leave, cancelLobby, open, share, adopt, onMsg, onClose,
+    stake, betOf, answerBet, vis, offline, setNews: t => { D.news = t; }, hasNews: () => !!D.news };
 })();
 
 /* ---------------- Sala de jugadores conectados ----------------
@@ -2310,7 +2515,7 @@ const Lobby = (() => {
   const L = { me: null, hub: null, link: null, members: new Map(), list: [], sig: '', beat: 0, since: 0, out: null, inc: null, cool: {}, joinT: 0, castT: 0 };
   const can = () => typeof window.Peer === 'function';
   const note = t => { $('duelNote').textContent = t; };
-  const status = () => (S.mode === 'menu' && !document.hidden && !L.out && !L.inc && $('intro').hidden) ? 'libre' : 'ocupado';
+  const status = () => (S.mode === 'menu' && !document.hidden && !L.out && !L.inc && $('intro').hidden && $('ask').hidden) ? 'libre' : 'ocupado';
   const card = () => ({ id: L.me ? L.me.id : '', n: myName(), l: save.level, s: status() });
   const clean = x => ({ id: String((x && x.id) || '').slice(0, 64), n: String((x && x.n) || 'Agente').slice(0, 16), l: clamp(Number(x && x.l) || 1, 1, MAXLV), s: x && x.s === 'libre' ? 'libre' : 'ocupado' });
   const later = fn => { clearTimeout(L.joinT); L.joinT = setTimeout(fn, 600 + Math.random() * 2200); };
@@ -2366,13 +2571,18 @@ const Lobby = (() => {
   /* --- retos --- */
   function challenge(id, name) {
     if (L.out || L.inc || !L.me || S.mode !== 'menu') return;
-    const c = L.me.connect(id, { reliable: true });
-    L.out = { c, n: name, t: Date.now() }; note('Esperando la respuesta de ' + name + '…'); render();
-    c.on('open', () => { try { c.send({ t: 'invite', n: myName(), skin: save.skin }); } catch (e) {} });
+    const c = L.me.connect(id, { reliable: true }), bet = Duel.stake();
+    L.out = { c, n: name, t: Date.now(), bet }; note('Esperando la respuesta de ' + name + '…' + (bet ? ' Apuesta: ' + fmt(bet) + ' bits.' : '')); render();
+    c.on('open', () => { try { c.send({ t: 'invite', n: myName(), skin: save.skin, bet }); } catch (e) {} });
     c.on('data', m => {
       if (c._duel) { Duel.onMsg(m); return; }
       if (!L.out || L.out.c !== c || !m) return;
-      if (m.t === 'ok') { L.out = null; c._duel = true; Duel.adopt(c, true, name, String(m.skin || 'centinela')); }
+      if (m.t === 'ok') {
+        if ((Number(m.bet) || 0) !== bet) endOut(name + ' tiene una versión antigua del juego y no puede apostar.');
+        else if (bet > save.bits) endOut('Ya no tienes bits suficientes para esa apuesta.');
+        else { L.out = null; c._duel = true; Duel.adopt(c, true, name, String(m.skin || 'centinela'), bet); }
+      }
+      else if (m.t === 'poor') endOut(name + ' no tiene bits suficientes para esa apuesta.');
       else if (m.t === 'no') endOut(name + ' ha rechazado el duelo.');
       else if (m.t === 'busy') endOut(name + ' está ocupado ahora.');
     });
@@ -2386,9 +2596,14 @@ const Lobby = (() => {
       if (c._duel) { Duel.onMsg(m); return; }
       if (!m) return;
       if (m.t === 'invite') {
-        if (L.inc || L.out || S.mode !== 'menu' || document.hidden || !$('intro').hidden || (L.cool[c.peer] || 0) > Date.now()) { try { c.send({ t: 'busy' }); } catch (e) {} closeSoon(c); return; }
-        L.inc = { c, n: String(m.n || 'Agente').slice(0, 16), skin: String(m.skin || 'centinela'), t: Date.now() };
-        $('askText').textContent = L.inc.n + ' te reta a un duelo. Los dos jugáis en la misma pantalla durante 90 segundos.';
+        const bet = Duel.betOf(m.bet);
+        if (L.inc || L.out || S.mode !== 'menu' || document.hidden || !$('intro').hidden || !$('ask').hidden || bet < 0 || (L.cool[c.peer] || 0) > Date.now()) { try { c.send({ t: 'busy' }); } catch (e) {} closeSoon(c); return; }
+        if (bet > save.bits) { try { c.send({ t: 'poor' }); } catch (e) {} closeSoon(c); return; }
+        L.inc = { c, n: String(m.n || 'Agente').slice(0, 16), skin: String(m.skin || 'centinela'), t: Date.now(), bet };
+        $('askTitle').textContent = bet ? 'Reto con apuesta' : 'Reto de duelo';
+        $('askText').textContent = L.inc.n + (bet
+          ? ' te reta a un duelo apostando ' + fmt(bet) + ' bits cada uno. El ganador se lleva ' + fmt(2 * bet) + '. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.'
+          : ' te reta a un duelo. Los dos jugáis en la misma pantalla durante 90 segundos.');
         show('ask', true); Sfx.init(); Sfx.alarm(); haptic('success');
       } else if (m.t === 'cancel' && L.inc && L.inc.c === c) { L.inc = null; show('ask', false); }
     });
@@ -2398,7 +2613,8 @@ const Lobby = (() => {
   function answer(yes) {
     const i = L.inc; if (!i) return;
     L.inc = null; show('ask', false);
-    if (yes) { i.c._duel = true; Duel.adopt(i.c, false, i.n, i.skin); try { i.c.send({ t: 'ok', skin: save.skin }); } catch (e) {} }
+    if (yes && i.bet > save.bits) yes = false;
+    if (yes) { i.c._duel = true; Duel.adopt(i.c, false, i.n, i.skin, i.bet); try { i.c.send({ t: 'ok', skin: save.skin, bet: i.bet }); } catch (e) {} }
     else { L.cool[i.c.peer] = Date.now() + 30000; try { i.c.send({ t: 'no' }); } catch (e) {} closeSoon(i.c); }
   }
   function render() {
@@ -2412,7 +2628,7 @@ const Lobby = (() => {
     for (const p of L.list) {
       const free = p.s === 'libre', row = el('div', 'rrow'), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l));
       let act;
-      if (free) { act = el('button', 'buy own', 'Retar'); act.disabled = !!L.out; act.addEventListener('click', () => { Sfx.ui(); challenge(p.id, p.n); }); }
+      if (free) { const bet = Duel.stake(); act = el('button', 'buy own', 'Retar' + (bet ? ' · ' + fmt(bet) : '')); act.disabled = !!L.out; act.addEventListener('click', () => { Sfx.ui(); challenge(p.id, p.n); }); }
       else act = el('span', null, 'Ocupado');
       row.append(el('span', free ? 'dot on' : 'dot'), nm, act); box.append(row);
     }
@@ -2538,9 +2754,9 @@ $('btnName').addEventListener('click', () => {
 });
 $('btnCreate').addEventListener('click', () => { Sfx.ui(); Duel.create(); });
 $('btnJoin').addEventListener('click', () => { Sfx.ui(); Duel.join($('codeInput').value); });
-$('btnBot').addEventListener('click', () => Duel.begin(true));
-$('askYes').addEventListener('click', () => Lobby.answer(true));
-$('askNo').addEventListener('click', () => Lobby.answer(false));
+$('btnBot').addEventListener('click', () => { Duel.cancelLobby(); Duel.begin(true); });
+$('askYes').addEventListener('click', () => { if (!Duel.answerBet(true)) Lobby.answer(true); });
+$('askNo').addEventListener('click', () => { if (!Duel.answerBet(false)) Lobby.answer(false); });
 $('btnRoomCancel').addEventListener('click', () => { Duel.cancelLobby(); $('duelNote').textContent = ''; });
 $('btnRoomShare').addEventListener('click', Duel.share);
 $('btnRematch').addEventListener('click', Duel.rematch);
@@ -2583,7 +2799,7 @@ $('btnNext').addEventListener('click', async () => {
 $('btnOverMenu').addEventListener('click', goMenu);
 $('btnShare').addEventListener('click', () => {
   const text = 'Voy por el nivel ' + save.level + ' de Centinela con ' + fmt(rankPoints()) + ' puntos de rango. ¿Me superas?';
-  try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(CONFIG.telegram.shareUrl) + '&text=' + encodeURIComponent(text)); } catch (e) {}
+  try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(inviteLink('tg') || CONFIG.telegram.shareUrl) + '&text=' + encodeURIComponent(text)); } catch (e) {}
 });
 if (inTg && CONFIG.telegram.shareUrl) show('btnShare', true);
 
@@ -2613,7 +2829,9 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') setPause(S.mode === 'play');
 });
 window.addEventListener('keyup', e => { if (KEYMAP[e.key]) keys[KEYMAP[e.key]] = false; });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { setPause(true); Sfx.suspend(); } else Sfx.resume(); });
+document.addEventListener('visibilitychange', () => { Duel.vis(document.hidden); if (document.hidden) { setPause(true); Sfx.suspend(); } else Sfx.resume(); });
+window.addEventListener('pagehide', () => Duel.vis(true));
+window.addEventListener('offline', () => Duel.offline());
 window.addEventListener('resize', resize);
 
 /* ---------------- Arranque ---------------- */
@@ -2625,16 +2843,19 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 function boot(data) {
-  try { applySave(JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); } catch (e) {}
+  let lostBet = 0;
+  try { const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); applySave(raw); if (raw && Number(raw.bet) > 0) lostBet = Math.floor(Number(raw.bet)); } catch (e) {}
   if (data && data.save && Number(data.save.earned) >= save.earned) applySave(data.save);
   syncSkin(); ST = stats();
+  /* un duelo con apuesta que no se terminó (se cerró el juego a mitad) cuenta como abandono: la apuesta ya estaba apartada y se pierde */
+  if (lostBet) { save.bet = 0; Duel.setNews('Saliste de un duelo con apuesta sin terminarlo: perdiste ' + fmt(lostBet) + ' bits.'); persist(); }
   /* quién te invitó: solo cuenta para jugadores nuevos que abren el juego desde un enlace de invitación en Telegram */
   const afterLoad = () => {
     try {
-      const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param, rm = sp && /^ref_(tg\d{3,15})$/.exec(sp);
-      if (rm && tgUser && !save.ref && rm[1] !== myUid() && save.level === 1 && !save.earned) { save.ref = rm[1]; persist(); }
+      const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param, rm = sp && /^ref_(tg\d{3,15})(?:_([a-z]{1,5}))?$/.exec(sp);
+      if (rm && tgUser && !save.ref && rm[1] !== myUid() && save.level === 1 && !save.earned) { save.ref = rm[1]; save.refSrc = rm[2] || ''; persist(); }
     } catch (e) {}
-    Online.refPush(); refreshRefs().then(() => refreshMenu());
+    Online.refPush(); refreshRefs().then(() => refreshMenu()); checkLanding();
     Lobby.start(); refreshMenu();
     if (!save.intro) {
       const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
