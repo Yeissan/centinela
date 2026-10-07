@@ -101,6 +101,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--mint);outline-o
   background:#131a40;border:1px solid var(--line);color:var(--ink);cursor:pointer;min-width:0}
 .tile:hover{border-color:var(--core)}
 .tile.hot{border-color:var(--amber);color:var(--amber)}
+.icos{display:inline-flex;gap:8px}
+#btnLang{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.06em}
+#introLang .tab{padding:8px 4px;font-size:12px;letter-spacing:.06em}
 .tile.off{color:var(--dim)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;color:var(--dim)}
 .row strong{font-family:var(--display);font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -139,6 +142,7 @@ a.buy{text-decoration:none}
 .invcard{display:block;width:100%;aspect-ratio:1200/630;object-fit:cover;border:1px solid var(--line);background:#0a0d22;flex:none}
 .item.sel{grid-template-columns:56px minmax(0,1fr) auto}
 .sheet-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain;touch-action:pan-y}
+.sheet-body > *{flex-shrink:0}
 .item{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:rgba(10,13,34,.8)}
 .item.up{grid-template-columns:minmax(0,1fr) auto}
 .item.sel{border-color:var(--core);background:rgba(92,240,255,.07)}
@@ -253,7 +257,7 @@ a.buy{text-decoration:none}
         <div class="row">
           <span>Rango <strong id="rankMenu">0</strong></span>
           <span class="wallet"><i class="gem"></i><strong id="walletMenu">0</strong></span>
-          <button class="ico" id="btnMute" aria-label="Activar o silenciar el sonido"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path class="wave" d="M15.5 12a4 4 0 0 0-2-3.5v7a4 4 0 0 0 2-3.5zm-2-8.3v2.1a7 7 0 0 1 0 12.4v2.1a9 9 0 0 0 0-16.6z"/></svg></button>
+          <span class="icos"><button class="ico" id="btnLang" aria-label="Idioma">ES</button><button class="ico" id="btnMute" aria-label="Activar o silenciar el sonido"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path class="wave" d="M15.5 12a4 4 0 0 0-2-3.5v7a4 4 0 0 0 2-3.5zm-2-8.3v2.1a7 7 0 0 1 0 12.4v2.1a9 9 0 0 0 0-16.6z"/></svg></button></span>
         </div>
         <button class="linkbtn" id="btnHelp">Cómo se juega</button>
       </div>
@@ -327,10 +331,21 @@ a.buy{text-decoration:none}
       </section>
     </div>
 
+    <div class="veil" id="langBox" hidden>
+      <section class="panel">
+        <div class="panel-in">
+          <h2>Idioma · Língua · Language</h2>
+          <div class="stack" id="langList"></div>
+          <button class="linkbtn" id="langClose">Cerrar</button>
+        </div>
+      </section>
+    </div>
+
     <div class="veil" id="intro" hidden>
       <section class="panel">
         <div class="panel-in">
           <div class="stack12" id="introName">
+            <div class="tabs" id="introLang"></div>
             <h2 id="introTitle">Bienvenido, agente</h2>
             <p class="tag">Ponle nombre a tu Centinela. Es el nombre que verán los demás en el ranking y en los duelos.</p>
             <div class="field"><input id="introInput" maxlength="16" placeholder="Nombre del Centinela" autocomplete="off" aria-label="Nombre de tu Centinela"></div>
@@ -412,6 +427,7 @@ a.buy{text-decoration:none}
             <button class="btn alt" id="btnRoomCancel">Cancelar</button>
           </div>
         </div>
+        <button class="btn ad" id="btnTour">Torneo de fin de semana<small id="btnTourS"></small></button>
         <div class="stack" id="betBox">
           <span class="lbl">Apuesta de bits</span>
           <div class="bets" id="betRow"></div>
@@ -432,6 +448,18 @@ a.buy{text-decoration:none}
         <div class="stack" id="duelRewards"></div>
       </div>
       <div class="sheet-foot"><button class="btn alt" data-close>Volver</button></div>
+    </section>
+
+    <section class="sheet" id="tour" hidden>
+      <div class="sheet-top"><h2>Torneo</h2><span class="tagline" id="tourWhen"></span></div>
+      <div class="tabs">
+        <button class="tab on" id="tt_play">Mesa</button>
+        <button class="tab" id="tt_ship">Nave</button>
+        <button class="tab" id="tt_rank">Clasificación</button>
+      </div>
+      <div class="sheet-body" id="tourBody"></div>
+      <p class="note" id="tourNote"></p>
+      <div class="sheet-foot"><button class="btn alt" id="tourBack">Volver</button></div>
     </section>
 
     <div id="ad" hidden>
@@ -469,6 +497,16 @@ const CONFIG = {
     secondsPerLevel: 2,        // segundos extra por cada nivel (nivel 10 = 50 + 2×10 = 70 s)
     maxLevelSeconds: 120       // tope de duración de las oleadas de un nivel
   },
+  tournament: {
+    startDay: 5, startHour: 18,   // el torneo abre el viernes (5) a las 18:00, hora universal (UTC)
+    endDay: 1, endHour: 0,        // y cierra el lunes (1) a las 00:00 UTC, es decir, el domingo a medianoche
+    fee: 100,                     // bits de inscripción por mesa
+    tablePrizes: [600, 300, 150],       // bits para el 1.º, 2.º y 3.º de cada mesa (con 4 jugadores; con bots baja en proporción)
+    points: [5, 3, 1],                  // puntos de fin de semana por puesto en una mesa
+    weekendPrizes: [5000, 3000, 1500],  // bits para los 3 primeros del fin de semana (el 1.º gana además la skin Trofeo)
+    matchSeconds: 60,             // duración de cada partido
+    waitSeconds: 45               // espera antes de rellenar la mesa con bots
+  },
   telegram: {
     shareUrl: 'https://t.me/CentinelaGame_bot/juego',              // enlace de tu juego, p. ej. https://t.me/TuBot/centinela (necesario para invitar y compartir)
     storyImage: 'historia.jpg', // imagen para las historias de Telegram; súbela junto a index.html
@@ -483,6 +521,8 @@ const CONFIG = {
     //     "$uid": { ".write": true, ".validate": "newData.child('p').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } },
     //   "refs": { "$ref": { ".read": true,
     //     "$uid": { ".write": true, ".validate": "newData.child('l').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } }
+    //   ,"torneo": { "$w": { ".read": true,
+    //     "$uid": { ".write": true, ".validate": "newData.child('p').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } }
     // } }
     databaseUrl: 'https://centinela-juego-default-rtdb.firebaseio.com',
     // SERVIDOR CONTRA TRAMPAS (carpeta de Firebase): si lo usas, pon aquí su dirección y deja databaseUrl vacío.
@@ -498,7 +538,46 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.random() * a.length | 0];
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const pad2 = n => String(n).padStart(2, '0');
-const fmt = n => Math.round(n).toLocaleString('es-ES');
+/* ---------------- Idiomas: español, portugués e inglés ----------------
+   El texto original del juego está en español. T('texto {0}', valor) devuelve su traducción al idioma activo
+   (o el mismo texto si el idioma es español). El idioma sale de lo que eligió el jugador; si no eligió,
+   del idioma de su Telegram o de su navegador. */
+const LANGS = { es: 'Español', pt: 'Português', en: 'English' }, LOCALES = { es: 'es-ES', pt: 'pt-PT', en: 'en-US' };
+/*I18N-BEGIN*/
+const I18N = {
+  pt: {"Puntos":"Pontos","Nivel":"Nível","Integridad":"Integridade","Cuarentena":"Quarentena","Eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.":"És o antivírus. Limpa a rede nível a nível antes que a infeção a atravesse.","{0}: eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.":"{0}: és o antivírus. Limpa a rede nível a nível antes que a infeção a atravesse.","Jugar":"Jogar","Nivel 01":"Nível 01","Nivel {0} · {1}":"Nível {0} · {1}","Niveles":"Níveis","Invitar":"Convidar","Rango":"Rank","Cómo se juega":"Como se joga","Cerrar":"Fechar","Activar o silenciar el sonido":"Ativar ou silenciar o som","Campo de juego":"Campo de jogo","En pausa":"Em pausa","El escaneo está detenido. Los virus también.":"A análise está parada. Os vírus também.","Activada":"Ativada","Desactivada":"Desativada","Efectos":"Efeitos","Activados":"Ativados","Desactivados":"Desativados","Reanudar":"Retomar","Salir al menú":"Sair para o menu","Puntuación":"Pontuação","Virus eliminados":"Vírus eliminados","Bits obtenidos":"Bits obtidos","Mejor marca del nivel":"Melhor marca do nível","Ver anuncio":"Ver anúncio","Reintentar":"Tentar de novo","Menú":"Menu","Compartir":"Partilhar","Nivel {0} superado":"Nível {0} superado","Nivel repetido: no da bits ni avanza misiones.":"Nível repetido: não dá bits nem avança missões.","Bono de invitados +{0} %.":"Bónus de convidados +{0} %.","Tu nave sube al nivel {0}.":"A tua nave sobe para o nível {0}.","Nueva mejor marca.":"Nova melhor marca.","Termina con el 70 % de integridad para las 3 estrellas.":"Termina com 70 % de integridade para as 3 estrelas.","Los {0} bits de este intento solo se suman si superas el nivel.":"Os {0} bits desta tentativa só contam se superares o nível.","Con Continuar aún puedes salvarlos.":"Com Continuar ainda os podes salvar.","Los bits solo se suman al superar el nivel.":"Os bits só contam ao superar o nível.","Siguiente nivel":"Nível seguinte","Volver al menú":"Voltar ao menu","El anuncio no se completó o no hay ninguno disponible ahora.":"O anúncio não foi concluído ou não há nenhum disponível agora.","Integridad al 60 %":"Integridade a 60 %","Voy por el nivel {0} de Centinela con {1} puntos de rango. ¿Me superas?":"Vou no nível {0} do Centinela com {1} pontos de rank. Consegues superar-me?","NUEVA FICHA · {0}":"NOVA FICHA · {0}","TARJETA {0} · {1}  +{2} BITS":"CARTA {0} · {1}  +{2} BITS","COLECCIÓN DE {0} TARJETAS · +{1} PUNTOS":"COLEÇÃO DE {0} CARTAS · +{1} PONTOS","HACKER DETECTADO":"HACKER DETETADO","No se puede destruir. Esquívalo":"Não pode ser destruído. Desvia-te","NIVEL SUPERADO":"NÍVEL SUPERADO","Red limpia":"Rede limpa","CORTAFUEGOS ROTO":"FIREWALL QUEBRADA","Jefe de zona. Derrótalo para superar el nivel":"Chefe de zona. Derrota-o para superar o nível","REINICIANDO {0}":"A REINICIAR {0}","TÚ":"TU","Tiempo":"Tempo","NIVEL {0}":"NÍVEL {0}","Repetición: sin bits ni misiones":"Repetição: sem bits nem missões","Jefe de zona: Rootkit":"Chefe de zona: Rootkit","Elimina más virus que {0}":"Elimina mais vírus do que {0}","REPARACIÓN +30":"REPARAÇÃO +30","TRIPLE NÚCLEO":"NÚCLEO TRIPLO","CORTAFUEGOS":"FIREWALL","CUARENTENA +1":"QUARENTENA +1","Red perimetral":"Rede perimetral","Núcleo de datos":"Núcleo de dados","Zona infectada":"Zona infetada","Bienvenido, agente":"Bem-vindo, agente","Ponle nombre a tu Centinela. Es el nombre que verán los demás en el ranking y en los duelos.":"Dá um nome ao teu Sentinela. É o nome que os outros vão ver no ranking e nos duelos.","Nombre del Centinela":"Nome do Sentinela","Nombre de tu Centinela":"Nome do teu Sentinela","Escribe un nombre de al menos 2 caracteres.":"Escreve um nome com pelo menos 2 caracteres.","Atrás":"Anterior","Siguiente":"Seguinte","Saltar el tutorial":"Saltar o tutorial","Mueve tu Centinela":"Move o teu Sentinela","Mueve el ratón o usa las flechas. El disparo es automático.":"Move o rato ou usa as setas. O disparo é automático.","Arrastra el dedo por la pantalla para moverte. El disparo es automático.":"Arrasta o dedo pelo ecrã para te moveres. O disparo é automático.","Destruye los virus":"Destrói os vírus","Elimínalos antes de que crucen la pantalla: cada virus que escapa daña la integridad del sistema.":"Elimina-os antes que atravessem o ecrã: cada vírus que escapa danifica a integridade do sistema.","Esquiva a los hackers":"Desvia-te dos hackers","Son indestructibles. Aléjate de ellos y muévete cuando su línea roja parpadee.":"São indestrutíveis. Afasta-te deles e move-te quando a linha vermelha piscar.","Recoge los parches":"Apanha os patches","Reparan tu nave y dan disparo triple, cortafuegos o una cuarentena, que limpia toda la pantalla.":"Reparam a tua nave e dão disparo triplo, firewall ou uma quarentena, que limpa o ecrã inteiro.","Supera niveles":"Supera níveis","Cada nivel superado da bits para el Arsenal y experiencia para tu nave. Si pierdes el nivel, no se suman.":"Cada nível superado dá bits para o Arsenal e experiência para a tua nave. Se perderes o nível, não contam.","/ 3000 estrellas":"/ 3000 estrelas","Siguientes":"Seguintes","Volver":"Voltar","niveles {0} a {1}":"níveis {0} a {1}","Nivel {0}, jefe":"Nível {0}, chefe","Nivel {0}":"Nível {0}","/ 27 tarjetas":"/ 27 cartas","Recompensa de colección: al reunir {0} tarjetas ganas {1} puntos de rango. Llevas {2}.":"Recompensa de coleção: ao juntar {0} cartas ganhas {1} pontos de rank. Tens {2}.","Colección completa. Has ganado {0} puntos de rango con las tarjetas.":"Coleção completa. Ganhaste {0} pontos de rank com as cartas.","Amenaza sin identificar. Aparece desde el nivel {0}.":"Ameaça por identificar. Aparece a partir do nível {0}.","Indestructible · desde el nivel {0}":"Indestrutível · a partir do nível {0}","Vida {0} · {1} pts · desde el nivel {2}":"Vida {0} · {1} pts · a partir do nível {2}","Misión: esquiva {0} para la tarjeta {1} (+{2} bits)":"Missão: esquiva {0} para a carta {1} (+{2} bits)","Misión: elimina {0} para la tarjeta {1} (+{2} bits)":"Missão: elimina {0} para a carta {1} (+{2} bits)","Bronce":"Bronze","Plata":"Prata","Oro":"Ouro","Gusano":"Verme","Baja serpenteando, solo o en cadena. Débil, pero numeroso.":"Desce a serpentear, sozinho ou em cadeia. Fraco, mas numeroso.","Te sigue con la mirada y se desvía hacia ti. Rápido.":"Segue-te com o olhar e desvia-se na tua direção. Rápido.","Enjambres pequeños en zigzag. Molestos y veloces.":"Pequenos enxames em ziguezague. Irritantes e velozes.","Troyano":"Troiano","Resistente y lento. Al romperse suelta dos gusanos.":"Resistente e lento. Ao partir-se solta dois vermes.","Se planta arriba y te dispara. Mucha vida y buen botín.":"Planta-se lá em cima e dispara sobre ti. Muita vida e bom saque.","Cambia de forma y salta de lado para esquivar tus disparos.":"Muda de forma e salta para o lado para se esquivar dos teus disparos.","Jefe de zona. Aparece cada 5 niveles con ráfagas de proyectiles.":"Chefe de zona. Aparece a cada 5 níveis com rajadas de projéteis.","Hacker indestructible que te persigue. Cuenta cada uno que esquivas.":"Hacker indestrutível que te persegue. Conta cada um de que te desvias.","Francotirador":"Atirador furtivo","Hacker que apunta y dispara un rayo. Muévete cuando la línea parpadee.":"Hacker que aponta e dispara um raio. Move-te quando a linha piscar.","Mejoras":"Melhorias","Te faltan {0} bits.":"Faltam-te {0} bits.","Has recibido {0} bits.":"Recebeste {0} bits.","{0} · nivel {1}":"{0} · nível {1}","Sube superando niveles nuevos. Cada nivel de nave da +5 % de daño y +2 de integridad.":"Sobe ao superar níveis novos. Cada nível da nave dá +5 % de dano e +2 de integridade.","Daño por disparo":"Dano por disparo","Potencia {0}/5 · nivel de nave +{1} %":"Potência {0}/5 · nível da nave +{1} %","Cadencia {0}/5":"Cadência {0}/5","Integridad máxima":"Integridade máxima","Blindaje {0}/5 · nivel de nave +{1}":"Blindagem {0}/5 · nível da nave +{1}","Alcance del imán":"Alcance do íman","Imán {0}/3":"Íman {0}/3","Cuarentenas":"Quarentenas","Duración de potenciadores":"Duração dos potenciadores","Persistencia {0}/3":"Persistência {0}/3","Bono de bits":"Bónus de bits","Por los niveles que superan tus invitados":"Pelos níveis que os teus convidados superam","Nivel alcanzado":"Nível alcançado","{0} estrellas · {1} virus eliminados":"{0} estrelas · {1} vírus eliminados","Duelos ganados":"Duelos ganhos","{0} jugados":"{0} jogados","Cambiar el nombre del Centinela":"Mudar o nome do Sentinela","En los duelos todas las naves usan las mismas características.":"Nos duelos todas as naves usam as mesmas características.","Centinela":"Sentinela","El núcleo original":"O núcleo original","Halcón":"Falcão","Alas en flecha y estela verde":"Asas em flecha e rasto verde","Cristal de datos facetado":"Cristal de dados facetado","Deja un rastro fantasma":"Deixa um rasto fantasma","Titán":"Titã","Blindaje pesado de combate":"Blindagem pesada de combate","Derrota a un Rootkit":"Derrota um Rootkit","Núcleo dorado con halo":"Núcleo dourado com halo","Supera el nivel 15":"Supera o nível 15","Doble punta de combate":"Ponta dupla de combate","Gana 3 duelos":"Ganha 3 duelos","Campeón":"Campeão","La corona de la arena":"A coroa da arena","Gana 15 duelos":"Ganha 15 duelos","Cadencia":"Cadência","Dispara más rápido":"Dispara mais depressa","Potencia":"Potência","Más daño por disparo":"Mais dano por disparo","Blindaje":"Blindagem","+15 de integridad máxima por nivel":"+15 de integridade máxima por nível","Imán":"Íman","Atrae los parches desde más lejos":"Atrai os patches de mais longe","Empiezas con una cuarentena más":"Começas com mais uma quarentena","Persistencia":"Persistência","Los potenciadores duran más":"Os potenciadores duram mais","Tu nombre":"O teu nome","Tu nombre en el ranking":"O teu nome no ranking","Niveles {0} · Tarjetas {1} · Duelos ganados {2} (300 por victoria)":"Níveis {0} · Cartas {1} · Duelos ganhos {2} (300 por vitória)","Nivel {0} · {1} duelos ganados":"Nível {0} · {1} duelos ganhos","El ranking global todavía no está conectado. Se activa al poner la base de datos en CONFIG.":"O ranking global ainda não está ligado. Ativa-se ao pôr a base de dados em CONFIG.","Cargando ranking…":"A carregar o ranking…","Todavía no hay nadie en el ranking.":"Ainda não há ninguém no ranking.","El servidor valida el progreso: si acabas de subir mucho, tus puntos se actualizan poco a poco.":"O servidor valida o progresso: se acabaste de subir muito, os teus pontos atualizam-se pouco a pouco.","Tu fila aparecerá cuando el servidor confirme tu progreso.":"A tua linha vai aparecer quando o servidor confirmar o teu progresso.","Abre el juego dentro de Telegram para aparecer en el ranking.":"Abre o jogo dentro do Telegram para apareceres no ranking.","No se pudo cargar el ranking. Revisa tu conexión e inténtalo de nuevo.":"Não foi possível carregar o ranking. Verifica a tua ligação e tenta de novo.","Premio por invitados: +{0} bits.":"Prémio por convidados: +{0} bits.","Compartir verificado: +{0} bits.":"Partilha verificada: +{0} bits.","Enlace copiado.":"Ligação copiada.","Mantén pulsado el enlace para copiarlo.":"Mantém a ligação premida para a copiar.","Te invito a Centinela: sé el antivirus, limpia la red y esquiva a los hackers. Voy por el nivel {0}, ¿me superas?":"Convido-te para o Centinela: sê o antivírus, limpa a rede e desvia-te dos hackers. Vou no nível {0}, consegues superar-me?","Tarjeta de invitación de Centinela":"Cartão de convite do Centinela","Invita a jugar con tu enlace. Cuando 3 invitados llegan al nivel 10 empiezas a ganar premios, y por cada 10 niveles que supera cada invitado tus niveles dan un 2 % más de bits (máximo 100 %).":"Convida a jogar com a tua ligação. Quando 3 convidados chegam ao nível 10 começas a ganhar prémios, e por cada 10 níveis que cada convidado supera os teus níveis dão mais 2 % de bits (máximo 100 %).","Tu enlace de invitación":"A tua ligação de convite","Pon el enlace de tu juego (shareUrl) en CONFIG para que las invitaciones cuenten.":"Põe a ligação do teu jogo (shareUrl) em CONFIG para os convites contarem.","Las invitaciones cuentan cuando el juego se abre dentro de Telegram.":"Os convites contam quando o jogo é aberto dentro do Telegram.","Compartir y ganar bits · premio verificado":"Partilhar e ganhar bits · prémio verificado","El premio llega cuando un jugador nuevo entra desde lo que compartiste y supera el nivel 1. Así se comprueba que la invitación se publicó de verdad. Sin límite: cada jugador nuevo cuenta.":"O prémio chega quando um jogador novo entra a partir do que partilhaste e supera o nível 1. Assim confirma-se que o convite foi mesmo publicado. Sem limite: cada jogador novo conta.","Puedes compartir tu invitación. Los premios se activan al conectar la base de datos en CONFIG, que es la que comprueba quién entra desde tu enlace.":"Podes partilhar o teu convite. Os prémios ativam-se ao ligar a base de dados em CONFIG, que é a que confirma quem entra pela tua ligação.","Solo dentro de Telegram":"Só dentro do Telegram","{0} jugador verificado · +{1} bits":"{0} jogador verificado · +{1} bits","{0} jugadores verificados · +{1} bits":"{0} jogadores verificados · +{1} bits","Compartido hoy · esperando a que entre alguien":"Partilhado hoje · à espera que alguém entre","+{0} bits por cada jugador nuevo":"+{0} bits por cada jogador novo","Compartido. El premio llega cuando un jugador nuevo entre desde ahí y supere el nivel 1.":"Partilhado. O prémio chega quando um jogador novo entrar por aí e superar o nível 1.","Compartido.":"Partilhado.","Historia de Telegram":"História do Telegram","Te reto en Centinela, el juego del antivirus. Voy por el nivel {0}.":"Desafio-te no Centinela, o jogo do antivírus. Vou no nível {0}.","Juega en @{0}":"Joga em @{0}","Jugar a Centinela":"Jogar Centinela","Historia abierta. Telegram solo permite pulsar enlaces en historias de cuentas Premium: quien la vea tendrá que buscar el bot por su nombre{0}.":"História aberta. O Telegram só permite tocar em ligações nas histórias de contas Premium: quem a vir terá de procurar o bot pelo nome{0}.","No se pudo abrir el editor de historias.":"Não foi possível abrir o editor de histórias.","Copiar enlace":"Copiar ligação","Enlace copiado. Pégalo en tu historia (pegatina de enlace) o en tu perfil de Instagram.":"Ligação copiada. Cola-a na tua história (autocolante de ligação) ou no teu perfil do Instagram.","Premios por invitados que llegan al nivel 10":"Prémios por convidados que chegam ao nível 10","Tus invitados":"Os teus convidados","La lista de invitados se activa al conectar la base de datos en CONFIG, igual que el ranking.":"A lista de convidados ativa-se ao ligar a base de dados em CONFIG, tal como o ranking.","Cargando invitados…":"A carregar convidados…","No se pudo cargar la lista. Revisa tu conexión.":"Não foi possível carregar a lista. Verifica a tua ligação.","Todavía no ha entrado nadie con tu enlace.":"Ainda ninguém entrou com a tua ligação.","Nivel {0} · llegó por {1}":"Nível {0} · chegou por {1}","Victoria":"Vitória","Victorias":"Vitórias","Tus eliminados":"Os teus eliminados","Apuesta":"Aposta","Revancha":"Desforra","Revancha · {0} bits":"Desforra · {0} bits","Revancha sin apuesta":"Desforra sem aposta","Salir":"Sair","Reto de duelo":"Desafio de duelo","Reto con apuesta":"Desafio com aposta","Aceptar":"Aceitar","Rechazar":"Recusar","Las dos naves comparten la misma pantalla y los mismos virus durante 90 segundos. Gana quien elimine más. Las dos juegan con las mismas características.":"As duas naves partilham o mesmo ecrã e os mesmos vírus durante 90 segundos. Ganha quem eliminar mais. As duas jogam com as mesmas características.","Código de tu sala":"Código da tua sala","Apuesta de bits":"Aposta de bits","Sin apuesta":"Sem aposta","Crear sala":"Criar sala","Unirse":"Entrar","Código de sala":"Código da sala","Practicar contra un bot":"Treinar contra um bot","No cuenta para el ranking ni las recompensas":"Não conta para o ranking nem para as recompensas","Jugadores conectados":"Jogadores online","Recompensas por victorias en duelo":"Recompensas por vitórias em duelo","Creando sala…":"A criar a sala…","Sala con apuesta: {0} bits por jugador.":"Sala com aposta: {0} bits por jogador.","Sala sin apuesta.":"Sala sem aposta.","Sala lista. Pásale el código a tu rival y espera a que entre.":"Sala pronta. Passa o código ao teu rival e espera que ele entre.","No se pudo crear la sala. Revisa tu conexión.":"Não foi possível criar a sala. Verifica a tua ligação.","Escribe el código de 4 caracteres de la sala.":"Escreve o código de 4 caracteres da sala.","Conectando con la sala {0}…":"A ligar à sala {0}…","No existe ninguna sala con ese código.":"Não existe nenhuma sala com esse código.","No se pudo conectar. Revisa tu conexión.":"Não foi possível ligar. Verifica a tua ligação.","El ganador se lleva {0} bits":"O vencedor leva {0} bits","{0} ha entrado. Esperando a que acepte la apuesta de {1} bits…":"{0} entrou. À espera que aceite a aposta de {1} bits…","Esa sala usa una apuesta que esta versión del juego no admite.":"Essa sala usa uma aposta que esta versão do jogo não admite.","Esa sala apuesta {0} bits por jugador y no tienes suficientes.":"Essa sala aposta {0} bits por jogador e não tens bits suficientes.","Sala con apuesta":"Sala com aposta","La sala de {0} apuesta {1} bits por jugador. El ganador se lleva {2}. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.":"A sala de {0} aposta {1} bits por jogador. O vencedor leva {2}. Se saíres do duelo ou perderes a ligação, perdes a tua aposta.","No se pudo acordar la apuesta. Crea la sala de nuevo.":"Não foi possível acordar a aposta. Cria a sala de novo.","La apuesta no coincide con la acordada. Revancha cancelada.":"A aposta não coincide com a acordada. Desforra cancelada.","La apuesta no coincide con la acordada. Duelo cancelado.":"A aposta não coincide com a acordada. Duelo cancelado.","{0} quiere la revancha apostando {1} bits.":"{0} quer a desforra a apostar {1} bits.","{0} quiere la revancha sin apuesta.":"{0} quer a desforra sem aposta.","{0} quiere la revancha.":"{0} quer a desforra.","El rival ha salido.":"O rival saiu.","{0} no aceptó la apuesta. La sala sigue abierta.":"{0} não aceitou a aposta. A sala continua aberta.","El rival no llegó a entrar. La sala sigue abierta.":"O rival não chegou a entrar. A sala continua aberta.","Se cerró la conexión con el rival.":"A ligação com o rival foi fechada.","Te quedaste sin conexión y el duelo se da por perdido.":"Ficaste sem ligação e o duelo é dado como perdido.","El rival abandonó el duelo.":"O rival abandonou o duelo.","El rival se desconectó.":"O rival desligou-se.","Saliste del duelo y se da por perdido.":"Saíste do duelo e é dado como perdido.","Apuesta aceptada. Empezando…":"Aposta aceite. A começar…","No has aceptado la apuesta de la sala.":"Não aceitaste a aposta da sala.","Apuesta devuelta.":"Aposta devolvida.","Ganas la apuesta: +{0} bits.":"Ganhas a aposta: +{0} bits.","Pierdes la apuesta: −{0} bits.":"Perdes a aposta: −{0} bits.","Duelo de práctica: no cuenta para el ranking ni para las recompensas.":"Duelo de treino: não conta para o ranking nem para as recompensas.","+300 puntos de rango.":"+300 pontos de rank.","Llevas {0} victoria.":"Tens {0} vitória.","Llevas {0} victorias.":"Tens {0} vitórias.","Esperando a que {0} acepte la revancha…":"À espera que {0} aceite a desforra…","El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.":"O duelo online funciona na versão alojada do jogo (por exemplo, dentro do Telegram). Aqui podes treinar contra o bot.","Faltan {0}":"Faltam {0}","Cada jugador pone {0} bits y el ganador se lleva {1}. Con empate se devuelven. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.":"Cada jogador põe {0} bits e o vencedor leva {1}. Em caso de empate são devolvidos. Se saíres do duelo ou perderes a ligação, perdes a tua aposta.","Duelo amistoso. Elige una cantidad si quieres apostar: tienes {0} bits.":"Duelo amigável. Escolhe um valor se quiseres apostar: tens {0} bits.","Te reto a un duelo en Centinela. Sala {0} · apuesta de {1} bits":"Desafio-te para um duelo no Centinela. Sala {0} · aposta de {1} bits","Te reto a un duelo en Centinela. Sala {0}":"Desafio-te para um duelo no Centinela. Sala {0}","Saliste de un duelo con apuesta sin terminarlo: perdiste {0} bits.":"Saíste de um duelo com aposta sem o terminar: perdeste {0} bits.","{0} no respondió.":"{0} não respondeu.","Esperando la respuesta de {0}…":"À espera da resposta de {0}…","Apuesta: {0} bits.":"Aposta: {0} bits.","{0} tiene una versión antigua del juego y no puede apostar.":"{0} tem uma versão antiga do jogo e não pode apostar.","Ya no tienes bits suficientes para esa apuesta.":"Já não tens bits suficientes para essa aposta.","{0} no tiene bits suficientes para esa apuesta.":"{0} não tem bits suficientes para essa aposta.","{0} ha rechazado el duelo.":"{0} recusou o duelo.","{0} está ocupado ahora.":"{0} está ocupado agora.","{0} se desconectó.":"{0} desligou-se.","Reto cancelado.":"Desafio cancelado.","{0} te reta a un duelo apostando {1} bits cada uno. El ganador se lleva {2}. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.":"{0} desafia-te para um duelo a apostar {1} bits cada um. O vencedor leva {2}. Se saíres do duelo ou perderes a ligação, perdes a tua aposta.","{0} te reta a un duelo. Los dos jugáis en la misma pantalla durante 90 segundos.":"{0} desafia-te para um duelo. Jogam os dois no mesmo ecrã durante 90 segundos.","La lista de jugadores conectados funciona en la versión alojada del juego.":"A lista de jogadores online funciona na versão alojada do jogo.","Esperando a {0}":"À espera de {0}","No hay nadie más conectado ahora mismo.":"Não há mais ninguém online neste momento.","Conectando con la sala…":"A ligar à sala…","Retar":"Desafiar","{0} ya no está conectado.":"{0} já não está online.","Anuncio":"Anúncio","Anuncio con recompensa":"Anúncio com recompensa","Anuncio entre niveles":"Anúncio entre níveis","Espacio publicitario":"Espaço publicitário","Modo demo. Aquí se mostrará el anuncio de tu red publicitaria cuando la configures.":"Modo demo. Aqui será mostrado o anúncio da tua rede publicitária quando a configurares.","Torneo de fin de semana":"Torneio de fim de semana","Torneo":"Torneio","Clasificación":"Classificação","El rival no se presentó.":"O rival não compareceu.","El torneo está cerrado ahora.":"O torneio está fechado agora.","El organizador de la mesa se desconectó. Se devuelve la inscripción.":"O organizador da mesa desligou-se. A inscrição é devolvida.","Has ganado el partido.":"Ganhaste o jogo.","Has perdido el partido.":"Perdeste o jogo.","Si sales ahora pierdes la mesa y la inscripción. Pulsa otra vez para salir.":"Se saíres agora perdes a mesa e a inscrição. Toca outra vez para sair.","Torneo de fin de semana: quedaste en el puesto {0}. Premio: +{1} bits.":"Torneio de fim de semana: ficaste no {0}.º lugar. Prémio: +{1} bits.","Has ganado la skin Trofeo.":"Ganhaste a skin Troféu.","La mesa empieza en {0} s. Los huecos se rellenan con bots.":"A mesa começa em {0} s. Os lugares vazios são preenchidos com bots.","Hace falta al menos otro jugador para abrir la mesa.":"É preciso pelo menos mais um jogador para abrir a mesa.","Conectando con tu rival…":"A ligar ao teu rival…","Tu partido empieza en {0}…":"O teu jogo começa em {0}…","Esperando a que terminen los otros partidos…":"À espera que os outros jogos terminem…","Buscando rivales":"À procura de rivais","Mientras esperas puedes mejorar tu nave de torneo en la pestaña Nave.":"Enquanto esperas podes melhorar a tua nave de torneio no separador Nave.","Cuadro de la mesa":"Quadro da mesa","Mesa de práctica":"Mesa de treino","Semifinal 1":"Meia-final 1","Semifinal 2":"Meia-final 2","Tercer puesto":"Terceiro lugar","Jugado":"Jogado","Clasificación de la mesa":"Classificação da mesa","Mesa de práctica: sin premios ni puntos.":"Mesa de treino: sem prémios nem pontos.","Quedaste en el puesto {0}: +{1} bits.":"Ficaste no {0}.º lugar: +{1} bits.","+{0} puntos para la clasificación del fin de semana.":"+{0} pontos para a classificação do fim de semana.","Quedaste en el puesto 4. Esta vez no hay premio.":"Ficaste no 4.º lugar. Desta vez não há prémio.","Mesas de 4 jugadores en directo: dos semifinales, final y tercer puesto, con duelos de {0} segundos. Cada jugador usa su nave de torneo.":"Mesas de 4 jogadores em direto: duas meias-finais, final e terceiro lugar, com duelos de {0} segundos. Cada jogador usa a sua nave de torneio.","Premios de cada mesa":"Prémios de cada mesa","+{0} puntos":"+{0} pontos","Si faltan jugadores, los huecos se rellenan con bots y los premios bajan en proporción.":"Se faltarem jogadores, os lugares vazios são preenchidos com bots e os prémios descem na mesma proporção.","Premios del fin de semana":"Prémios do fim de semana","y la skin Trofeo":"e a skin Troféu","Cada puesto en una mesa suma puntos. Los 3 jugadores con más puntos al cerrar el torneo se llevan estos premios.":"Cada lugar numa mesa dá pontos. Os 3 jogadores com mais pontos quando o torneio fechar levam estes prémios.","Jugar otra mesa":"Jogar outra mesa","Entrar en una mesa":"Entrar numa mesa","El torneo abre {0}":"O torneio abre {0}","Solo en la versión alojada del juego":"Só na versão alojada do jogo","Inscripción: {0} bits":"Inscrição: {0} bits","Practicar contra bots":"Treinar contra bots","Gratis, sin premios ni puntos":"Grátis, sem prémios nem pontos","Nave de torneo · nivel {0}":"Nave de torneio · nível {0}","Solo se usa en el torneo. Sus mejoras se compran con bits y son para siempre.":"Só é usada no torneio. As melhorias compram-se com bits e são para sempre.","Daño {0} · {1} disparos/s · Integridad {2} · Cuarentenas {3}":"Dano {0} · {1} disparos/s · Integridade {2} · Quarentenas {3}","Tus bits":"Os teus bits","Las mejoras que compres ahora valen a partir de la siguiente mesa.":"As melhorias que comprares agora contam a partir da próxima mesa.","Clasificación de este fin de semana":"Classificação deste fim de semana","Resultado del último torneo":"Resultado do último torneio","Tus puntos: {0} · Mesas ganadas: {1}":"Os teus pontos: {0} · Mesas ganhas: {1}","La clasificación se activa al conectar la base de datos en CONFIG.":"A classificação ativa-se ao ligar a base de dados em CONFIG.","Todavía no hay puntos en este torneo.":"Ainda não há pontos neste torneio.","No se pudo cargar la clasificación. Revisa tu conexión.":"Não foi possível carregar a classificação. Verifica a tua ligação.","Cargando clasificación…":"A carregar a classificação…","Abierto hasta {0}":"Aberto até {0}","Saliste de una mesa de torneo sin terminarla: perdiste la inscripción de {0} bits.":"Saíste de uma mesa de torneio sem a terminar: perdeste a inscrição de {0} bits.","Trofeo":"Troféu","La copa del torneo":"A taça do torneio","Gana un torneo de fin de semana":"Ganha um torneio de fim de semana","TORNEO · SEMIFINAL":"TORNEIO · MEIA-FINAL","TORNEO · FINAL":"TORNEIO · FINAL","TORNEO · TERCER PUESTO":"TORNEIO · 3.º LUGAR","+{0} punto":"+{0} ponto","+{0} punto para la clasificación del fin de semana.":"+{0} ponto para a classificação do fim de semana."},
+  en: {"Puntos":"Score","Nivel":"Level","Integridad":"Integrity","Cuarentena":"Quarantine","Eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.":"You are the antivirus. Clean the network level by level before the infection gets through.","{0}: eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.":"{0}: you are the antivirus. Clean the network level by level before the infection gets through.","Jugar":"Play","Nivel 01":"Level 01","Nivel {0} · {1}":"Level {0} · {1}","Niveles":"Levels","Códice":"Codex","Duelo":"Duel","Invitar":"Invite","Rango":"Rank","Cómo se juega":"How to play","Idioma":"Language","Cerrar":"Close","Activar o silenciar el sonido":"Turn sound on or off","Campo de juego":"Playfield","Pausar":"Pause","En pausa":"Paused","El escaneo está detenido. Los virus también.":"The scan is on hold. So are the viruses.","Música":"Music","Activada":"On","Desactivada":"Off","Efectos":"Sounds","Activados":"On","Desactivados":"Off","Reanudar":"Resume","Salir al menú":"Quit to menu","Sistema comprometido":"System compromised","Puntuación":"Score","Virus eliminados":"Viruses destroyed","Bits obtenidos":"Bits earned","Mejor marca del nivel":"Level best","Continuar":"Continue","Ver anuncio":"Watch ad","Reintentar":"Retry","Menú":"Menu","Compartir":"Share","Nivel {0} superado":"Level {0} cleared","Nivel repetido: no da bits ni avanza misiones.":"Replayed level: no bits and no mission progress.","Bono de invitados +{0} %.":"Invite bonus +{0}%.","Tu nave sube al nivel {0}.":"Your ship reaches level {0}.","Nueva mejor marca.":"New best.","Termina con el 70 % de integridad para las 3 estrellas.":"Finish with 70% integrity for 3 stars.","Los {0} bits de este intento solo se suman si superas el nivel.":"The {0} bits from this run only count if you clear the level.","Con Continuar aún puedes salvarlos.":"Use Continue to save them.","Los bits solo se suman al superar el nivel.":"Bits only count when you clear the level.","Siguiente nivel":"Next level","Volver al menú":"Back to menu","El anuncio no se completó o no hay ninguno disponible ahora.":"The ad wasn't completed or none is available right now.","SISTEMA RESTAURADO":"SYSTEM RESTORED","Integridad al 60 %":"Integrity at 60%","Bits duplicados.":"Bits doubled.","Voy por el nivel {0} de Centinela con {1} puntos de rango. ¿Me superas?":"I'm on level {0} of Centinela with {1} rank points. Can you beat me?","SKIN DESBLOQUEADA · {0}":"SKIN UNLOCKED · {0}","NUEVA FICHA · {0}":"NEW ENTRY · {0}","TARJETA {0} · {1}  +{2} BITS":"{0} CARD · {1}  +{2} BITS","COLECCIÓN DE {0} TARJETAS · +{1} PUNTOS":"{0}-CARD COLLECTION · +{1} POINTS","HACKER DETECTADO":"HACKER DETECTED","No se puede destruir. Esquívalo":"Can't be destroyed. Dodge it","NIVEL SUPERADO":"LEVEL CLEARED","Red limpia":"Network clean","FUGA −5":"LEAK −5","CORTAFUEGOS ROTO":"FIREWALL DOWN","Jefe de zona. Derrótalo para superar el nivel":"Zone boss. Defeat it to clear the level","REINICIANDO {0}":"REBOOTING {0}","TÚ":"YOU","Eliminados":"Kills","Tiempo":"Time","NIVEL {0}":"LEVEL {0}","Repetición: sin bits ni misiones":"Replay: no bits or missions","Jefe de zona: Rootkit":"Zone boss: Rootkit","DUELO":"DUEL","Elimina más virus que {0}":"Destroy more viruses than {0}","REPARACIÓN +30":"REPAIR +30","DISPARO RÁPIDO":"RAPID FIRE","TRIPLE NÚCLEO":"TRIPLE CORE","CORTAFUEGOS":"FIREWALL","CUARENTENA +1":"QUARANTINE +1","Red perimetral":"Perimeter network","Núcleo de datos":"Data core","Zona infectada":"Infected zone","Bienvenido, agente":"Welcome, agent","Ponle nombre a tu Centinela. Es el nombre que verán los demás en el ranking y en los duelos.":"Name your Sentinel. It's the name other players will see in the ranking and in duels.","Nombre del Centinela":"Sentinel name","Nombre de tu Centinela":"Your Sentinel's name","Escribe un nombre de al menos 2 caracteres.":"Enter a name with at least 2 characters.","Atrás":"Back","Siguiente":"Next","Entendido":"Got it","Saltar el tutorial":"Skip tutorial","Mueve tu Centinela":"Move your Sentinel","Mueve el ratón o usa las flechas. El disparo es automático.":"Move the mouse or use the arrow keys. Firing is automatic.","Arrastra el dedo por la pantalla para moverte. El disparo es automático.":"Drag your finger across the screen to move. Firing is automatic.","Destruye los virus":"Destroy the viruses","Elimínalos antes de que crucen la pantalla: cada virus que escapa daña la integridad del sistema.":"Take them out before they cross the screen: every virus that escapes damages system integrity.","Esquiva a los hackers":"Dodge the hackers","Son indestructibles. Aléjate de ellos y muévete cuando su línea roja parpadee.":"They can't be destroyed. Keep away and move when their red line flashes.","Recoge los parches":"Collect the patches","Reparan tu nave y dan disparo triple, cortafuegos o una cuarentena, que limpia toda la pantalla.":"They repair your ship and give triple shot, a firewall or a quarantine, which clears the whole screen.","Supera niveles":"Clear levels","Cada nivel superado da bits para el Arsenal y experiencia para tu nave. Si pierdes el nivel, no se suman.":"Each level you clear gives bits for the Arsenal and experience for your ship. If you lose the level, they don't count.","/ 3000 estrellas":"/ 3000 stars","Anteriores":"Previous","Siguientes":"Next","Volver":"Back","ciclo {0}":"cycle {0}","niveles {0} a {1}":"levels {0} to {1}","Nivel {0}, jefe":"Level {0}, boss","Nivel {0}":"Level {0}","/ 27 tarjetas":"/ 27 cards","Recompensa de colección: al reunir {0} tarjetas ganas {1} puntos de rango. Llevas {2}.":"Collection reward: collect {0} cards to earn {1} rank points. You have {2}.","Colección completa. Has ganado {0} puntos de rango con las tarjetas.":"Collection complete. You earned {0} rank points from cards.","Amenaza sin identificar. Aparece desde el nivel {0}.":"Unidentified threat. Appears from level {0}.","Indestructible · desde el nivel {0}":"Indestructible · from level {0}","Vida {0} · {1} pts · desde el nivel {2}":"Health {0} · {1} pts · from level {2}","Misión: esquiva {0} para la tarjeta {1} (+{2} bits)":"Mission: dodge {0} for the {1} card (+{2} bits)","Misión: elimina {0} para la tarjeta {1} (+{2} bits)":"Mission: destroy {0} for the {1} card (+{2} bits)","Bronce":"Bronze","Plata":"Silver","Oro":"Gold","Gusano":"Worm","Baja serpenteando, solo o en cadena. Débil, pero numeroso.":"Snakes its way down, alone or in chains. Weak, but there are many.","Te sigue con la mirada y se desvía hacia ti. Rápido.":"Tracks you with its eye and veers towards you. Fast.","Enjambres pequeños en zigzag. Molestos y veloces.":"Small zigzagging swarms. Annoying and quick.","Troyano":"Trojan","Resistente y lento. Al romperse suelta dos gusanos.":"Tough and slow. Releases two worms when it breaks.","Se planta arriba y te dispara. Mucha vida y buen botín.":"Parks at the top and shoots at you. Lots of health, good loot.","Polimórfico":"Polymorphic","Cambia de forma y salta de lado para esquivar tus disparos.":"Changes shape and jumps sideways to dodge your shots.","Jefe de zona. Aparece cada 5 niveles con ráfagas de proyectiles.":"Zone boss. Shows up every 5 levels with bursts of projectiles.","Intruso":"Intruder","Hacker indestructible que te persigue. Cuenta cada uno que esquivas.":"An indestructible hacker that chases you. Every one you dodge counts.","Francotirador":"Sniper","Hacker que apunta y dispara un rayo. Muévete cuando la línea parpadee.":"A hacker that aims and fires a beam. Move when the line flashes.","Nave":"Ship","Mejoras":"Upgrades","Te faltan {0} bits.":"You need {0} more bits.","Has recibido {0} bits.":"You received {0} bits.","{0} · nivel {1}":"{0} · level {1}","Sube superando niveles nuevos. Cada nivel de nave da +5 % de daño y +2 de integridad.":"Levels up as you clear new levels. Each ship level gives +5% damage and +2 integrity.","Daño por disparo":"Damage per shot","Potencia {0}/5 · nivel de nave +{1} %":"Power {0}/5 · ship level +{1}%","Disparos por segundo":"Shots per second","Cadencia {0}/5":"Fire rate {0}/5","Integridad máxima":"Max integrity","Blindaje {0}/5 · nivel de nave +{1}":"Armor {0}/5 · ship level +{1}","Alcance del imán":"Magnet range","Imán {0}/3":"Magnet {0}/3","Cuarentenas":"Quarantines","{0} (máx. {1})":"{0} (max {1})","Reserva {0}/2":"Reserve {0}/2","Duración de potenciadores":"Power-up duration","Persistencia {0}/3":"Persistence {0}/3","Bono de bits":"Bits bonus","Por los niveles que superan tus invitados":"From the levels your invited players clear","Nivel alcanzado":"Level reached","{0} estrellas · {1} virus eliminados":"{0} stars · {1} viruses destroyed","Duelos ganados":"Duels won","{0} jugados":"{0} played","Cambiar el nombre del Centinela":"Rename your Sentinel","En los duelos todas las naves usan las mismas características.":"In duels every ship uses the same stats.","Equipada":"Equipped","Equipar":"Equip","Bloqueada":"Locked","Máximo":"Maxed","Centinela":"Sentinel","El núcleo original":"The original core","Halcón":"Falcon","Alas en flecha y estela verde":"Swept wings and a green trail","Prisma":"Prism","Cristal de datos facetado":"A faceted data crystal","Espectro":"Specter","Deja un rastro fantasma":"Leaves a ghost trail","Titán":"Titan","Blindaje pesado de combate":"Heavy combat armor","Derrota a un Rootkit":"Defeat a Rootkit","Áureo":"Aureate","Núcleo dorado con halo":"A golden core with a halo","Supera el nivel 15":"Clear level 15","Duelista":"Duelist","Doble punta de combate":"Twin combat tips","Gana 3 duelos":"Win 3 duels","Campeón":"Champion","La corona de la arena":"The crown of the arena","Gana 15 duelos":"Win 15 duels","Cadencia":"Fire rate","Dispara más rápido":"Fire faster","Potencia":"Power","Más daño por disparo":"More damage per shot","Blindaje":"Armor","+15 de integridad máxima por nivel":"+15 max integrity per level","Imán":"Magnet","Atrae los parches desde más lejos":"Pulls patches in from farther away","Reserva":"Reserve","Empiezas con una cuarentena más":"Start with one more quarantine","Persistencia":"Persistence","Los potenciadores duran más":"Power-ups last longer","Guardar":"Save","Tu nombre":"Your name","Tu nombre en el ranking":"Your name in the ranking","Niveles {0} · Tarjetas {1} · Duelos ganados {2} (300 por victoria)":"Levels {0} · Cards {1} · Duels won {2} (300 per win)","Nivel {0} · {1} duelos ganados":"Level {0} · {1} duels won","El ranking global todavía no está conectado. Se activa al poner la base de datos en CONFIG.":"The global ranking isn't connected yet. It turns on once the database is set in CONFIG.","Cargando ranking…":"Loading ranking…","Todavía no hay nadie en el ranking.":"Nobody is in the ranking yet.","El servidor valida el progreso: si acabas de subir mucho, tus puntos se actualizan poco a poco.":"The server validates progress: if you just climbed a lot, your points update gradually.","Tu fila aparecerá cuando el servidor confirme tu progreso.":"Your row will appear once the server confirms your progress.","Abre el juego dentro de Telegram para aparecer en el ranking.":"Open the game inside Telegram to appear in the ranking.","No se pudo cargar el ranking. Revisa tu conexión e inténtalo de nuevo.":"Couldn't load the ranking. Check your connection and try again.","Agente":"Agent","Premio por invitados: +{0} bits.":"Invite reward: +{0} bits.","Compartir verificado: +{0} bits.":"Verified share: +{0} bits.","Enlace copiado.":"Link copied.","Mantén pulsado el enlace para copiarlo.":"Press and hold the link to copy it.","Te invito a Centinela: sé el antivirus, limpia la red y esquiva a los hackers. Voy por el nivel {0}, ¿me superas?":"Join me in Centinela: be the antivirus, clean the network and dodge the hackers. I'm on level {0}. Can you beat me?","Tarjeta de invitación de Centinela":"Centinela invitation card","Invita a jugar con tu enlace. Cuando 3 invitados llegan al nivel 10 empiezas a ganar premios, y por cada 10 niveles que supera cada invitado tus niveles dan un 2 % más de bits (máximo 100 %).":"Invite people to play with your link. Once 3 of them reach level 10 you start earning rewards, and for every 10 levels each of them clears, your levels give 2% more bits (up to 100%).","Copiar":"Copy","Tu enlace de invitación":"Your invitation link","Pon el enlace de tu juego (shareUrl) en CONFIG para que las invitaciones cuenten.":"Set your game link (shareUrl) in CONFIG so invitations count.","Las invitaciones cuentan cuando el juego se abre dentro de Telegram.":"Invitations count when the game is opened inside Telegram.","Compartir y ganar bits · premio verificado":"Share and earn bits · verified reward","El premio llega cuando un jugador nuevo entra desde lo que compartiste y supera el nivel 1. Así se comprueba que la invitación se publicó de verdad. Sin límite: cada jugador nuevo cuenta.":"The reward arrives when a new player joins from what you shared and clears level 1. That's how we confirm the invitation was really posted. No limit: every new player counts.","Puedes compartir tu invitación. Los premios se activan al conectar la base de datos en CONFIG, que es la que comprueba quién entra desde tu enlace.":"You can share your invitation. Rewards turn on once the database is connected in CONFIG, which is what checks who joins from your link.","Solo dentro de Telegram":"Only inside Telegram","{0} jugador verificado · +{1} bits":"{0} verified player · +{1} bits","{0} jugadores verificados · +{1} bits":"{0} verified players · +{1} bits","Compartido hoy · esperando a que entre alguien":"Shared today · waiting for someone to join","+{0} bits por cada jugador nuevo":"+{0} bits per new player","Compartido. El premio llega cuando un jugador nuevo entre desde ahí y supere el nivel 1.":"Shared. The reward arrives when a new player joins from there and clears level 1.","Compartido.":"Shared.","Publicar":"Post","Historia de Telegram":"Telegram story","Te reto en Centinela, el juego del antivirus. Voy por el nivel {0}.":"I challenge you in Centinela, the antivirus game. I'm on level {0}.","Juega en @{0}":"Play at @{0}","Jugar a Centinela":"Play Centinela","Historia abierta. Telegram solo permite pulsar enlaces en historias de cuentas Premium: quien la vea tendrá que buscar el bot por su nombre{0}.":"Story opened. Telegram only allows tappable links in stories from Premium accounts: viewers will have to search for the bot by name{0}.","No se pudo abrir el editor de historias.":"Couldn't open the story editor.","Copiar enlace":"Copy link","Enlace copiado. Pégalo en tu historia (pegatina de enlace) o en tu perfil de Instagram.":"Link copied. Paste it into your story (link sticker) or your Instagram profile.","Premios por invitados que llegan al nivel 10":"Rewards for invited players who reach level 10","Conseguido":"Claimed","Tus invitados":"Your invited players","La lista de invitados se activa al conectar la base de datos en CONFIG, igual que el ranking.":"The list of invited players turns on once the database is connected in CONFIG, like the ranking.","Cargando invitados…":"Loading invited players…","No se pudo cargar la lista. Revisa tu conexión.":"Couldn't load the list. Check your connection.","Todavía no ha entrado nadie con tu enlace.":"Nobody has joined with your link yet.","Nivel {0} · llegó por {1}":"Level {0} · came from {1}","Victoria":"Victory","Derrota":"Defeat","Empate":"Draw","Victorias":"Wins","Tus eliminados":"Your kills","Eliminados de {0}":"{0}'s kills","Recompensa":"Reward","Apuesta":"Bet","Revancha":"Rematch","Revancha · {0} bits":"Rematch · {0} bits","Revancha sin apuesta":"Rematch without a bet","Salir":"Leave","Reto de duelo":"Duel challenge","Reto con apuesta":"Challenge with a bet","Aceptar":"Accept","Rechazar":"Decline","Las dos naves comparten la misma pantalla y los mismos virus durante 90 segundos. Gana quien elimine más. Las dos juegan con las mismas características.":"Both ships share the same screen and the same viruses for 90 seconds. Whoever destroys more wins. Both play with the same stats.","Código de tu sala":"Your room code","Cancelar":"Cancel","Apuesta de bits":"Bits bet","Sin apuesta":"No bet","Crear sala":"Create room","Unirse":"Join","CÓDIGO":"CODE","Código de sala":"Room code","Practicar contra un bot":"Practice against a bot","No cuenta para el ranking ni las recompensas":"Doesn't count for ranking or rewards","Jugadores conectados":"Players online","Recompensas por victorias en duelo":"Rewards for duel wins","Creando sala…":"Creating room…","Sala con apuesta: {0} bits por jugador.":"Room with a bet: {0} bits per player.","Sala sin apuesta.":"Room without a bet.","Sala lista. Pásale el código a tu rival y espera a que entre.":"Room ready. Send the code to your rival and wait for them to join.","No se pudo crear la sala. Revisa tu conexión.":"Couldn't create the room. Check your connection.","Escribe el código de 4 caracteres de la sala.":"Enter the room's 4-character code.","Conectando con la sala {0}…":"Connecting to room {0}…","No existe ninguna sala con ese código.":"There's no room with that code.","No se pudo conectar. Revisa tu conexión.":"Couldn't connect. Check your connection.","DUELO · {0} BITS":"DUEL · {0} BITS","El ganador se lleva {0} bits":"Winner takes {0} bits","{0} ha entrado. Esperando a que acepte la apuesta de {1} bits…":"{0} joined. Waiting for them to accept the {1}-bit bet…","Esa sala usa una apuesta que esta versión del juego no admite.":"That room uses a bet this version of the game doesn't support.","Esa sala apuesta {0} bits por jugador y no tienes suficientes.":"That room bets {0} bits per player and you don't have enough.","Sala con apuesta":"Room with a bet","La sala de {0} apuesta {1} bits por jugador. El ganador se lleva {2}. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.":"{0}'s room bets {1} bits per player. The winner takes {2}. If you leave the duel or lose your connection, you lose your bet.","No se pudo acordar la apuesta. Crea la sala de nuevo.":"The bet couldn't be agreed. Create the room again.","La apuesta no coincide con la acordada. Revancha cancelada.":"The bet doesn't match what was agreed. Rematch cancelled.","La apuesta no coincide con la acordada. Duelo cancelado.":"The bet doesn't match what was agreed. Duel cancelled.","{0} quiere la revancha apostando {1} bits.":"{0} wants a rematch betting {1} bits.","{0} quiere la revancha sin apuesta.":"{0} wants a rematch without a bet.","{0} quiere la revancha.":"{0} wants a rematch.","El rival ha salido.":"Your rival has left.","{0} no aceptó la apuesta. La sala sigue abierta.":"{0} didn't accept the bet. The room is still open.","El rival no llegó a entrar. La sala sigue abierta.":"Your rival didn't make it in. The room is still open.","Se cerró la conexión con el rival.":"The connection with your rival was closed.","Te quedaste sin conexión y el duelo se da por perdido.":"You lost your connection and the duel counts as a loss.","El rival abandonó el duelo.":"Your rival abandoned the duel.","El rival se desconectó.":"Your rival disconnected.","Saliste del duelo y se da por perdido.":"You left the duel and it counts as a loss.","Apuesta aceptada. Empezando…":"Bet accepted. Starting…","No has aceptado la apuesta de la sala.":"You didn't accept the room's bet.","Apuesta devuelta.":"Bet returned.","Ganas la apuesta: +{0} bits.":"You win the bet: +{0} bits.","Pierdes la apuesta: −{0} bits.":"You lose the bet: −{0} bits.","skin {0}":"{0} skin","Skin {0}":"{0} skin","Duelo de práctica: no cuenta para el ranking ni para las recompensas.":"Practice duel: doesn't count for ranking or rewards.","+300 puntos de rango.":"+300 rank points.","Llevas {0} victoria.":"You have {0} win.","Llevas {0} victorias.":"You have {0} wins.","Recompensa de duelo: {0}.":"Duel reward: {0}.","Esperando a que {0} acepte la revancha…":"Waiting for {0} to accept the rematch…","El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.":"Online duels work in the hosted version of the game (for example, inside Telegram). Here you can practice against the bot.","Conseguida":"Claimed","Faltan {0}":"{0} to go","Cada jugador pone {0} bits y el ganador se lleva {1}. Con empate se devuelven. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.":"Each player puts in {0} bits and the winner takes {1}. On a draw they're returned. If you leave the duel or lose your connection, you lose your bet.","Duelo amistoso. Elige una cantidad si quieres apostar: tienes {0} bits.":"Friendly duel. Pick an amount if you want to bet: you have {0} bits.","Te reto a un duelo en Centinela. Sala {0} · apuesta de {1} bits":"I challenge you to a duel in Centinela. Room {0} · {1}-bit bet","Te reto a un duelo en Centinela. Sala {0}":"I challenge you to a duel in Centinela. Room {0}","Saliste de un duelo con apuesta sin terminarlo: perdiste {0} bits.":"You left a duel with a bet before it ended: you lost {0} bits.","{0} no respondió.":"{0} didn't answer.","Esperando la respuesta de {0}…":"Waiting for {0} to answer…","Apuesta: {0} bits.":"Bet: {0} bits.","{0} tiene una versión antigua del juego y no puede apostar.":"{0} has an old version of the game and can't bet.","Ya no tienes bits suficientes para esa apuesta.":"You no longer have enough bits for that bet.","{0} no tiene bits suficientes para esa apuesta.":"{0} doesn't have enough bits for that bet.","{0} ha rechazado el duelo.":"{0} declined the duel.","{0} está ocupado ahora.":"{0} is busy right now.","{0} se desconectó.":"{0} disconnected.","Reto cancelado.":"Challenge cancelled.","{0} te reta a un duelo apostando {1} bits cada uno. El ganador se lleva {2}. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.":"{0} challenges you to a duel betting {1} bits each. The winner takes {2}. If you leave the duel or lose your connection, you lose your bet.","{0} te reta a un duelo. Los dos jugáis en la misma pantalla durante 90 segundos.":"{0} challenges you to a duel. You both play on the same screen for 90 seconds.","La lista de jugadores conectados funciona en la versión alojada del juego.":"The list of players online works in the hosted version of the game.","Esperando a {0}":"Waiting for {0}","No hay nadie más conectado ahora mismo.":"Nobody else is online right now.","Conectando con la sala…":"Connecting to the lobby…","Retar":"Challenge","Ocupado":"Busy","{0} ya no está conectado.":"{0} is no longer online.","Anuncio":"Ad","Anuncio con recompensa":"Rewarded ad","Anuncio entre niveles":"Ad between levels","Espacio publicitario":"Ad space","Modo demo. Aquí se mostrará el anuncio de tu red publicitaria cuando la configures.":"Demo mode. Your ad network's ad will be shown here once you set it up.","Torneo de fin de semana":"Weekend tournament","Torneo":"Tournament","Mesa":"Table","Clasificación":"Standings","{0}.º":"#{0}","El rival no se presentó.":"Your rival didn't show up.","El torneo está cerrado ahora.":"The tournament is closed right now.","El organizador de la mesa se desconectó. Se devuelve la inscripción.":"The table's organizer disconnected. Your entry fee is returned.","Has ganado el partido.":"You won the match.","Has perdido el partido.":"You lost the match.","Si sales ahora pierdes la mesa y la inscripción. Pulsa otra vez para salir.":"If you leave now you lose the table and your entry fee. Tap again to leave.","Torneo de fin de semana: quedaste en el puesto {0}. Premio: +{1} bits.":"Weekend tournament: you finished in place {0}. Prize: +{1} bits.","Has ganado la skin Trofeo.":"You won the Trophy skin.","La mesa empieza en {0} s. Los huecos se rellenan con bots.":"The table starts in {0} s. Empty seats are filled with bots.","Hace falta al menos otro jugador para abrir la mesa.":"At least one more player is needed to open the table.","Conectando con tu rival…":"Connecting to your rival…","Tu partido empieza en {0}…":"Your match starts in {0}…","Esperando a que terminen los otros partidos…":"Waiting for the other matches to finish…","Buscando rivales":"Looking for rivals","Mientras esperas puedes mejorar tu nave de torneo en la pestaña Nave.":"While you wait you can upgrade your tournament ship in the Ship tab.","Cuadro de la mesa":"Table bracket","Mesa de práctica":"Practice table","Tercer puesto":"Third place","Jugado":"Played","Clasificación de la mesa":"Table standings","Mesa de práctica: sin premios ni puntos.":"Practice table: no prizes or points.","Quedaste en el puesto {0}: +{1} bits.":"You finished in place {0}: +{1} bits.","+{0} puntos para la clasificación del fin de semana.":"+{0} points for the weekend standings.","Quedaste en el puesto 4. Esta vez no hay premio.":"You finished 4th. No prize this time.","Mesas de 4 jugadores en directo: dos semifinales, final y tercer puesto, con duelos de {0} segundos. Cada jugador usa su nave de torneo.":"Live tables of 4 players: two semifinals, a final and a third-place match, with {0}-second duels. Each player uses their tournament ship.","Premios de cada mesa":"Prizes per table","+{0} puntos":"+{0} points","Si faltan jugadores, los huecos se rellenan con bots y los premios bajan en proporción.":"If players are missing, empty seats are filled with bots and prizes are reduced in proportion.","Premios del fin de semana":"Weekend prizes","y la skin Trofeo":"and the Trophy skin","Cada puesto en una mesa suma puntos. Los 3 jugadores con más puntos al cerrar el torneo se llevan estos premios.":"Every podium place at a table earns points. The 3 players with the most points when the tournament closes take these prizes.","Jugar otra mesa":"Play another table","Entrar en una mesa":"Join a table","El torneo abre {0}":"The tournament opens {0}","Solo en la versión alojada del juego":"Only in the hosted version of the game","Inscripción: {0} bits":"Entry fee: {0} bits","Practicar contra bots":"Practice against bots","Gratis, sin premios ni puntos":"Free, no prizes or points","Nave de torneo · nivel {0}":"Tournament ship · level {0}","Solo se usa en el torneo. Sus mejoras se compran con bits y son para siempre.":"Only used in the tournament. Its upgrades are bought with bits and are permanent.","Daño {0} · {1} disparos/s · Integridad {2} · Cuarentenas {3}":"Damage {0} · {1} shots/s · Integrity {2} · Quarantines {3}","Tus bits":"Your bits","Las mejoras que compres ahora valen a partir de la siguiente mesa.":"Upgrades you buy now apply from the next table.","Clasificación de este fin de semana":"This weekend's standings","Resultado del último torneo":"Last tournament's result","Tus puntos: {0} · Mesas ganadas: {1}":"Your points: {0} · Tables won: {1}","La clasificación se activa al conectar la base de datos en CONFIG.":"The standings turn on once the database is connected in CONFIG.","Todavía no hay puntos en este torneo.":"No points in this tournament yet.","No se pudo cargar la clasificación. Revisa tu conexión.":"Couldn't load the standings. Check your connection.","Cargando clasificación…":"Loading standings…","Abierto hasta {0}":"Open until {0}","Abre {0}":"Opens {0}","Abandonar mesa":"Leave table","Saliste de una mesa de torneo sin terminarla: perdiste la inscripción de {0} bits.":"You left a tournament table before it ended: you lost the {0}-bit entry fee.","Trofeo":"Trophy","La copa del torneo":"The tournament cup","Gana un torneo de fin de semana":"Win a weekend tournament","TORNEO · SEMIFINAL":"TOURNAMENT · SEMIFINAL","TORNEO · FINAL":"TOURNAMENT · FINAL","TORNEO · TERCER PUESTO":"TOURNAMENT · 3RD PLACE","+{0} punto":"+{0} point","+{0} punto para la clasificación del fin de semana.":"+{0} point for the weekend standings."}
+};
+/* textos que se escriben igual en un idioma */
+for (const k of ["Rival","Códice","Arsenal","Duelo","Idioma","Pausar","Música","Sistema comprometido","Continuar","Bits ×2","SISTEMA RESTAURADO","Bits duplicados.","SKIN DESBLOQUEADA · {0}","FUGA −5","Eliminados","DUELO","DISPARO RÁPIDO","Entendido","Anteriores","ciclo {0}","Polimórfico","Intruso","Nave","+150 bits","Disparos por segundo","{0} (máx. {1})","Reserva {0}/2","Equipada","Equipar","Bloqueada","Máximo","Prisma","Espectro","Áureo","Duelista","Reserva","Guardar","Agente","Copiar","Publicar","Conseguido","Derrota","Empate","Eliminados de {0}","Recompensa","Cancelar","CÓDIGO","DUELO · {0} BITS","skin {0}","Skin {0}","Recompensa de duelo: {0}.","Conseguida","Ocupado","Mesa","{0}.º","Final","Abre {0}","Abandonar mesa"]) I18N.pt[k] = k;
+for (const k of ["Rival","Arsenal","Bits ×2","+150 bits","Semifinal 1","Semifinal 2","Final"]) I18N.en[k] = k;
+/*I18N-END*/
+const LANG = (() => {
+  const norm = v => { v = String(v || '').toLowerCase(); return /^(es|ca|gl|eu)/.test(v) ? 'es' : /^pt/.test(v) ? 'pt' : v ? 'en' : ''; };
+  let l = '';
+  try { l = localStorage.getItem('cen_lang') || ''; } catch (e) {}
+  if (!LANGS[l]) { try { l = norm(new URLSearchParams(location.search).get('lang')); } catch (e) { l = ''; } }
+  if (!LANGS[l]) { try { const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user; l = norm(u && u.language_code); } catch (e) { l = ''; } }
+  if (!LANGS[l]) l = norm(navigator.language);
+  return LANGS[l] ? l : 'es';
+})();
+const DICT = I18N[LANG] || null;
+function T(s) {
+  let r = s;
+  if (DICT) { if (DICT[s] != null) r = DICT[s]; else if (window.__i18nMiss) window.__i18nMiss[s] = 1; }
+  if (arguments.length > 1) { const a = arguments; r = r.replace(/\{(\d)\}/g, (m, i) => a[+i + 1]); }
+  return r;
+}
+function setLang(l) { if (!LANGS[l] || l === LANG) return false; try { localStorage.setItem('cen_lang', l); } catch (e) { return false; } location.reload(); return true; }
+/* traduce el texto fijo de la página (el que no escribe el código): textos, textos de ayuda y etiquetas de accesibilidad */
+(function localize() {
+  document.documentElement.lang = LANG;
+  if (!DICT) return;
+  const w = document.createTreeWalker(document.getElementById('app'), NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) { const k = n.nodeValue.trim(); if (k && DICT[k] != null) n.nodeValue = n.nodeValue.replace(k, DICT[k]); }
+  for (const e of document.querySelectorAll('#app [placeholder], #app [aria-label]')) for (const a of ['placeholder', 'aria-label']) { const v = e.getAttribute(a); if (v && DICT[v] != null) e.setAttribute(a, DICT[v]); }
+})();
+const fmt = n => Math.round(n).toLocaleString(LOCALES[LANG]);
 const rgba = (hex, a) => 'rgba(' + parseInt(hex.slice(1, 3), 16) + ',' + parseInt(hex.slice(3, 5), 16) + ',' + parseInt(hex.slice(5, 7), 16) + ',' + a + ')';
 const tri = v => Math.abs((((v % 2) + 2) % 2) - 1) * 2 - 1;
 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -515,7 +594,8 @@ const SKINS = [
   { id: 'titan',     name: 'Titán',     desc: 'Blindaje pesado de combate',    req: 1, reqText: 'Derrota a un Rootkit', main: '#ff6a3d', acc: '#ffb62e', fill: '#3a1206' },
   { id: 'aureo',     name: 'Áureo',     desc: 'Núcleo dorado con halo',        req: 1, reqText: 'Supera el nivel 15',   main: '#ffd76a', acc: '#ffffff', fill: '#3a2c06' },
   { id: 'duelista',  name: 'Duelista',  desc: 'Doble punta de combate',        req: 1, reqText: 'Gana 3 duelos',        main: '#ff5a8a', acc: '#ffffff', fill: '#3a0a1c' },
-  { id: 'campeon',   name: 'Campeón',   desc: 'La corona de la arena',         req: 1, reqText: 'Gana 15 duelos',       main: '#ffffff', acc: '#ffd76a', fill: '#262a3d' }
+  { id: 'campeon',   name: 'Campeón',   desc: 'La corona de la arena',         req: 1, reqText: 'Gana 15 duelos',       main: '#ffffff', acc: '#ffd76a', fill: '#262a3d' },
+  { id: 'trofeo',    name: 'Trofeo',    desc: 'La copa del torneo',            req: 1, reqText: 'Gana un torneo de fin de semana', main: '#7dffc4', acc: '#ffd76a', fill: '#0a2a1e' }
 ];
 const UPS = [
   { id: 'rate',   name: 'Cadencia',     desc: 'Dispara más rápido',                 max: 5, cost: [150, 350, 700, 1200, 2000] },
@@ -547,7 +627,8 @@ const cleanName = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').replace
 const SAVE_KEY = 'cen_save';
 const save = { v: 2, bits: 0, earned: 0, level: 1, best: {}, stars: {}, skin: 'centinela', skins: ['centinela'], up: {}, kills: {}, seen: {},
   bossKills: 0, duelWins: 0, duelPlayed: 0, uid: '', name: '', music: true, sfx: true,
-  xp: 0, ref: '', refSrc: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, sharePaid: {}, intro: false, bet: 0 };   /* bet: apuesta en juego de un duelo sin terminar */
+  xp: 0, ref: '', refSrc: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, sharePaid: {}, intro: false, bet: 0,
+  tup: { rate: 0, power: 0, armor: 0, bomb: 0 }, tfee: 0, tpts: { id: '', p: 0 }, tclaim: '', twins: 0, tplay: 0 };   /* torneo: nave, inscripción en juego, puntos del fin de semana */   /* bet: apuesta en juego de un duelo sin terminar */
 for (const u of UPS) save.up[u.id] = 0;
 function applySave(d) {
   if (!d || typeof d !== 'object') return;
@@ -573,6 +654,10 @@ function applySave(d) {
   if (typeof d.uid === 'string' && /^[a-z0-9]{6,20}$/.test(d.uid) && !save.uid) save.uid = d.uid;
   if (typeof d.name === 'string' && d.name) save.name = cleanName(d.name);
   if (d.intro === true) save.intro = true;
+  if (d.tup && typeof d.tup === 'object') for (const k of ['rate', 'power', 'armor', 'bomb']) save.tup[k] = clamp(Math.max(save.tup[k], num(d.tup[k], 0)), 0, k === 'bomb' ? 2 : 5);
+  if (d.tpts && typeof d.tpts === 'object' && /^\d{4}-\d\d-\d\d$/.test(String(d.tpts.id || '')) && (String(d.tpts.id) > save.tpts.id || (d.tpts.id === save.tpts.id && num(d.tpts.p, 0) > save.tpts.p))) save.tpts = { id: String(d.tpts.id), p: num(d.tpts.p, 0) };
+  if (typeof d.tclaim === 'string' && /^\d{4}-\d\d-\d\d$/.test(d.tclaim) && d.tclaim > save.tclaim) save.tclaim = d.tclaim;
+  save.twins = Math.max(save.twins, num(d.twins, 0)); save.tplay = Math.max(save.tplay, num(d.tplay, 0));
   if (typeof d.music === 'boolean') save.music = d.music;
   if (typeof d.sfx === 'boolean') save.sfx = d.sfx;
 }
@@ -651,7 +736,7 @@ function myUid() {
 }
 /* el nombre que el jugador le puso a su Centinela; si no, el de Telegram */
 function myName() {
-  return save.name || (tgUser && tgUser.first_name && cleanName(tgUser.first_name)) || 'Agente-' + myUid().slice(-4).toUpperCase();
+  return save.name || (tgUser && tgUser.first_name && cleanName(tgUser.first_name)) || T('Agente') + '-' + myUid().slice(-4).toUpperCase();
 }
 
 /* ---------------- Anuncios ---------------- */
@@ -665,7 +750,7 @@ const Ads = (() => {
   function demo(kind) {
     return new Promise(res => {
       const el = $('ad'); let n = 3;
-      $('adKind').textContent = kind === 'rewarded' ? 'Anuncio con recompensa' : 'Anuncio entre niveles';
+      $('adKind').textContent = kind === 'rewarded' ? T('Anuncio con recompensa') : T('Anuncio entre niveles');
       $('adCount').textContent = n; el.hidden = false;
       const iv = setInterval(() => {
         n--; $('adCount').textContent = Math.max(0, n);
@@ -713,7 +798,7 @@ const Online = (() => {
   const api = String(CONFIG.online.apiUrl || '').replace(/\/+$/, ''), useApi = !!api;
   const base = String(CONFIG.online.databaseUrl || '').replace(/\/+$/, '');
   const enabled = useApi || /^https:\/\//.test(base);
-  const row = (id, d) => ({ id, n: String((d && d.n) || 'Agente').slice(0, 16), p: Number(d && d.p) || 0, l: clamp(Number(d && d.l) || 1, 1, MAXLV), w: Number(d && d.w) || 0,
+  const row = (id, d) => ({ id, n: String((d && d.n) || T('Agente')).slice(0, 16), p: Number(d && d.p) || 0, l: clamp(Number(d && d.l) || 1, 1, MAXLV), w: Number(d && d.w) || 0,
     s: /^[a-z]{1,5}$/.test(String((d && d.s) || '')) ? String(d.s) : '' });
   let lastSent = '', lastRef = '', me = null;
   async function sync() {
@@ -1093,20 +1178,20 @@ function unlock(id) {
   if (save.skins.includes(id)) return;
   const s = SKINS.find(k => k.id === id); if (!s) return;
   save.skins.push(id); persist();
-  toast('SKIN DESBLOQUEADA · ' + s.name.toUpperCase(), s.main); Sfx.buy();
+  toast(T('SKIN DESBLOQUEADA · {0}', T(s.name).toUpperCase()), s.main); Sfx.buy();
 }
 /* Misiones del Códice: cada eliminación (o esquive, en los hackers) avanza la tarjeta de ese tipo */
 function tally(id) {
   const c = CARD[id]; if (!c) return;
   const before = cardRank(id), tBefore = totalRanks();
   save.kills[id] = (save.kills[id] || 0) + 1;
-  if (save.kills[id] === 1) toast('NUEVA FICHA · ' + c.name.toUpperCase(), C.core);
+  if (save.kills[id] === 1) toast(T('NUEVA FICHA · {0}', T(c.name).toUpperCase()), C.core);
   const after = cardRank(id);
   if (after > before) {
     const bits = RANK_BITS[after - 1]; save.bits += bits; save.earned += bits;
-    toast('TARJETA ' + RANKS[after - 1].toUpperCase() + ' · ' + c.name.toUpperCase() + '  +' + bits + ' BITS', ['#c98a5b', '#cfd8e6', '#ffd76a'][after - 1]);
+    toast(T('TARJETA {0} · {1}  +{2} BITS', T(RANKS[after - 1]).toUpperCase(), T(c.name).toUpperCase(), bits), ['#c98a5b', '#cfd8e6', '#ffd76a'][after - 1]);
     const tAfter = tBefore + (after - before);
-    for (const m of MILESTONES) if (tBefore < m[0] && tAfter >= m[0]) toast('COLECCIÓN DE ' + m[0] + ' TARJETAS · +' + fmt(m[1]) + ' PUNTOS', C.amber);
+    for (const m of MILESTONES) if (tBefore < m[0] && tAfter >= m[0]) toast(T('COLECCIÓN DE {0} TARJETAS · +{1} PUNTOS', m[0], fmt(m[1])), C.amber);
     Sfx.buy(); haptic('success'); persist();
   }
 }
@@ -1146,13 +1231,13 @@ function spawnHacker(demo) {
     const left = Math.random() < .5;
     add('hacker', left ? -30 : W + 30, rand(110, H * .36), { kind: 1, hx: left ? rand(40, 110) : W - rand(40, 110), shots: S.diff >= 12 ? 2 : 1 });
   } else add('hacker', rand(40, W - 40), -40, { kind: 0 });
-  if (!demo && !S.hackTip) { S.hackTip = true; banner('HACKER DETECTADO', 'No se puede destruir. Esquívalo'); Sfx.alarm(); }
+  if (!demo && !S.hackTip) { S.hackTip = true; banner(T('HACKER DETECTADO'), T('No se puede destruir. Esquívalo')); Sfx.alarm(); }
 }
 function levelClear() {
   S.mode = 'clearing'; S.win = true; S.overT = 1.8; S.flash = .4; S.shock = { x: P.x, y: P.y, t: 0 }; S.boss = null;
   for (const e of enemies) if (!e.dead) { e.dead = true; burst(e.x, e.y, e.color, 10, 160); }
   for (const b of ebullets) b.dead = true;
-  banner('NIVEL SUPERADO', 'Red limpia'); Sfx.win(); haptic('success');
+  banner(T('NIVEL SUPERADO'), T('Red limpia')); Sfx.win(); haptic('success');
 }
 function kill(e, by) {
   if (e.dead) return;
@@ -1177,7 +1262,7 @@ function kill(e, by) {
 }
 function leak(e) {
   P.int -= 5; S.chain = 0; S.combo = 1; S.flash = Math.max(S.flash, .12);
-  floatText(e.x, H - 40, 'FUGA −5', C.red);
+  floatText(e.x, H - 40, T('FUGA −5'), C.red);
   if (P.int <= 0) die();
 }
 function hurt(d, pl) {
@@ -1186,7 +1271,7 @@ function hurt(d, pl) {
   const mine = pl === P;
   if (pl.shield) {
     pl.shield = false; pl.inv = 1; burst(pl.x, pl.y, C.mint, 18, 220);
-    floatText(pl.x, pl.y - 26, 'CORTAFUEGOS ROTO', C.mint); if (mine) { Sfx.deflect(); haptic('medium'); } return;
+    floatText(pl.x, pl.y - 26, T('CORTAFUEGOS ROTO'), C.mint); if (mine) { Sfx.deflect(); haptic('medium'); } return;
   }
   pl.int -= d; pl.inv = 1.3; burst(pl.x, pl.y, pl.sk.main, 16, 200);
   if (mine) { S.shake = 10; S.glitch = .3; S.flash = .25; Sfx.hurt(); haptic('heavy'); }
@@ -1224,7 +1309,7 @@ function bomb(pl) {
 }
 function collect(p, pl) {
   p.dead = true; if (pl === P) { Sfx.pick(); haptic('light'); }
-  floatText(pl.x, pl.y - 30, PK[p.type].label, PK[p.type].color);
+  floatText(pl.x, pl.y - 30, T(PK[p.type].label), PK[p.type].color);
   burst(p.x, p.y, PK[p.type].color, 10, 140);
   if (p.type === 'patch') pl.int = Math.min(pl.maxInt, pl.int + 30);
   else if (p.type === 'rapid') pl.rapid = 8 * pl.dur;
@@ -1415,7 +1500,7 @@ function update(dt) {
   enemies = enemies.filter(e => !e.dead); picks = picks.filter(p => !p.dead);
   if (wavesOver && S.mode === 'play' && !S.boss && !enemies.some(e => e.type !== 'hacker')) {
     if (!S.bossLevel) levelClear();
-    else if (!S.bossSpawned) { S.bossSpawned = true; banner('ROOTKIT', 'Jefe de zona. Derrótalo para superar el nivel'); S.boss = add('boss', W / 2, -70, { fire: 2.2 }); Sfx.alarm(); }
+    else if (!S.bossSpawned) { S.bossSpawned = true; banner('ROOTKIT', T('Jefe de zona. Derrótalo para superar el nivel')); S.boss = add('boss', W / 2, -70, { fire: 2.2 }); Sfx.alarm(); }
   }
 }
 
@@ -1525,6 +1610,12 @@ function drawShip(g, sk, t) {
       g.beginPath(); g.moveTo(-12, 8); g.lineTo(12, 8); g.strokeStyle = sk.acc; g.lineWidth = 1.2; g.stroke();
       g.fillStyle = sk.acc; g.fillRect(-1.5, -6, 3, 10); g.fillRect(-5, -2.5, 10, 3);
       break;
+    case 'trofeo':
+      g.beginPath(); g.arc(-12, -9, 5.5, Math.PI * .5, Math.PI * 1.5); g.moveTo(12, -14.5); g.arc(12, -9, 5.5, -Math.PI * .5, Math.PI * .5); g.strokeStyle = sk.acc; g.lineWidth = 1.4; g.stroke();
+      g.strokeStyle = sk.main; g.lineWidth = 1.8;
+      path(g, [[-12, -17], [12, -17], [10, -3], [4, 5], [4, 9], [10, 14], [-10, 14], [-4, 9], [-4, 5], [-10, -3]]); g.fill(); g.stroke();
+      g.fillStyle = sk.acc; g.fillRect(-1.4, -12, 2.8, 10); g.fillRect(-5, -8.4, 10, 2.8);
+      break;
     default:
       path(g, [[0, -17], [11, -3], [15, 12], [5, 7], [0, 13], [-5, 7], [-15, 12], [-11, -3]]); g.fill(); g.stroke();
       cross(g);
@@ -1603,7 +1694,7 @@ function paintShip(pl) {
   ctx.textAlign = 'center';
   if (pl.out > 0) {
     ctx.font = '11px "Share Tech Mono", monospace'; ctx.fillStyle = sk.main; ctx.globalAlpha = .85;
-    ctx.fillText('REINICIANDO ' + Math.ceil(pl.out), pl.x, pl.y); ctx.globalAlpha = 1; return;
+    ctx.fillText(T('REINICIANDO {0}', Math.ceil(pl.out)), pl.x, pl.y); ctx.globalAlpha = 1; return;
   }
   const blink = pl.inv > 0 && Math.sin(S.t * 40) > 0;
   ctx.globalCompositeOperation = 'lighter'; drawGlow(pl.x, pl.y, 46, sk.main, .55);
@@ -1620,7 +1711,7 @@ function paintShip(pl) {
   ctx.lineCap = 'butt';
   if (duel) {
     ctx.font = '10px "Share Tech Mono", monospace'; ctx.fillStyle = pl === P ? C.ink : sk.main;
-    ctx.fillText(pl === P ? 'TÚ' : pl.name.toUpperCase(), pl.x, pl.y > H - 48 ? pl.y - 32 : pl.y + 34);
+    ctx.fillText(pl === P ? T('TÚ') : pl.name.toUpperCase(), pl.x, pl.y > H - 48 ? pl.y - 32 : pl.y + 34);
   }
 }
 
@@ -1740,14 +1831,14 @@ const hudCache = {};
 function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
 function syncHud() {
   const duel = S.kind === 'duel';
-  setText('scoreLbl', duel ? 'Eliminados' : 'Puntos'); setText('score', duel ? String(P.kills) : fmt(S.score));
+  setText('scoreLbl', duel ? T('Eliminados') : T('Puntos')); setText('score', duel ? String(P.kills) : fmt(S.score));
   setText('combo', duel ? '' : 'x' + S.combo); setText('bombN', String(P.bombs)); setText('bitsN', fmt(S.runBits));
-  setText('secLbl', duel ? 'Tiempo' : 'Nivel');
+  setText('secLbl', duel ? T('Tiempo') : T('Nivel'));
   const tl = Math.max(0, Math.ceil(S.duelT));
   setText('sector', duel ? (tl / 60 | 0) + ':' + pad2(tl % 60) : S.levelN < 100 ? pad2(S.levelN) : String(S.levelN));
   const iw = clamp(P.int / P.maxInt * 100, 0, 100) + '%';
   if (hudCache.iw !== iw) { hudCache.iw = iw; $('intFill').style.width = iw; $('intBar').classList.toggle('low', P.int <= P.maxInt * .3); }
-  const sw = (duel ? clamp(S.duelT / 90 * 100, 0, 100) : S.bossSpawned ? 100 : Math.min(100, S.wavesDone / S.wavesTotal * 100)) + '%';
+  const sw = (duel ? clamp(S.duelT / (S.duelMax || 90) * 100, 0, 100) : S.bossSpawned ? 100 : Math.min(100, S.wavesDone / S.wavesTotal * 100)) + '%';
   if (hudCache.sw !== sw) { hudCache.sw = sw; $('secFill').style.width = sw; }
   const nb = P.bombs <= 0 || P.out > 0;
   if (hudCache.nb !== nb) { hudCache.nb = nb; $('btnBomb').disabled = nb; }
@@ -1758,19 +1849,19 @@ function syncHud() {
   }
 }
 function show(id, on) { $(id).hidden = !on; }
-const PANELS = ['menu', 'pause', 'over', 'duelEnd'], SHEETS = ['levels', 'codex', 'shop', 'rank', 'duel', 'invite'];
+const PANELS = ['menu', 'pause', 'over', 'duelEnd'], SHEETS = ['levels', 'codex', 'shop', 'rank', 'duel', 'invite', 'tour'];
 function hideAll() { for (const p of PANELS) show(p, false); for (const s of SHEETS) show(s, false); }
 function refreshMenu() {
-  $('btnInvite').classList.toggle('hot', !!refNews); $('btnDuel').classList.toggle('hot', Duel.hasNews());   /* hay un premio nuevo que ver en Invitar */
+  $('btnInvite').classList.toggle('hot', !!refNews); $('btnDuel').classList.toggle('hot', Duel.hasNews() || Tour.hot());   /* hay un premio nuevo que ver en Invitar */
   $('walletMenu').textContent = fmt(save.bits); $('walletShop').textContent = fmt(save.bits);
   $('rankMenu').textContent = fmt(rankPoints());
-  $('playSub').textContent = 'Nivel ' + pad2(save.level) + ' · ' + ZONES[zoneOfLevel(save.level)].name;
-  if (save.name || tgUser) $('greet').textContent = myName() + ': eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.';
+  $('playSub').textContent = T('Nivel {0} · {1}', pad2(save.level), T(ZONES[zoneOfLevel(save.level)].name));
+  if (save.name || tgUser) $('greet').textContent = T('{0}: eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.', myName());
 }
 function refreshAudioUi() {
   $('btnMute').classList.toggle('off', !save.music && !save.sfx);
-  $('togMusicS').textContent = save.music ? 'Activada' : 'Desactivada';
-  $('togSfxS').textContent = save.sfx ? 'Activados' : 'Desactivados';
+  $('togMusicS').textContent = save.music ? T('Activada') : T('Desactivada');
+  $('togSfxS').textContent = save.sfx ? T('Activados') : T('Desactivados');
   Sfx.applyVolumes();
 }
 function startLevel(n) {
@@ -1781,14 +1872,14 @@ function startLevel(n) {
   S.wavesTotal = Math.max(1, Math.round(secs / gap)); S.wavesDone = 0; S.quota = 1e9;
   setZone(zoneOfLevel(n)); S.mode = 'play';
   hideAll(); show('hud', true); show('rival', false); show('btnPause', true); show('bitsStat', true);
-  banner('NIVEL ' + pad2(n), S.replay ? 'Repetición: sin bits ni misiones' : S.bossLevel ? 'Jefe de zona: Rootkit' : ZONES[S.zone].name);
+  banner(T('NIVEL {0}', pad2(n)), S.replay ? T('Repetición: sin bits ni misiones') : S.bossLevel ? T('Jefe de zona: Rootkit') : T(ZONES[S.zone].name));
 }
 function startDuelGame(name) {
   Sfx.init(); Sfx.warp(); reset();
   S.kind = 'duel'; S.replay = false; S.levelN = 0; S.diff = 3; S.duelT = 90; S.quota = 1e9; S.bossLevel = false;
   setZone(Math.random() * ZONES.length | 0); S.mode = 'play';
   hideAll(); show('hud', true); show('rival', true); show('btnPause', false); show('bitsStat', false);
-  banner('DUELO', 'Elimina más virus que ' + name);
+  banner(T('DUELO'), T('Elimina más virus que {0}', name));
 }
 function goMenu() {
   S.mode = 'menu'; S.kind = 'level'; S.net = 'solo'; S.diff = 1; S.boss = null; S.alive = true; S.banner = null; S.toasts = [];
@@ -1802,12 +1893,12 @@ function showResult() {
   let stars = 0, winNote = '';
   if (win) {
     const q = P.int / P.maxInt; stars = q >= .7 ? 3 : q >= .35 ? 2 : 1;
-    if (S.replay) winNote = 'Nivel repetido: no da bits ni avanza misiones. ';
+    if (S.replay) winNote = T('Nivel repetido: no da bits ni avanza misiones.') + ' ';
     else {
       S.runBits += 20 + 5 * Math.min(n, 60);
-      if (save.refBonus > 0) { S.runBits = Math.round(S.runBits * (1 + save.refBonus / 100)); winNote = 'Bono de invitados +' + save.refBonus + ' %. '; }
+      if (save.refBonus > 0) { S.runBits = Math.round(S.runBits * (1 + save.refBonus / 100)); winNote = T('Bono de invitados +{0} %.', save.refBonus) + ' '; }
       const before = shipLevel().L; save.xp += 10 + n; ST = stats();
-      if (ST.L > before) winNote += 'Tu nave sube al nivel ' + ST.L + '. ';
+      if (ST.L > before) winNote += T('Tu nave sube al nivel {0}.', ST.L) + ' ';
     }
     if (stars > (save.stars[n] || 0)) save.stars[n] = stars;
     if (n >= save.level && n < MAXLV) save.level = n + 1;
@@ -1817,13 +1908,13 @@ function showResult() {
   const rec = win && S.score > (save.best[n] || 0);
   if (rec) save.best[n] = S.score;
   persist(); Online.submit(); Online.refPush();
-  const t = $('overTitle'); t.textContent = win ? 'Nivel ' + pad2(n) + ' superado' : 'Sistema comprometido'; t.className = win ? 'good' : 'bad';
+  const t = $('overTitle'); t.textContent = win ? T('Nivel {0} superado', pad2(n)) : T('Sistema comprometido'); t.className = win ? 'good' : 'bad';
   show('overStars', win); if (win) starsHtml($('overStars'), stars);
   $('finalScore').textContent = fmt(S.score); $('finalKills').textContent = fmt(S.kills);
   $('finalBest').textContent = fmt(save.best[n] || 0);
   $('finalBits').textContent = win ? '+' + fmt(S.runBits) + (S.doubled ? ' ×2' : '') : '0';
-  $('overNote').textContent = win ? winNote + (rec ? 'Nueva mejor marca. ' : '') + (stars < 3 ? 'Termina con el 70 % de integridad para las 3 estrellas.' : '') : (S.runBits > 0 ? 'Los ' + fmt(S.runBits) + ' bits de este intento solo se suman si superas el nivel.' + (S.revived ? '' : ' Con Continuar aún puedes salvarlos.') : 'Los bits solo se suman al superar el nivel.');
-  $('btnNext').textContent = win ? (n < MAXLV ? 'Siguiente nivel' : 'Volver al menú') : 'Reintentar';
+  $('overNote').textContent = win ? winNote + (rec ? T('Nueva mejor marca.') + ' ' : '') + (stars < 3 ? T('Termina con el 70 % de integridad para las 3 estrellas.') : '') : (S.runBits > 0 ? T('Los {0} bits de este intento solo se suman si superas el nivel.', fmt(S.runBits)) + (S.revived ? '' : ' ' + T('Con Continuar aún puedes salvarlos.')) : T('Los bits solo se suman al superar el nivel.'));
+  $('btnNext').textContent = win ? (n < MAXLV ? T('Siguiente nivel') : T('Volver al menú')) : T('Reintentar');
   syncOverButtons(); show('hud', false); show('over', true);
 }
 function syncOverButtons() {
@@ -1856,13 +1947,13 @@ function renderLevels() {
   $('lvPrev').disabled = lvPage === 0; $('lvNext').disabled = lvPage === pages - 1;
   for (let r = lvPage * 10; r < lvPage * 10 + 10; r++) {
     const cyc = r / ZONES.length | 0;
-    body.append(el('div', 'zone-lbl', ZONES[r % ZONES.length].name + (cyc ? ' · ciclo ' + (cyc + 1) : '') + ' · niveles ' + (r * 5 + 1) + ' a ' + (r * 5 + 5)));
+    body.append(el('div', 'zone-lbl', T(ZONES[r % ZONES.length].name) + (cyc ? ' · ' + T('ciclo {0}', cyc + 1) : '') + ' · ' + T('niveles {0} a {1}', r * 5 + 1, r * 5 + 5)));
     const row = el('div', 'lv-row');
     for (let i = 1; i <= 5; i++) {
       const n = r * 5 + i, b = el('button', 'lv' + (n % 5 === 0 ? ' boss' : '') + (n === save.level ? ' cur' : ''));
       b.append(document.createTextNode(n < 100 ? pad2(n) : String(n)));
       const st = el('small'); starsHtml(st, save.stars[n] || 0); b.append(st);
-      b.setAttribute('aria-label', 'Nivel ' + n + (n % 5 === 0 ? ', jefe' : ''));
+      b.setAttribute('aria-label', n % 5 === 0 ? T('Nivel {0}, jefe', n) : T('Nivel {0}', n));
       if (n > save.level) b.disabled = true; else b.addEventListener('click', () => startLevel(n));
       row.append(b);
     }
@@ -1883,9 +1974,9 @@ function renderCodex() {
   const goal = el('div', 'goal');
   if (next) {
     const from = prev ? prev[0] : 0;
-    goal.append(document.createTextNode('Recompensa de colección: al reunir ' + next[0] + ' tarjetas ganas ' + fmt(next[1]) + ' puntos de rango. Llevas ' + total + '.'));
+    goal.append(document.createTextNode(T('Recompensa de colección: al reunir {0} tarjetas ganas {1} puntos de rango. Llevas {2}.', next[0], fmt(next[1]), total)));
     const tr = el('div', 'track'), fill = el('i'); fill.style.width = clamp((total - from) / (next[0] - from) * 100, 0, 100) + '%'; tr.append(fill); goal.append(tr);
-  } else goal.textContent = 'Colección completa. Has ganado ' + fmt(collectionPoints()) + ' puntos de rango con las tarjetas.';
+  } else goal.textContent = T('Colección completa. Has ganado {0} puntos de rango con las tarjetas.', fmt(collectionPoints()));
   body.append(goal);
   for (const c of CARDS) {
     const n = save.kills[c.id] || 0, rank = cardRank(c.id), seen = !!save.seen[c.id] || n > 0;
@@ -1898,19 +1989,19 @@ function renderCodex() {
     }));
     const info = el('div', 'info'), head = el('div', 'head'), rk = el('div', 'rk');
     for (let i = 1; i <= 3; i++) rk.append(el('i', i <= rank ? 'r' + i : null));
-    head.append(el('b', null, seen ? c.name : '???'), rk); info.append(head);
-    if (!seen) info.append(el('span', null, 'Amenaza sin identificar. Aparece desde el nivel ' + c.from + '.'));
+    head.append(el('b', null, seen ? T(c.name) : '???'), rk); info.append(head);
+    if (!seen) info.append(el('span', null, T('Amenaza sin identificar. Aparece desde el nivel {0}.', c.from)));
     else {
-      info.append(el('span', null, c.desc));
+      info.append(el('span', null, T(c.desc)));
       const d = DEF[c.id === 'sniper' ? 'hacker' : c.id];
-      info.append(el('span', 'meta', c.dodge ? 'Indestructible · desde el nivel ' + c.from : 'Vida ' + d.hp + ' · ' + d.score + ' pts · desde el nivel ' + c.from));
-      const prog = el('div', 'prog'), tr = el('div', 'track'), fill = el('i'), verb = c.dodge ? 'Esquiva ' : 'Elimina ';
+      info.append(el('span', 'meta', c.dodge ? T('Indestructible · desde el nivel {0}', c.from) : T('Vida {0} · {1} pts · desde el nivel {2}', d.hp, d.score, c.from)));
+      const prog = el('div', 'prog'), tr = el('div', 'track'), fill = el('i');
       if (rank < 3) {
         const g0 = rank ? c.goals[rank - 1] : 0, g1 = c.goals[rank];
         fill.style.width = clamp((n - g0) / (g1 - g0) * 100, 0, 100) + '%'; tr.append(fill);
-        info.append(el('span', 'meta', 'Misión: ' + verb.toLowerCase() + g1 + ' para la tarjeta ' + RANKS[rank] + ' (+' + RANK_BITS[rank] + ' bits)'));
+        info.append(el('span', 'meta', T(c.dodge ? 'Misión: esquiva {0} para la tarjeta {1} (+{2} bits)' : 'Misión: elimina {0} para la tarjeta {1} (+{2} bits)', g1, T(RANKS[rank]), RANK_BITS[rank])));
         prog.append(tr, el('span', null, fmt(n) + ' / ' + fmt(g1)));
-      } else { fill.style.width = '100%'; tr.append(fill); prog.append(tr, el('span', null, fmt(n) + ' · Oro')); }
+      } else { fill.style.width = '100%'; tr.append(fill); prog.append(tr, el('span', null, fmt(n) + ' · ' + T('Oro'))); }
       info.append(prog);
     }
     row.append(info); body.append(row);
@@ -1925,7 +2016,7 @@ function priceBtn(cost) {
   return b;
 }
 function buy(cost, apply) {
-  if (save.bits < cost) { $('shopNote').textContent = 'Te faltan ' + fmt(cost - save.bits) + ' bits.'; Sfx.hit(); return; }
+  if (save.bits < cost) { $('shopNote').textContent = T('Te faltan {0} bits.', fmt(cost - save.bits)); Sfx.hit(); return; }
   save.bits -= cost; apply(); persist(); syncSkin(); ST = stats(); Sfx.buy(); haptic('success');
   $('shopNote').textContent = ''; renderShop();
 }
@@ -1938,31 +2029,31 @@ function renderShop() {
     const u = save.up, lv = shipLevel(), head = el('div', 'item sel'), hi = el('div', 'info'), tr = el('div', 'track'), fill = el('i');
     fill.style.width = clamp(lv.cur / lv.need * 100, 0, 100) + '%'; tr.append(fill);
     const pr = el('div', 'prog'); pr.append(tr, el('span', null, fmt(lv.cur) + ' / ' + fmt(lv.need) + ' XP'));
-    hi.append(el('b', null, myName() + ' · nivel ' + lv.L), el('span', null, 'Sube superando niveles nuevos. Cada nivel de nave da +5 % de daño y +2 de integridad.'), pr);
+    hi.append(el('b', null, T('{0} · nivel {1}', myName(), lv.L)), el('span', null, T('Sube superando niveles nuevos. Cada nivel de nave da +5 % de daño y +2 de integridad.')), pr);
     head.append(iconCanvas(g => { g.translate(0, 2); g.scale(1.1, 1.1); drawShip(g, SK, .9); }), hi, el('span', 'statv', String(lv.L)));
     body.append(head);
     const stat = (name, value, detail) => { const row = el('div', 'item up'), info = el('div', 'info'); info.append(el('b', null, name), el('span', null, detail)); row.append(info, el('span', 'statv', value)); body.append(row); };
-    stat('Daño por disparo', ST.dmg.toFixed(2), 'Potencia ' + u.power + '/5 · nivel de nave +' + 5 * (lv.L - 1) + ' %');
-    stat('Disparos por segundo', (1 / ST.fire).toFixed(1), 'Cadencia ' + u.rate + '/5');
-    stat('Integridad máxima', String(ST.maxInt), 'Blindaje ' + u.armor + '/5 · nivel de nave +' + 2 * (lv.L - 1));
-    stat('Alcance del imán', String(ST.magnet), 'Imán ' + u.magnet + '/3');
-    stat('Cuarentenas', ST.bombs + ' (máx. ' + ST.maxBombs + ')', 'Reserva ' + u.bomb + '/2');
-    stat('Duración de potenciadores', '×' + ST.dur.toFixed(2), 'Persistencia ' + u.time + '/3');
-    stat('Bono de bits', '+' + save.refBonus + ' %', 'Por los niveles que superan tus invitados');
+    stat(T('Daño por disparo'), ST.dmg.toFixed(2), T('Potencia {0}/5 · nivel de nave +{1} %', u.power, 5 * (lv.L - 1)));
+    stat(T('Disparos por segundo'), (1 / ST.fire).toFixed(1), T('Cadencia {0}/5', u.rate));
+    stat(T('Integridad máxima'), String(ST.maxInt), T('Blindaje {0}/5 · nivel de nave +{1}', u.armor, 2 * (lv.L - 1)));
+    stat(T('Alcance del imán'), String(ST.magnet), T('Imán {0}/3', u.magnet));
+    stat(T('Cuarentenas'), T('{0} (máx. {1})', ST.bombs, ST.maxBombs), T('Reserva {0}/2', u.bomb));
+    stat(T('Duración de potenciadores'), '×' + ST.dur.toFixed(2), T('Persistencia {0}/3', u.time));
+    stat(T('Bono de bits'), '+' + save.refBonus + ' %', T('Por los niveles que superan tus invitados'));
     let kills = 0; for (const c of CARDS) if (!c.dodge) kills += save.kills[c.id] || 0;
-    stat('Nivel alcanzado', save.level + ' / ' + MAXLV, totalStars() + ' estrellas · ' + fmt(kills) + ' virus eliminados');
-    stat('Duelos ganados', String(save.duelWins), save.duelPlayed + ' jugados');
-    const rn = el('button', 'btn alt', 'Cambiar el nombre del Centinela'); rn.addEventListener('click', () => Intro.open('rename')); body.append(rn);
-    body.append(el('p', 'tag', 'En los duelos todas las naves usan las mismas características.'));
+    stat(T('Nivel alcanzado'), save.level + ' / ' + MAXLV, T('{0} estrellas · {1} virus eliminados', totalStars(), fmt(kills)));
+    stat(T('Duelos ganados'), String(save.duelWins), T('{0} jugados', save.duelPlayed));
+    const rn = el('button', 'btn alt', T('Cambiar el nombre del Centinela')); rn.addEventListener('click', () => Intro.open('rename')); body.append(rn);
+    body.append(el('p', 'tag', T('En los duelos todas las naves usan las mismas características.')));
   } else if (shopTab === 'skins') {
     for (const s of SKINS) {
       const owned = save.skins.includes(s.id), row = el('div', 'item' + (save.skin === s.id ? ' sel' : ''));
       const c = iconCanvas(g => { g.translate(0, 2); g.scale(1.1, 1.1); if (!owned) g.globalAlpha = .55; drawShip(g, s, .9); });
-      const info = el('div', 'info'); info.append(el('b', null, s.name), el('span', null, !owned && s.req ? s.reqText : s.desc));
+      const info = el('div', 'info'); info.append(el('b', null, T(s.name)), el('span', null, T(!owned && s.req ? s.reqText : s.desc)));
       let act;
-      if (save.skin === s.id) act = el('span', 'state on', 'Equipada');
-      else if (owned) { act = el('button', 'buy own', 'Equipar'); act.addEventListener('click', () => { save.skin = s.id; syncSkin(); persist(); Sfx.ui(); renderShop(); }); }
-      else if (s.req) act = el('span', 'state', 'Bloqueada');
+      if (save.skin === s.id) act = el('span', 'state on', T('Equipada'));
+      else if (owned) { act = el('button', 'buy own', T('Equipar')); act.addEventListener('click', () => { save.skin = s.id; syncSkin(); persist(); Sfx.ui(); renderShop(); }); }
+      else if (s.req) act = el('span', 'state', T('Bloqueada'));
       else { act = priceBtn(s.cost); act.addEventListener('click', () => buy(s.cost, () => { save.skins.push(s.id); save.skin = s.id; })); }
       row.append(c, info, act); body.append(row);
     }
@@ -1970,9 +2061,9 @@ function renderShop() {
     for (const u of UPS) {
       const lvl = save.up[u.id], row = el('div', 'item up'), info = el('div', 'info'), pips = el('div', 'pips');
       for (let i = 0; i < u.max; i++) pips.append(el('i', i < lvl ? 'on' : null));
-      info.append(el('b', null, u.name), el('span', null, u.desc), pips);
+      info.append(el('b', null, T(u.name)), el('span', null, T(u.desc)), pips);
       let act;
-      if (lvl >= u.max) act = el('span', 'state on', 'Máximo');
+      if (lvl >= u.max) act = el('span', 'state on', T('Máximo'));
       else { act = priceBtn(u.cost[lvl]); act.addEventListener('click', () => buy(u.cost[lvl], () => { save.up[u.id]++; })); }
       row.append(info, act); body.append(row);
     }
@@ -1985,33 +2076,33 @@ let rankReq = 0;
 async function renderRank() {
   const body = $('rankBody'), mine = rankPoints(), req = ++rankReq;
   $('rankMine').textContent = fmt(mine);
-  $('rankBreak').textContent = 'Niveles ' + fmt(levelPoints()) + ' · Tarjetas ' + fmt(collectionPoints()) + ' · Duelos ganados ' + fmt(save.duelWins * 300) + ' (300 por victoria)';
+  $('rankBreak').textContent = T('Niveles {0} · Tarjetas {1} · Duelos ganados {2} (300 por victoria)', fmt(levelPoints()), fmt(collectionPoints()), fmt(save.duelWins * 300));
   $('nameInput').value = myName();
   body.textContent = ''; $('rankNote').textContent = '';
-  const meRow = pos => { const r = el('div', 'rrow me'), nm = el('span', 'nm', myName()); nm.append(el('small', null, 'Nivel ' + save.level + ' · ' + save.duelWins + ' duelos ganados')); r.append(el('span', null, pos), nm, el('b', null, fmt(mine))); return r; };
+  const meRow = pos => { const r = el('div', 'rrow me'), nm = el('span', 'nm', myName()); nm.append(el('small', null, T('Nivel {0} · {1} duelos ganados', save.level, save.duelWins))); r.append(el('span', null, pos), nm, el('b', null, fmt(mine))); return r; };
   if (!Online.enabled) {
     body.append(meRow('—'));
-    $('rankNote').textContent = 'El ranking global todavía no está conectado. Se activa al poner la base de datos en CONFIG.';
+    $('rankNote').textContent = T('El ranking global todavía no está conectado. Se activa al poner la base de datos en CONFIG.');
     return;
   }
-  $('rankNote').textContent = 'Cargando ranking…';
+  $('rankNote').textContent = T('Cargando ranking…');
   try {
     await Online.submit();
     const list = await Online.top();
     if (req !== rankReq) return;
-    $('rankNote').textContent = list.length ? '' : 'Todavía no hay nadie en el ranking.';
+    $('rankNote').textContent = list.length ? '' : T('Todavía no hay nadie en el ranking.');
     const uid = Online.myId(); let found = false;
     if (!Online.useApi) { for (const p of list) if (p.id === uid) { p.p = mine; p.n = myName(); p.l = save.level; p.w = save.duelWins; } list.sort((a, b) => b.p - a.p); }
     list.forEach((p, i) => {
       const me = p.id === uid; if (me) found = true;
-      const r = el('div', 'rrow' + (me ? ' me' : '')), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l + ' · ' + p.w + ' duelos ganados'));
+      const r = el('div', 'rrow' + (me ? ' me' : '')), nm = el('span', 'nm', p.n); nm.append(el('small', null, T('Nivel {0} · {1} duelos ganados', p.l, p.w)));
       r.append(el('span', null, String(i + 1)), nm, el('b', null, fmt(p.p))); body.append(r);
     });
     if (!found) body.append(meRow('—'));
-    if (Online.useApi) $('rankNote').textContent = inTg ? (found ? 'El servidor valida el progreso: si acabas de subir mucho, tus puntos se actualizan poco a poco.' : 'Tu fila aparecerá cuando el servidor confirme tu progreso.') : 'Abre el juego dentro de Telegram para aparecer en el ranking.';
+    if (Online.useApi) $('rankNote').textContent = inTg ? (found ? T('El servidor valida el progreso: si acabas de subir mucho, tus puntos se actualizan poco a poco.') : T('Tu fila aparecerá cuando el servidor confirme tu progreso.')) : T('Abre el juego dentro de Telegram para aparecer en el ranking.');
   } catch (e) {
     if (req !== rankReq) return;
-    body.append(meRow('—')); $('rankNote').textContent = 'No se pudo cargar el ranking. Revisa tu conexión e inténtalo de nuevo.';
+    body.append(meRow('—')); $('rankNote').textContent = T('No se pudo cargar el ranking. Revisa tu conexión e inténtalo de nuevo.');
   }
 }
 
@@ -2033,15 +2124,22 @@ function inviteLink(src) {
   return base + (base.includes('?') ? '&' : '?') + 'startapp=ref_' + myUid() + (src ? '_' + src : '');
 }
 /* fuera de Telegram se comparte la página de invitación, que es la que enseña la imagen en la vista previa y reenvía al juego */
-let landOK = false, landAsked = false, refNews = '';
+let landOK = false, landAsked = false, landUrl = '', storyUrl = '', refNews = '';
+/* la página y las imágenes de invitación tienen versión por idioma (unete-pt.html, invitacion-en.jpg...); si falta, se usa la española */
+const locName = f => LANG === 'es' ? f : String(f).replace(/(\.[a-z0-9]+)$/i, '-' + LANG + '$1');
 function checkLanding() {
-  if (landAsked || !CONFIG.telegram.invitePage || location.protocol !== 'https:') return;
+  if (landAsked || location.protocol !== 'https:') return;
   landAsked = true;
-  try { fetch(assetUrl(CONFIG.telegram.invitePage), { method: 'HEAD', cache: 'no-store' }).then(r => { landOK = r.ok; if (landOK && !$('invite').hidden) renderInvite(lastRefs); }).catch(() => {}); } catch (e) {}
+  const head = u => fetch(u, { method: 'HEAD', cache: 'no-store' }).then(r => r.ok).catch(() => false);
+  const pick = async f => { if (!f) return ''; const a = assetUrl(locName(f)), b = assetUrl(f); if (a !== b && await head(a)) return a; return (await head(b)) ? b : ''; };
+  try {
+    pick(CONFIG.telegram.invitePage).then(u => { landUrl = u; landOK = !!u; if (landOK && !$('invite').hidden) renderInvite(lastRefs); });
+    pick(CONFIG.telegram.storyImage).then(u => { storyUrl = u; });
+  } catch (e) {}
 }
 function previewLink(src) {
   const direct = inviteLink(src);
-  return landOK && direct ? assetUrl(CONFIG.telegram.invitePage) + '?r=' + myUid() + '&s=' + src : direct;
+  return landOK && direct ? landUrl + '?r=' + myUid() + '&s=' + src : direct;
 }
 /* lee tus invitados, recalcula el bono (2 % por cada 10 niveles superados de cada uno) y entrega los premios pendientes */
 let lastRefs = null;
@@ -2063,39 +2161,39 @@ async function refreshRefs() {
     }
     if (shareBits) { save.bits += shareBits; save.earned += shareBits; }
     const news = [];
-    if (got.length) news.push('Premio por invitados: +' + fmt(got.reduce((s, r) => s + r.bits, 0)) + ' bits.');
-    if (shareBits) news.push('Compartir verificado: +' + fmt(shareBits) + ' bits.');
+    if (got.length) news.push(T('Premio por invitados: +{0} bits.', fmt(got.reduce((s, r) => s + r.bits, 0))));
+    if (shareBits) news.push(T('Compartir verificado: +{0} bits.', fmt(shareBits)));
     if (news.length) { refNews = news.join(' '); if (S.mode === 'menu') Sfx.buy(); }
     persist();
     return (lastRefs = { list, got, cnt });
   } catch (e) { return { error: true }; }
 }
 function copyText(text, input, okMsg) {
-  const done = () => { $('inviteNote').textContent = okMsg || 'Enlace copiado.'; };
-  const manual = () => { try { input.value = text; input.focus(); input.select(); } catch (e) {} $('inviteNote').textContent = 'Mantén pulsado el enlace para copiarlo.'; };
+  const done = () => { $('inviteNote').textContent = okMsg || T('Enlace copiado.'); };
+  const manual = () => { try { input.value = text; input.focus(); input.select(); } catch (e) {} $('inviteNote').textContent = T('Mantén pulsado el enlace para copiarlo.'); };
   try { navigator.clipboard.writeText(text).then(done).catch(manual); } catch (e) { manual(); }
 }
 function renderInvite(res) {
   const body = $('inviteBody'), top = body.scrollTop; body.textContent = '';
   $('invBonus').textContent = '+' + save.refBonus + ' %'; refreshMenu();
   const link = inviteLink(''), share = link || CONFIG.telegram.shareUrl || pageUrl;
-  const text = 'Te invito a Centinela: sé el antivirus, limpia la red y esquiva a los hackers. Voy por el nivel ' + save.level + ', ¿me superas?';
+  const text = T('Te invito a Centinela: sé el antivirus, limpia la red y esquiva a los hackers. Voy por el nivel {0}, ¿me superas?', save.level);
 
   /* tarjeta de invitación: la misma imagen que verán quienes reciban tu enlace */
   if (CONFIG.telegram.inviteImage && location.protocol === 'https:') {
-    const card = el('img', 'invcard'); card.alt = 'Tarjeta de invitación de Centinela'; card.decoding = 'async';
-    card.addEventListener('error', () => card.remove()); card.src = assetUrl(CONFIG.telegram.inviteImage); body.append(card);
+    const card = el('img', 'invcard'), es = assetUrl(CONFIG.telegram.inviteImage); card.alt = T('Tarjeta de invitación de Centinela'); card.decoding = 'async';
+    card.addEventListener('error', () => { if (card.src !== es) card.src = es; else card.remove(); }); card.src = assetUrl(locName(CONFIG.telegram.inviteImage)); body.append(card);
   }
-  body.append(el('p', 'tag', 'Invita a jugar con tu enlace. Cuando 3 invitados llegan al nivel 10 empiezas a ganar premios, y por cada 10 niveles que supera cada invitado tus niveles dan un 2 % más de bits (máximo 100 %).'));
-  const f = el('div', 'field'), inp = el('input'), cp = el('button', 'btn alt', 'Copiar');
-  inp.readOnly = true; inp.value = share; inp.id = 'invLink'; inp.setAttribute('aria-label', 'Tu enlace de invitación');
+  body.append(el('p', 'tag', T('Invita a jugar con tu enlace. Cuando 3 invitados llegan al nivel 10 empiezas a ganar premios, y por cada 10 niveles que supera cada invitado tus niveles dan un 2 % más de bits (máximo 100 %).')));
+  const f = el('div', 'field'), inp = el('input'), cp = el('button', 'btn alt', T('Copiar'));
+  inp.readOnly = true; inp.value = share; inp.id = 'invLink'; inp.setAttribute('aria-label', T('Tu enlace de invitación'));
   cp.addEventListener('click', () => copyText(share, inp)); f.append(inp, cp); body.append(f);
-  if (!link) body.append(el('p', 'note', tgUser ? 'Pon el enlace de tu juego (shareUrl) en CONFIG para que las invitaciones cuenten.' : 'Las invitaciones cuentan cuando el juego se abre dentro de Telegram.'));
+  if (!link) body.append(el('p', 'note', tgUser ? T('Pon el enlace de tu juego (shareUrl) en CONFIG para que las invitaciones cuenten.') : T('Las invitaciones cuentan cuando el juego se abre dentro de Telegram.')));
 
-  body.append(el('span', 'lbl', 'Compartir y ganar bits · premio verificado'));
+  body.append(el('span', 'lbl', T('Compartir y ganar bits · premio verificado')));
   body.append(el('p', 'tag', Online.enabled
-    ? 'El premio llega cuando un jugador nuevo entra desde lo que compartiste y supera el nivel 1. Así se comprueba que la invitación se publicó de verdad. Sin límite: cada jugador nuevo cuenta.'
-    : 'Puedes compartir tu invitación. Los premios se activan al conectar la base de datos en CONFIG, que es la que comprueba quién entra desde tu enlace.'));
+    ? T('El premio llega cuando un jugador nuevo entra desde lo que compartiste y supera el nivel 1. Así se comprueba que la invitación se publicó de verdad. Sin límite: cada jugador nuevo cuenta.')
+    : T('Puedes compartir tu invitación. Los premios se activan al conectar la base de datos en CONFIG, que es la que comprueba quién entra desde tu enlace.')));
   const enc = encodeURIComponent, hrefs = {
     tg: 'https://t.me/share/url?url=' + enc(inviteLink('tg') || share) + '&text=' + enc(text),
     wa: 'https://wa.me/?text=' + enc(text + ' ' + (previewLink('wa') || share)),
@@ -2105,26 +2203,34 @@ function renderInvite(res) {
   const canStory = inTg && typeof tg.shareToStory === 'function' && tg.isVersionAtLeast && tg.isVersionAtLeast('7.8');
   for (const s of SHARES) {
     const n = save.sharePaid[s.id] || 0, sent = save.shares[s.id] === today(), row = el('div', 'item up'), info = el('div', 'info');
-    const sub = s.id === 'story' && !canStory ? 'Solo dentro de Telegram'
-      : n ? n + (n === 1 ? ' jugador verificado' : ' jugadores verificados') + ' · +' + fmt(n * s.bits) + ' bits'
-      : sent ? 'Compartido hoy · esperando a que entre alguien' : '+' + s.bits + ' bits por cada jugador nuevo';
-    info.append(el('b', null, s.name), el('span', null, sub));
+    const sub = s.id === 'story' && !canStory ? T('Solo dentro de Telegram')
+      : n ? T(n === 1 ? '{0} jugador verificado · +{1} bits' : '{0} jugadores verificados · +{1} bits', n, fmt(n * s.bits))
+      : sent ? T('Compartido hoy · esperando a que entre alguien') : T('+{0} bits por cada jugador nuevo', s.bits);
+    info.append(el('b', null, T(s.name)), el('span', null, sub));
     const mark = msg => {
       save.shares[s.id] = today(); persist(); renderInvite(res);
-      $('inviteNote').textContent = msg || (Online.enabled ? 'Compartido. El premio llega cuando un jugador nuevo entre desde ahí y supere el nivel 1.' : 'Compartido.');
+      $('inviteNote').textContent = msg || (Online.enabled ? T('Compartido. El premio llega cuando un jugador nuevo entre desde ahí y supere el nivel 1.') : T('Compartido.'));
     };
     let act;
     if (s.id === 'story') {
-      act = el('button', 'buy own', 'Publicar'); act.disabled = !canStory;
+      act = el('button', 'buy own', T('Publicar')); act.disabled = !canStory;
       act.addEventListener('click', () => {
-        try { tg.shareToStory(assetUrl(CONFIG.telegram.storyImage), { text: 'Te reto en Centinela, el juego del antivirus. Voy por el nivel ' + save.level + '. ' + (inviteLink('story') || share) }); mark(); }
-        catch (e) { $('inviteNote').textContent = 'No se pudo abrir el editor de historias.'; }
+        /* Telegram solo deja pulsar enlaces en las historias de cuentas Premium: a esas se les añade el botón de enlace;
+           para las demás, el texto nombra al bot (@...) para que quien vea la historia pueda encontrar el juego */
+        const sl = inviteLink('story') || share, prem = !!(tgUser && tgUser.is_premium);
+        const bot = (/t\.me\/([A-Za-z0-9_]{4,})/.exec(CONFIG.telegram.shareUrl || '') || [])[1];
+        const opts = { text: (T('Te reto en Centinela, el juego del antivirus. Voy por el nivel {0}.', save.level) + (bot ? ' ' + T('Juega en @{0}', bot) : '') + ' ' + sl).slice(0, 200) };
+        if (prem) opts.widget_link = { url: sl, name: T('Jugar a Centinela') };
+        try {
+          tg.shareToStory(storyUrl || assetUrl(CONFIG.telegram.storyImage), opts);
+          mark(prem ? '' : T('Historia abierta. Telegram solo permite pulsar enlaces en historias de cuentas Premium: quien la vea tendrá que buscar el bot por su nombre{0}.', bot ? ' (@' + bot + ')' : ''));
+        } catch (e) { $('inviteNote').textContent = T('No se pudo abrir el editor de historias.'); }
       });
     } else if (s.id === 'ig') {
-      act = el('button', 'buy own', 'Copiar enlace');
-      act.addEventListener('click', () => { const l = previewLink('ig') || share; mark(' '); copyText(l, $('invLink'), 'Enlace copiado. Pégalo en tu historia (pegatina de enlace) o en tu perfil de Instagram.'); });
+      act = el('button', 'buy own', T('Copiar enlace'));
+      act.addEventListener('click', () => { const l = previewLink('ig') || share; mark(' '); copyText(l, $('invLink'), T('Enlace copiado. Pégalo en tu historia (pegatina de enlace) o en tu perfil de Instagram.')); });
     } else {
-      act = el('a', 'buy own', 'Compartir'); act.href = hrefs[s.id]; act.target = '_blank'; act.rel = 'noopener';
+      act = el('a', 'buy own', T('Compartir')); act.href = hrefs[s.id]; act.target = '_blank'; act.rel = 'noopener';
       act.addEventListener('click', ev => {
         if (inTg) { ev.preventDefault(); try { s.id === 'tg' ? tg.openTelegramLink(hrefs.tg) : tg.openLink(hrefs[s.id]); } catch (e) {} }
         setTimeout(mark, 50);
@@ -2133,21 +2239,21 @@ function renderInvite(res) {
     row.append(info, act); body.append(row);
   }
 
-  body.append(el('span', 'lbl', 'Premios por invitados que llegan al nivel 10'));
+  body.append(el('span', 'lbl', T('Premios por invitados que llegan al nivel 10')));
   for (const r of REF_REWARDS) {
     const got = save.refClaim >= r.n, row = el('div', 'rrow' + (got ? ' me' : ''));
-    row.append(el('b', null, String(r.n)), el('span', 'nm', fmt(r.bits) + ' bits'), el('span', null, got ? 'Conseguido' : Math.min(save.refQual, r.n) + ' / ' + r.n));
+    row.append(el('b', null, String(r.n)), el('span', 'nm', fmt(r.bits) + ' bits'), el('span', null, got ? T('Conseguido') : Math.min(save.refQual, r.n) + ' / ' + r.n));
     body.append(row);
   }
 
-  body.append(el('span', 'lbl', 'Tus invitados'));
-  if (!Online.enabled) body.append(el('p', 'tag', 'La lista de invitados se activa al conectar la base de datos en CONFIG, igual que el ranking.'));
-  else if (!res) body.append(el('p', 'tag', 'Cargando invitados…'));
-  else if (res.error) body.append(el('p', 'tag', 'No se pudo cargar la lista. Revisa tu conexión.'));
-  else if (!res.list.length) body.append(el('p', 'tag', 'Todavía no ha entrado nadie con tu enlace.'));
+  body.append(el('span', 'lbl', T('Tus invitados')));
+  if (!Online.enabled) body.append(el('p', 'tag', T('La lista de invitados se activa al conectar la base de datos en CONFIG, igual que el ranking.')));
+  else if (!res) body.append(el('p', 'tag', T('Cargando invitados…')));
+  else if (res.error) body.append(el('p', 'tag', T('No se pudo cargar la lista. Revisa tu conexión.')));
+  else if (!res.list.length) body.append(el('p', 'tag', T('Todavía no ha entrado nadie con tu enlace.')));
   else for (const p of res.list) {
     const row = el('div', 'rrow'), nm = el('span', 'nm', p.n), via = SHARES.find(x => x.id === p.s);
-    nm.append(el('small', null, 'Nivel ' + p.l + (via ? ' · llegó por ' + via.name : '')));
+    nm.append(el('small', null, via ? T('Nivel {0} · llegó por {1}', p.l, T(via.name)) : T('Nivel {0}', p.l)));
     row.append(el('span', null, p.l >= 10 ? '✓' : '·'), nm, el('b', null, '+' + Math.floor((p.l - 1) / 10) * 2 + ' %'));
     body.append(row);
   }
@@ -2174,8 +2280,8 @@ const BETS = [0, 50, 100, 250, 500, 1000];
 const Duel = (() => {
   const TYPES = Object.keys(DEF), PKT = Object.keys(PK), DUR = 90, r = Math.round;
   const D = { bot: false, host: false, code: '', peer: null, conn: null, ended: true, snapT: 0, inT: 0, ky: 1, map: {}, shockN: 0,
-    botX: 260, skill: 1, wantAgain: false, oppAgain: false, oppName: 'Rival', oppSkin: 'centinela',
-    sel: 0, bet: 0, betOk: 0, pot: 0, roomBet: 0, askBet: 0, wait: false, againBet: 0, oppAgainBet: 0, oppAway: false, off: false, hidAt: 0, news: '' };
+    botX: 260, skill: 1, wantAgain: false, oppAgain: false, oppName: T('Rival'), oppSkin: 'centinela',
+    tour: null, dur: 90, sel: 0, bet: 0, betOk: 0, pot: 0, roomBet: 0, askBet: 0, wait: false, againBet: 0, oppAgainBet: 0, oppAway: false, off: false, hidAt: 0, news: '' };
   /* cantidad válida que llega del otro jugador; -1 si no es una de las permitidas */
   const betOf = v => { v = Number(v) || 0; return BETS.includes(v) ? v : -1; };
   const stake = () => (D.sel > 0 && D.sel <= save.bits ? D.sel : 0);
@@ -2195,23 +2301,23 @@ const Duel = (() => {
   }
   function create() {
     if (!canOnline()) return;
-    closeNet(); D.host = true; D.bot = false; D.code = newCode(); $('roomCode').textContent = D.code; lobby(true); note('Creando sala…');
+    closeNet(); D.host = true; D.bot = false; D.code = newCode(); $('roomCode').textContent = D.code; lobby(true); note(T('Creando sala…'));
     D.roomBet = stake(); D.bet = D.betOk = 0;
-    $('roomBet').textContent = D.roomBet ? 'Sala con apuesta: ' + fmt(D.roomBet) + ' bits por jugador.' : 'Sala sin apuesta.';
+    $('roomBet').textContent = D.roomBet ? T('Sala con apuesta: {0} bits por jugador.', fmt(D.roomBet)) : T('Sala sin apuesta.');
     show('btnRoomShare', inTg && !!CONFIG.telegram.shareUrl);
     const p = D.peer = new window.Peer(CONFIG.online.duelPrefix + D.code);
-    p.on('open', () => note('Sala lista. Pásale el código a tu rival y espera a que entre.'));
+    p.on('open', () => note(T('Sala lista. Pásale el código a tu rival y espera a que entre.')));
     p.on('connection', c => wire(c));
-    p.on('error', e => { if (p !== D.peer) return; if (e && e.type === 'unavailable-id') create(); else { lobby(false); note('No se pudo crear la sala. Revisa tu conexión.'); } });
+    p.on('error', e => { if (p !== D.peer) return; if (e && e.type === 'unavailable-id') create(); else { lobby(false); note(T('No se pudo crear la sala. Revisa tu conexión.')); } });
   }
   function join(code) {
     code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code.length !== 4) { note('Escribe el código de 4 caracteres de la sala.'); return; }
+    if (code.length !== 4) { note(T('Escribe el código de 4 caracteres de la sala.')); return; }
     if (!canOnline()) return;
-    closeNet(); D.host = false; D.bot = false; D.code = code; D.roomBet = 0; D.bet = D.betOk = 0; note('Conectando con la sala ' + code + '…');
+    closeNet(); D.host = false; D.bot = false; D.code = code; D.roomBet = 0; D.bet = D.betOk = 0; note(T('Conectando con la sala {0}…', code));
     const p = D.peer = new window.Peer();
     p.on('open', () => wire(p.connect(CONFIG.online.duelPrefix + code, { reliable: true })));
-    p.on('error', e => { if (p !== D.peer) return; note(e && e.type === 'peer-unavailable' ? 'No existe ninguna sala con ese código.' : 'No se pudo conectar. Revisa tu conexión.'); });
+    p.on('error', e => { if (p !== D.peer) return; note(e && e.type === 'peer-unavailable' ? T('No existe ninguna sala con ese código.') : T('No se pudo conectar. Revisa tu conexión.')); });
   }
   /* el anfitrión da la salida con la apuesta acordada */
   function go() { if (D.bet > save.bits) D.bet = 0; send({ t: 'start', h: H, bet: D.bet }); begin(false); }
@@ -2219,17 +2325,25 @@ const Duel = (() => {
     D.bot = bot; D.ended = false; D.wantAgain = D.oppAgain = false; D.snapT = D.inT = 0; D.map = {}; D.shockN = 0;
     D.againBet = D.oppAgainBet = 0; D.oppAway = false; D.off = false; D.hidAt = 0; D.wait = false;
     D.t0 = D.rx = performance.now();
-    if (bot) { D.host = true; D.oppName = 'Bot'; D.oppSkin = pick(SKINS).id; D.skill = rand(.7, 1.15); D.bet = D.betOk = 0; }
+    if (bot) { D.host = true; if (!D.tour) { D.oppName = 'Bot'; D.oppSkin = pick(SKINS).id; } D.skill = rand(.7, 1.15); D.bet = D.betOk = 0; }
+    if (D.tour) D.bet = D.betOk = 0;
+    D.dur = D.tour ? D.tour.secs : DUR;
     /* la apuesta se aparta al empezar y queda guardada: si el juego se cierra a mitad, se pierde */
     D.pot = !bot && D.bet > 0 && D.bet <= save.bits ? D.bet : 0;
     if (D.pot) { save.bits -= D.pot; save.bet = D.pot; persist(); }
-    startDuelGame(D.oppName);
-    if (D.pot) banner('DUELO · ' + fmt(D.pot) + ' BITS', 'El ganador se lleva ' + fmt(2 * D.pot) + ' bits');
+    startDuelGame(D.oppName); S.duelT = S.duelMax = D.dur;
+    if (D.tour) banner(D.tour.label, T('Elimina más virus que {0}', D.oppName));
+    if (D.pot) banner(T('DUELO · {0} BITS', fmt(D.pot)), T('El ganador se lleva {0} bits', fmt(2 * D.pot)));
     S.net = bot ? 'solo' : D.host ? 'host' : 'guest';
     D.ky = S.net === 'guest' && hostH > 0 ? H / hostH : 1;
     /* duelo justo: las dos naves tienen las mismas características, sin contar las mejoras del Arsenal */
     const std = { maxInt: 100, int: 100, bombs: 1, maxBombs: 3, gap: .15, dmg: 1.3, magnet: 100, dur: 1, kills: 0 };
     Object.assign(P, std); Object.assign(Q, std, { name: D.oppName, sk: SKINS.find(s => s.id === D.oppSkin) || SKINS[0] });
+    if (D.tour) {   /* en el torneo cada nave juega con sus propias mejoras de torneo */
+      const a = D.tour.me, b = D.tour.opp;
+      Object.assign(P, { maxInt: a.maxInt, int: a.maxInt, bombs: a.bombs, gap: a.gap, dmg: a.dmg });
+      Object.assign(Q, { maxInt: b.maxInt, int: b.maxInt, bombs: b.bombs, gap: b.gap, dmg: b.dmg });
+    }
     const mineX = W * (S.net === 'guest' ? .68 : .32);
     P.x = P.tx = mineX; Q.x = Q.tx = D.botX = W - mineX; P.y = P.ty = Q.y = Q.ty = H - 120;
   }
@@ -2238,19 +2352,19 @@ const Duel = (() => {
     D.rx = performance.now();
     switch (m.t) {
       case 'hello':
-        D.oppName = String(m.name || 'Rival').slice(0, 16); D.oppSkin = String(m.skin || 'centinela');
+        D.oppName = String(m.name || T('Rival')).slice(0, 16); D.oppSkin = String(m.skin || 'centinela');
         if (!D.ended || S.mode === 'duelend') break;
         if (D.host) {
           if (D.wait) break;
-          if (D.roomBet > 0) { D.wait = true; note(D.oppName + ' ha entrado. Esperando a que acepte la apuesta de ' + fmt(D.roomBet) + ' bits…'); }
+          if (D.roomBet > 0) { D.wait = true; note(T('{0} ha entrado. Esperando a que acepte la apuesta de {1} bits…', D.oppName, fmt(D.roomBet))); }
           else { D.bet = 0; go(); }
         } else {   /* al entrar en una sala, el anfitrión dice cuánto se apuesta */
           const b = betOf(m.bet);
-          if (b < 0) { closeNet(); note('Esa sala usa una apuesta que esta versión del juego no admite.'); }
-          else if (b > save.bits) { closeNet(); note('Esa sala apuesta ' + fmt(b) + ' bits por jugador y no tienes suficientes.'); }
+          if (b < 0) { closeNet(); note(T('Esa sala usa una apuesta que esta versión del juego no admite.')); }
+          else if (b > save.bits) { closeNet(); note(T('Esa sala apuesta {0} bits por jugador y no tienes suficientes.', fmt(b))); }
           else if (b > 0) {
-            D.askBet = b; $('askTitle').textContent = 'Sala con apuesta';
-            $('askText').textContent = 'La sala de ' + D.oppName + ' apuesta ' + fmt(b) + ' bits por jugador. El ganador se lleva ' + fmt(2 * b) + '. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.';
+            D.askBet = b; $('askTitle').textContent = T('Sala con apuesta');
+            $('askText').textContent = T('La sala de {0} apuesta {1} bits por jugador. El ganador se lleva {2}. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.', D.oppName, fmt(b), fmt(2 * b));
             show('ask', true);
           } else D.betOk = 0;
         }
@@ -2259,7 +2373,7 @@ const Duel = (() => {
         if (D.host && D.wait && D.ended) {
           D.wait = false;
           if (betOf(m.bet) === D.roomBet && D.roomBet <= save.bits) { D.bet = D.roomBet; go(); }
-          else { closeNet(); lobby(false); note('No se pudo acordar la apuesta. Crea la sala de nuevo.'); }
+          else { closeNet(); lobby(false); note(T('No se pudo acordar la apuesta. Crea la sala de nuevo.')); }
         }
         break;
       case 'start':
@@ -2267,8 +2381,8 @@ const Duel = (() => {
           const b = betOf(m.bet);
           if (b < 0 || b > D.betOk || b > save.bits) {
             const again = S.mode === 'duelend'; closeNet();
-            if (again) { $('duelEndNote').textContent = 'La apuesta no coincide con la acordada. Revancha cancelada.'; $('btnRematch').disabled = true; }
-            else { lobby(false); note('La apuesta no coincide con la acordada. Duelo cancelado.'); }
+            if (again) { $('duelEndNote').textContent = T('La apuesta no coincide con la acordada. Revancha cancelada.'); $('btnRematch').disabled = true; }
+            else { lobby(false); note(T('La apuesta no coincide con la acordada. Duelo cancelado.')); }
             break;
           }
           D.bet = b; begin(false, Number(m.h) || H);
@@ -2280,12 +2394,12 @@ const Duel = (() => {
       case 'bomb': if (S.net === 'host' && !D.ended && S.mode === 'play' && Q.bombs > 0 && Q.out <= 0) { Q.bombs--; shockwave(Q); } break;
       case 'w': if (S.net === 'guest' && !D.ended) apply(m); break;
       case 'end':
-        if (S.net === 'guest' && !D.ended) { Q.kills = Number(m.a) || 0; P.kills = Number(m.b) || 0; finish(P.kills > Q.kills ? 'win' : P.kills < Q.kills ? 'lose' : 'draw', ''); }
+        if (S.net === 'guest' && !D.ended) { Q.kills = Number(m.a) || 0; P.kills = Number(m.b) || 0; const w = Number(m.w) || 0; finish(w === 1 ? 'lose' : w === 2 ? 'win' : P.kills > Q.kills ? 'win' : P.kills < Q.kills ? 'lose' : 'draw', ''); }
         break;
       case 'again':
         D.oppAgain = true; D.oppAgainBet = Math.max(0, betOf(m.bet));
         if (D.wantAgain && D.host) { D.bet = Math.min(D.againBet, D.oppAgainBet); go(); }
-        else if (!D.wantAgain && S.mode === 'duelend') $('duelEndNote').textContent = D.oppName + ' quiere la revancha' + (D.bet > 0 ? (D.oppAgainBet ? ' apostando ' + fmt(D.oppAgainBet) + ' bits.' : ' sin apuesta.') : '.');
+        else if (!D.wantAgain && S.mode === 'duelend') $('duelEndNote').textContent = D.bet > 0 ? (D.oppAgainBet ? T('{0} quiere la revancha apostando {1} bits.', D.oppName, fmt(D.oppAgainBet)) : T('{0} quiere la revancha sin apuesta.', D.oppName)) : T('{0} quiere la revancha.', D.oppName);
         break;
     }
   }
@@ -2293,10 +2407,11 @@ const Duel = (() => {
     if (c !== D.conn) return;
     const waited = D.wait; D.conn = null; D.wait = false;
     if (D.askBet) { D.askBet = 0; show('ask', false); }
+    if (D.tour && D.ended) { const cb = D.tour.cb; D.tour = null; cb(true, T('El rival no se presentó.')); return; }   /* el rival del torneo se fue antes de empezar */
     if (!D.ended && S.kind === 'duel') dropped();
-    else if (S.mode === 'duelend') { $('duelEndNote').textContent = 'El rival ha salido.'; $('btnRematch').disabled = true; }
-    else if (D.host && D.peer && !$('roomBox').hidden) note(waited ? D.oppName + ' no aceptó la apuesta. La sala sigue abierta.' : 'El rival no llegó a entrar. La sala sigue abierta.');
-    else { lobby(false); note('Se cerró la conexión con el rival.'); }
+    else if (S.mode === 'duelend') { $('duelEndNote').textContent = T('El rival ha salido.'); $('btnRematch').disabled = true; }
+    else if (D.host && D.peer && !$('roomBox').hidden) note(waited ? T('{0} no aceptó la apuesta. La sala sigue abierta.', D.oppName) : T('El rival no llegó a entrar. La sala sigue abierta.'));
+    else { lobby(false); note(T('Se cerró la conexión con el rival.')); }
   }
 
   /* --- anfitrión (y duelo contra el bot) --- */
@@ -2306,12 +2421,19 @@ const Duel = (() => {
     D.roomBet = 0; D.bet = D.betOk = Math.max(0, betOf(bet));
     if (host) go();
   }
+  /* partido de torneo: contra un bot (sin conexión) o contra otro jugador por la conexión que abrió el torneo */
+  function beginTour(c, host, name, skin, tour) {
+    closeNet(); D.tour = tour; D.bet = D.betOk = 0; D.roomBet = 0; D.oppName = name; D.oppSkin = skin; D.ended = true; D.rx = performance.now();
+    if (!c) { begin(true); return; }
+    D.conn = c; D.host = host; D.bot = false;
+    if (host) go();
+  }
   /* el rival deja de responder en pleno duelo */
   function dropped() {
     closeNet();
-    if (D.off || navigator.onLine === false) finish('lose', 'Te quedaste sin conexión y el duelo se da por perdido.', 'forfeit');
-    else if (D.oppAway) finish('win', 'El rival abandonó el duelo.', 'left');
-    else finish('win', 'El rival se desconectó.', 'void');
+    if (D.off || navigator.onLine === false) finish('lose', T('Te quedaste sin conexión y el duelo se da por perdido.'), 'forfeit');
+    else if (D.oppAway) finish('win', T('El rival abandonó el duelo.'), 'left');
+    else finish('win', T('El rival se desconectó.'), 'void');
   }
   /* salir del juego en pleno duelo (minimizarlo o cerrarlo) cuenta como abandono */
   function vis(hidden) {
@@ -2319,7 +2441,7 @@ const Duel = (() => {
     if (hidden) { if (!D.hidAt) D.hidAt = Date.now(); send({ t: 'away' }); }
     else if (D.hidAt) {
       const gone = Date.now() - D.hidAt; D.hidAt = 0;
-      if (gone >= 5500) { closeNet(); finish('lose', 'Saliste del duelo y se da por perdido.', 'forfeit'); } else send({ t: 'back' });
+      if (gone >= 5500) { closeNet(); finish('lose', T('Saliste del duelo y se da por perdido.'), 'forfeit'); } else send({ t: 'back' });
     }
   }
   function offline() { if (!D.ended && !D.bot && S.kind === 'duel') D.off = true; }
@@ -2327,8 +2449,8 @@ const Duel = (() => {
   function answerBet(yes) {
     if (!D.askBet) return false;
     const b = D.askBet; D.askBet = 0; show('ask', false);
-    if (yes && b <= save.bits) { D.betOk = b; send({ t: 'betok', bet: b }); note('Apuesta aceptada. Empezando…'); }
-    else { closeNet(); note('No has aceptado la apuesta de la sala.'); }
+    if (yes && b <= save.bits) { D.betOk = b; send({ t: 'betok', bet: b }); note(T('Apuesta aceptada. Empezando…')); }
+    else { closeNet(); note(T('No has aceptado la apuesta de la sala.')); }
     return true;
   }
   function shipArr(pl) { return [r(pl.x), r(pl.y), r(pl.int), r(pl.out * 10), pl.shield ? 1 : 0, r(pl.rapid * 10), r(pl.spread * 10), r(pl.inv * 10), pl.bombs, pl.kills]; }
@@ -2351,14 +2473,18 @@ const Duel = (() => {
   }
   function hostTick(dt) {
     /* el tiempo del duelo va por reloj real; si el rival deja de responder unos segundos, se da por desconectado */
-    S.duelT = DUR - (performance.now() - D.t0) / 1000; S.diff = 3 + (1 - Math.max(0, S.duelT) / DUR) * 9;
+    S.duelT = D.dur - (performance.now() - D.t0) / 1000; S.diff = 3 + (1 - Math.max(0, S.duelT) / D.dur) * 9;
     if (!D.bot && performance.now() - D.rx > 6000) { dropped(); return; }
     if (D.bot) botTick(dt);
     moveShip(Q, dt);
     if (!D.bot) { D.snapT -= dt; if (D.snapT <= 0) { D.snapT = 1 / 12; send(snap()); } }
     if (S.duelT <= 0) {
-      S.duelT = 0; send({ t: 'end', a: P.kills, b: Q.kills });
-      finish(P.kills > Q.kills ? 'win' : P.kills < Q.kills ? 'lose' : 'draw', '');
+      S.duelT = 0;
+      let res = P.kills > Q.kills ? 'win' : P.kills < Q.kills ? 'lose' : 'draw';
+      /* en el torneo no hay empates: desempata la integridad que le queda a cada nave y, si también coincide, la suerte */
+      if (D.tour && res === 'draw') res = P.int !== Q.int ? (P.int > Q.int ? 'win' : 'lose') : (Math.random() < .5 ? 'win' : 'lose');
+      send({ t: 'end', a: P.kills, b: Q.kills, w: res === 'win' ? 1 : res === 'lose' ? 2 : 0 });
+      finish(res, '');
     }
   }
 
@@ -2423,13 +2549,18 @@ const Duel = (() => {
     if (D.ended) return;
     D.ended = true; S.mode = 'duelend'; S.boss = null;
     const real = !D.bot, won = result === 'win';
+    if (D.tour) {   /* partido de torneo: sin premios de duelo; el torneo recoge el resultado y sigue con el cuadro */
+      const cb = D.tour.cb; D.tour = null; closeNet(); show('hud', false);
+      if (won) { Sfx.win(); haptic('success'); } else haptic('error');
+      cb(won, msg); return;
+    }
     /* reparto de la apuesta: 'void' = el rival dejó de responder sin avisar, se devuelve */
     let betRow = '', betMsg = '';
     if (D.pot > 0) {
       const st = D.pot; D.pot = 0; save.bet = 0;
-      if (how === 'void' || result === 'draw') { save.bits += st; betRow = '0'; betMsg = 'Apuesta devuelta.'; }
-      else if (won) { save.bits += 2 * st; save.earned += st; betRow = '+' + fmt(st); betMsg = 'Ganas la apuesta: +' + fmt(st) + ' bits.'; }
-      else { betRow = '−' + fmt(st); betMsg = 'Pierdes la apuesta: −' + fmt(st) + ' bits.'; }
+      if (how === 'void' || result === 'draw') { save.bits += st; betRow = '0'; betMsg = T('Apuesta devuelta.'); }
+      else if (won) { save.bits += 2 * st; save.earned += st; betRow = '+' + fmt(st); betMsg = T('Ganas la apuesta: +{0} bits.', fmt(st)); }
+      else { betRow = '−' + fmt(st); betMsg = T('Pierdes la apuesta: −{0} bits.', fmt(st)); }
     }
     const prize = real ? (won ? 150 : result === 'draw' ? 60 : 25) : (won ? 40 : result === 'draw' ? 20 : 10);
     save.bits += prize; save.earned += prize;
@@ -2440,19 +2571,19 @@ const Duel = (() => {
         save.duelWins++;
         for (const rw of DUEL_REWARDS) if (rw.wins === save.duelWins) {
           if (rw.bits) { save.bits += rw.bits; save.earned += rw.bits; extra.push('+' + fmt(rw.bits) + ' bits'); }
-          else { const sk = SKINS.find(s => s.id === rw.skin); unlock(rw.skin); if (sk) extra.push('skin ' + sk.name); }
+          else { const sk = SKINS.find(s => s.id === rw.skin); unlock(rw.skin); if (sk) extra.push(T('skin {0}', T(sk.name))); }
         }
       }
     }
     persist(); if (real) Online.submit();
-    const t = $('duelTitle'); t.textContent = won ? 'Victoria' : result === 'lose' ? 'Derrota' : 'Empate'; t.className = result === 'lose' ? 'bad' : 'good';
-    $('duelMe').textContent = String(P.kills); $('duelOpp').textContent = String(Q.kills); $('duelOppName').textContent = 'Eliminados de ' + Q.name;
+    const t = $('duelTitle'); t.textContent = won ? T('Victoria') : result === 'lose' ? T('Derrota') : T('Empate'); t.className = result === 'lose' ? 'bad' : 'good';
+    $('duelMe').textContent = String(P.kills); $('duelOpp').textContent = String(Q.kills); $('duelOppName').textContent = T('Eliminados de {0}', Q.name);
     $('duelBits').textContent = '+' + fmt(prize);
     show('duelBetRow', !!betRow); $('duelBet').textContent = betRow;
     const again = D.bet > 0 && save.bits >= D.bet ? D.bet : 0;
-    $('btnRematch').textContent = 'Revancha' + (real && D.bet > 0 ? (again ? ' · ' + fmt(again) + ' bits' : ' sin apuesta') : '');
-    $('duelEndNote').textContent = (msg ? msg + ' ' : '') + (betMsg ? betMsg + ' ' : '') + (!real ? 'Duelo de práctica: no cuenta para el ranking ni para las recompensas.'
-      : won ? '+300 puntos de rango. Llevas ' + save.duelWins + (save.duelWins === 1 ? ' victoria.' : ' victorias.') + (extra.length ? ' Recompensa de duelo: ' + extra.join(', ') + '.' : '') : '');
+    $('btnRematch').textContent = real && D.bet > 0 ? (again ? T('Revancha · {0} bits', fmt(again)) : T('Revancha sin apuesta')) : T('Revancha');
+    $('duelEndNote').textContent = (msg ? msg + ' ' : '') + (betMsg ? betMsg + ' ' : '') + (!real ? T('Duelo de práctica: no cuenta para el ranking ni para las recompensas.')
+      : won ? T('+300 puntos de rango.') + ' ' + T(save.duelWins === 1 ? 'Llevas {0} victoria.' : 'Llevas {0} victorias.', save.duelWins) + (extra.length ? ' ' + T('Recompensa de duelo: {0}.', extra.join(', ')) : '') : '');
     $('btnRematch').disabled = real && !(D.conn && D.conn.open);
     if (won) { Sfx.win(); haptic('success'); } else haptic('error');
     show('hud', false); show('duelEnd', true);
@@ -2463,21 +2594,21 @@ const Duel = (() => {
     D.againBet = D.betOk = D.bet > 0 && save.bits >= D.bet ? D.bet : 0;
     D.wantAgain = true; send({ t: 'again', bet: D.againBet });
     if (D.oppAgain && D.host) { D.bet = Math.min(D.againBet, D.oppAgainBet); go(); }
-    else $('duelEndNote').textContent = 'Esperando a que ' + D.oppName + ' acepte la revancha…';
+    else $('duelEndNote').textContent = T('Esperando a que {0} acepte la revancha…', D.oppName);
   }
   function leave() { D.ended = true; closeNet(); lobby(false); D.bet = D.betOk = 0; }
   function cancelLobby() { if (D.ended && (D.peer || D.conn)) closeNet(); lobby(false); }
   function open() {
     $('duelWins').textContent = fmt(save.duelWins); lobby(false);
     const on = canOnline(); $('btnCreate').disabled = !on; $('btnJoin').disabled = !on; $('codeInput').disabled = !on;
-    note(D.news || (on ? '' : 'El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.'));
-    D.news = ''; renderBets();
+    note(D.news || (on ? '' : T('El duelo en línea funciona en la versión alojada del juego (por ejemplo, dentro de Telegram). Aquí puedes practicar contra el bot.')));
+    D.news = ''; renderBets(); $('btnTourS').textContent = Tour.label();
     Lobby.render();
     const box = $('duelRewards'); box.textContent = '';
     for (const rw of DUEL_REWARDS) {
       const got = save.duelWins >= rw.wins, sk = rw.skin && SKINS.find(s => s.id === rw.skin);
-      const row = el('div', 'rrow' + (got ? ' me' : '')), nm = el('span', 'nm', rw.bits ? fmt(rw.bits) + ' bits' : 'Skin ' + (sk ? sk.name : ''));
-      row.append(el('b', null, String(rw.wins)), nm, el('span', null, got ? 'Conseguida' : 'Faltan ' + (rw.wins - save.duelWins)));
+      const row = el('div', 'rrow' + (got ? ' me' : '')), nm = el('span', 'nm', rw.bits ? fmt(rw.bits) + ' bits' : T('Skin {0}', sk ? T(sk.name) : ''));
+      row.append(el('b', null, String(rw.wins)), nm, el('span', null, got ? T('Conseguida') : T('Faltan {0}', rw.wins - save.duelWins)));
       box.append(row);
     }
   }
@@ -2485,19 +2616,19 @@ const Duel = (() => {
     if (D.sel > save.bits) D.sel = 0;
     const box = $('betRow'); box.textContent = '';
     for (const b of BETS) {
-      const t = el('button', 'tab' + (b === D.sel ? ' on' : ''), b ? fmt(b) : 'Sin apuesta'); t.disabled = b > save.bits;
+      const t = el('button', 'tab' + (b === D.sel ? ' on' : ''), b ? fmt(b) : T('Sin apuesta')); t.disabled = b > save.bits;
       t.addEventListener('click', () => { Sfx.ui(); D.sel = b; renderBets(); Lobby.render(); }); box.append(t);
     }
     $('betInfo').textContent = D.sel
-      ? 'Cada jugador pone ' + fmt(D.sel) + ' bits y el ganador se lleva ' + fmt(2 * D.sel) + '. Con empate se devuelven. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.'
-      : 'Duelo amistoso. Elige una cantidad si quieres apostar: tienes ' + fmt(save.bits) + ' bits.';
+      ? T('Cada jugador pone {0} bits y el ganador se lleva {1}. Con empate se devuelven. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.', fmt(D.sel), fmt(2 * D.sel))
+      : T('Duelo amistoso. Elige una cantidad si quieres apostar: tienes {0} bits.', fmt(save.bits));
   }
   function share() {
     const url = CONFIG.telegram.shareUrl + (CONFIG.telegram.shareUrl.includes('?') ? '&' : '?') + 'startapp=duel_' + D.code;
-    try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent('Te reto a un duelo en Centinela. Sala ' + D.code + (D.roomBet ? ' · apuesta de ' + fmt(D.roomBet) + ' bits' : ''))); } catch (e) {}
+    try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(D.roomBet ? T('Te reto a un duelo en Centinela. Sala {0} · apuesta de {1} bits', D.code, fmt(D.roomBet)) : T('Te reto a un duelo en Centinela. Sala {0}', D.code))); } catch (e) {}
   }
   return { create, join, begin, hostTick, guestTick, sendBomb, rematch, leave, cancelLobby, open, share, adopt, onMsg, onClose,
-    stake, betOf, answerBet, vis, offline, setNews: t => { D.news = t; }, hasNews: () => !!D.news };
+    stake, betOf, answerBet, vis, offline, setNews: t => { D.news = t; }, hasNews: () => !!D.news, beginTour, inMatch: () => !D.ended };
 })();
 
 /* ---------------- Sala de jugadores conectados ----------------
@@ -2509,9 +2640,9 @@ const Lobby = (() => {
   const L = { me: null, hub: null, link: null, members: new Map(), list: [], sig: '', beat: 0, since: 0, out: null, inc: null, cool: {}, joinT: 0, castT: 0 };
   const can = () => typeof window.Peer === 'function';
   const note = t => { $('duelNote').textContent = t; };
-  const status = () => (S.mode === 'menu' && !document.hidden && !L.out && !L.inc && $('intro').hidden && $('ask').hidden) ? 'libre' : 'ocupado';
+  const status = () => (S.mode === 'menu' && !document.hidden && !L.out && !L.inc && $('intro').hidden && $('ask').hidden && $('langBox').hidden && !Tour.busy()) ? 'libre' : 'ocupado';
   const card = () => ({ id: L.me ? L.me.id : '', n: myName(), l: save.level, s: status() });
-  const clean = x => ({ id: String((x && x.id) || '').slice(0, 64), n: String((x && x.n) || 'Agente').slice(0, 16), l: clamp(Number(x && x.l) || 1, 1, MAXLV), s: x && x.s === 'libre' ? 'libre' : 'ocupado' });
+  const clean = x => ({ id: String((x && x.id) || '').slice(0, 64), n: String((x && x.n) || T('Agente')).slice(0, 16), l: clamp(Number(x && x.l) || 1, 1, MAXLV), s: x && x.s === 'libre' ? 'libre' : 'ocupado' });
   const later = fn => { clearTimeout(L.joinT); L.joinT = setTimeout(fn, 600 + Math.random() * 2200); };
   const closeSoon = c => setTimeout(() => { try { c.close(); } catch (e) {} }, 400);
 
@@ -2559,32 +2690,32 @@ const Lobby = (() => {
     } else if (L.link && L.link.open) {
       if (sig !== L.sig || ++L.beat % 7 === 0) { L.sig = sig; try { L.link.send(Object.assign({ t: 'me' }, c)); } catch (e) {} }
     } else if (!L.hub && now - L.since > 9000) join();
-    if (L.out && now - L.out.t > 25000) endOut(L.out.n + ' no respondió.');
+    if (L.out && now - L.out.t > 25000) endOut(T('{0} no respondió.', L.out.n));
     if (L.inc && now - L.inc.t > 20000) answer(false);
   }
   /* --- retos --- */
   function challenge(id, name) {
     if (L.out || L.inc || !L.me || S.mode !== 'menu') return;
     const c = L.me.connect(id, { reliable: true }), bet = Duel.stake();
-    L.out = { c, n: name, t: Date.now(), bet }; note('Esperando la respuesta de ' + name + '…' + (bet ? ' Apuesta: ' + fmt(bet) + ' bits.' : '')); render();
+    L.out = { c, n: name, t: Date.now(), bet }; note(T('Esperando la respuesta de {0}…', name) + (bet ? ' ' + T('Apuesta: {0} bits.', fmt(bet)) : '')); render();
     c.on('open', () => { try { c.send({ t: 'invite', n: myName(), skin: save.skin, bet }); } catch (e) {} });
     c.on('data', m => {
       if (c._duel) { Duel.onMsg(m); return; }
       if (!L.out || L.out.c !== c || !m) return;
       if (m.t === 'ok') {
-        if ((Number(m.bet) || 0) !== bet) endOut(name + ' tiene una versión antigua del juego y no puede apostar.');
-        else if (bet > save.bits) endOut('Ya no tienes bits suficientes para esa apuesta.');
+        if ((Number(m.bet) || 0) !== bet) endOut(T('{0} tiene una versión antigua del juego y no puede apostar.', name));
+        else if (bet > save.bits) endOut(T('Ya no tienes bits suficientes para esa apuesta.'));
         else { L.out = null; c._duel = true; Duel.adopt(c, true, name, String(m.skin || 'centinela'), bet); }
       }
-      else if (m.t === 'poor') endOut(name + ' no tiene bits suficientes para esa apuesta.');
-      else if (m.t === 'no') endOut(name + ' ha rechazado el duelo.');
-      else if (m.t === 'busy') endOut(name + ' está ocupado ahora.');
+      else if (m.t === 'poor') endOut(T('{0} no tiene bits suficientes para esa apuesta.', name));
+      else if (m.t === 'no') endOut(T('{0} ha rechazado el duelo.', name));
+      else if (m.t === 'busy') endOut(T('{0} está ocupado ahora.', name));
     });
-    const gone = () => { if (c._duel) Duel.onClose(c); else if (L.out && L.out.c === c) endOut(name + ' se desconectó.'); };
+    const gone = () => { if (c._duel) Duel.onClose(c); else if (L.out && L.out.c === c) endOut(T('{0} se desconectó.', name)); };
     c.on('close', gone); c.on('error', gone);
   }
   function endOut(text) { const o = L.out; L.out = null; if (o) closeSoon(o.c); note(text || ''); render(); }
-  function cancel() { if (!L.out) return; try { L.out.c.send({ t: 'cancel' }); } catch (e) {} endOut('Reto cancelado.'); }
+  function cancel() { if (!L.out) return; try { L.out.c.send({ t: 'cancel' }); } catch (e) {} endOut(T('Reto cancelado.')); }
   function incoming(c) {
     c.on('data', m => {
       if (c._duel) { Duel.onMsg(m); return; }
@@ -2593,11 +2724,11 @@ const Lobby = (() => {
         const bet = Duel.betOf(m.bet);
         if (L.inc || L.out || S.mode !== 'menu' || document.hidden || !$('intro').hidden || !$('ask').hidden || bet < 0 || (L.cool[c.peer] || 0) > Date.now()) { try { c.send({ t: 'busy' }); } catch (e) {} closeSoon(c); return; }
         if (bet > save.bits) { try { c.send({ t: 'poor' }); } catch (e) {} closeSoon(c); return; }
-        L.inc = { c, n: String(m.n || 'Agente').slice(0, 16), skin: String(m.skin || 'centinela'), t: Date.now(), bet };
-        $('askTitle').textContent = bet ? 'Reto con apuesta' : 'Reto de duelo';
-        $('askText').textContent = L.inc.n + (bet
-          ? ' te reta a un duelo apostando ' + fmt(bet) + ' bits cada uno. El ganador se lleva ' + fmt(2 * bet) + '. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.'
-          : ' te reta a un duelo. Los dos jugáis en la misma pantalla durante 90 segundos.');
+        L.inc = { c, n: String(m.n || T('Agente')).slice(0, 16), skin: String(m.skin || 'centinela'), t: Date.now(), bet };
+        $('askTitle').textContent = bet ? T('Reto con apuesta') : T('Reto de duelo');
+        $('askText').textContent = bet
+          ? T('{0} te reta a un duelo apostando {1} bits cada uno. El ganador se lleva {2}. Si sales del duelo o pierdes la conexión, pierdes tu apuesta.', L.inc.n, fmt(bet), fmt(2 * bet))
+          : T('{0} te reta a un duelo. Los dos jugáis en la misma pantalla durante 90 segundos.', L.inc.n);
         show('ask', true); Sfx.init(); Sfx.alarm(); haptic('success');
       } else if (m.t === 'cancel' && L.inc && L.inc.c === c) { L.inc = null; show('ask', false); }
     });
@@ -2613,17 +2744,17 @@ const Lobby = (() => {
   }
   function render() {
     const box = $('lobbyList'); box.textContent = '';
-    if (!can()) { box.append(el('p', 'tag', 'La lista de jugadores conectados funciona en la versión alojada del juego.')); return; }
+    if (!can()) { box.append(el('p', 'tag', T('La lista de jugadores conectados funciona en la versión alojada del juego.'))); return; }
     if (L.out) {
-      const row = el('div', 'rrow me'), b = el('button', 'buy own', 'Cancelar'); b.addEventListener('click', cancel);
-      row.append(el('span', null, '…'), el('span', 'nm', 'Esperando a ' + L.out.n), b); box.append(row);
+      const row = el('div', 'rrow me'), b = el('button', 'buy own', T('Cancelar')); b.addEventListener('click', cancel);
+      row.append(el('span', null, '…'), el('span', 'nm', T('Esperando a {0}', L.out.n)), b); box.append(row);
     }
-    if (!L.list.length) { box.append(el('p', 'tag', (L.hub && L.hub.open) || (L.link && L.link.open) ? 'No hay nadie más conectado ahora mismo.' : 'Conectando con la sala…')); return; }
+    if (!L.list.length) { box.append(el('p', 'tag', (L.hub && L.hub.open) || (L.link && L.link.open) ? T('No hay nadie más conectado ahora mismo.') : T('Conectando con la sala…'))); return; }
     for (const p of L.list) {
-      const free = p.s === 'libre', row = el('div', 'rrow'), nm = el('span', 'nm', p.n); nm.append(el('small', null, 'Nivel ' + p.l));
+      const free = p.s === 'libre', row = el('div', 'rrow'), nm = el('span', 'nm', p.n); nm.append(el('small', null, T('Nivel {0}', p.l)));
       let act;
-      if (free) { const bet = Duel.stake(); act = el('button', 'buy own', 'Retar' + (bet ? ' · ' + fmt(bet) : '')); act.disabled = !!L.out; act.addEventListener('click', () => { Sfx.ui(); challenge(p.id, p.n); }); }
-      else act = el('span', null, 'Ocupado');
+      if (free) { const bet = Duel.stake(); act = el('button', 'buy own', T('Retar') + (bet ? ' · ' + fmt(bet) : '')); act.disabled = !!L.out; act.addEventListener('click', () => { Sfx.ui(); challenge(p.id, p.n); }); }
+      else act = el('span', null, T('Ocupado'));
       row.append(el('span', free ? 'dot on' : 'dot'), nm, act); box.append(row);
     }
   }
@@ -2637,11 +2768,395 @@ const Lobby = (() => {
       if (!e || e.type !== 'peer-unavailable') return;
       const lobbyMiss = String(e.message || '').includes(ID) || (!L.out && !(L.link && L.link.open));
       if (lobbyMiss) { L.link = null; claim(); }          /* no hay sala abierta: la abro yo */
-      else if (L.out) endOut(L.out.n + ' ya no está conectado.');
+      else if (L.out) endOut(T('{0} ya no está conectado.', L.out.n));
     });
     setInterval(tick, 2000);
   }
   return { start, render, answer };
+})();
+
+/* ---------------- Torneo de fin de semana ----------------
+   Mesas de 4 jugadores en directo: dos semifinales, final y tercer puesto. Cada jugador usa su nave de torneo,
+   que tiene mejoras propias. Sin servidor: el primer jugador que entra hace de organizador (reparte las mesas y
+   apunta los resultados) y los partidos son duelos directos entre los dos jugadores. Los huecos se rellenan con bots.
+   Cada puesto suma puntos a la clasificación del fin de semana, que se guarda en la base de datos. */
+const TUPS = [
+  { id: 'rate',  name: 'Cadencia', desc: 'Dispara más rápido',                 max: 5, cost: [300, 600, 1000, 1600, 2400] },
+  { id: 'power', name: 'Potencia', desc: 'Más daño por disparo',               max: 5, cost: [300, 600, 1000, 1600, 2400] },
+  { id: 'armor', name: 'Blindaje', desc: '+15 de integridad máxima por nivel', max: 5, cost: [250, 500, 900, 1400, 2000] },
+  { id: 'bomb',  name: 'Reserva',  desc: 'Empiezas con una cuarentena más',    max: 2, cost: [800, 2000] }
+];
+/* características de una nave de torneo a partir de sus mejoras (lo que llega de otro jugador se recorta a lo permitido) */
+function tourStats(up) {
+  const c = (v, m) => clamp(Math.floor(Number(v) || 0), 0, m), u = { rate: c(up && up.rate, 5), power: c(up && up.power, 5), armor: c(up && up.armor, 5), bomb: c(up && up.bomb, 2) };
+  return { up: u, gap: .15 * (1 - .06 * u.rate), dmg: 1.3 * (1 + .2 * u.power), maxInt: 100 + 15 * u.armor, bombs: 1 + u.bomb, lvl: 1 + u.rate + u.power + u.armor + u.bomb };
+}
+/* plazo del torneo, en hora universal para que sea el mismo para todos los jugadores */
+function tourWindow(nowMs) {
+  const c = CONFIG.tournament, HR = 3600000, DAY = 86400000, now = nowMs == null ? Date.now() : nowMs, d = new Date(now);
+  let start = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - ((d.getUTCDay() - c.startDay + 7) % 7) * DAY + c.startHour * HR;
+  if (start > now) start -= 7 * DAY;
+  const end = start + (((c.endDay - c.startDay + 7) % 7) * 24 + c.endHour - c.startHour) * HR, iso = t => new Date(t).toISOString().slice(0, 10);
+  const open = !!c.always || now < end;
+  return { open, id: iso(start), prevId: iso(start - 7 * DAY), start, end, next: start + 7 * DAY };
+}
+const Tour = (() => {
+  const TC = CONFIG.tournament, HUB = CONFIG.online.duelPrefix + 'torneo';
+  const dbBase = String(CONFIG.online.databaseUrl || '').replace(/\/+$/, ''), dbOn = /^https:\/\//.test(dbBase) && !CONFIG.online.apiUrl;
+  const X = { state: 'idle', tab: 'play', me: null, link: null, hub: null, hb: null, local: false, table: null, wait: { n: 1, left: -1 }, note: '', news: '',
+    playing: '', expect: null, inc: [], count: 0, startT: 0, woT: 0, joinT: 0, hubGone: false, confirm: false, result: null, rank: null };
+  const can = () => typeof window.Peer === 'function';
+  const mine = () => ({ n: myName(), skin: save.skin, up: tourStats(save.tup).up });
+  const later = fn => { clearTimeout(X.joinT); X.joinT = setTimeout(fn, 500 + Math.random() * 1800); };
+  const tsend = (c, m) => { try { if (c && c.open) c.send(m); } catch (e) {} };
+  const when = ms => new Date(ms).toLocaleString(LOCALES[LANG], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  const BOTS = ['Bot Alfa', 'Bot Beta', 'Bot Gamma'];
+
+  /* ===== organizador: sala de espera, mesas y resultados ===== */
+  function hubDeliver(pl, msg) { if (pl.bot || pl.gone) return; if (pl.conn) tsend(pl.conn, msg); else onHub(msg); }
+  function hubSince() { const hb = X.hb; if (hb.wait.length < 2) hb.since = 0; else if (!hb.since) hb.since = Date.now(); }
+  function hubWaitCast() {
+    const hb = X.hb; if (!hb) return;
+    const left = hb.since ? Math.max(0, Math.ceil((hb.since + TC.waitSeconds * 1000 - Date.now()) / 1000)) : -1;
+    for (const pl of hb.wait.slice()) hubDeliver(pl, { t: 'wait', n: hb.wait.length, left });
+  }
+  function hubAdd(pl) { const hb = X.hb; if (!hb) return; hb.wait.push(pl); hubSince(); hubWaitCast(); }
+  function hubDrop(conn) {
+    const hb = X.hb; if (!hb) return;
+    const i = hb.wait.findIndex(p => p.conn === conn);
+    if (i >= 0) { hb.wait.splice(i, 1); hubSince(); hubWaitCast(); }
+    for (const id in hb.tables) { const tb = hb.tables[id]; for (const s of tb.slots) if (s.conn === conn) { s.gone = true; hubCheckGone(tb); } }
+  }
+  function hubForm(players) {
+    const hb = X.hb, id = Math.random().toString(36).slice(2, 8), slots = players.slice();
+    let k = 0; while (slots.length < 4) slots.push({ bot: true, n: BOTS[k++], skin: pick(SKINS).id, up: { rate: 2, power: 2, armor: 2, bomb: 0 } });
+    for (let i = slots.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0, t = slots[i]; slots[i] = slots[j]; slots[j] = t; }
+    const tb = hb.tables[id] = { id, slots, humans: players.length, res: {}, pairs: { s1: [0, 1], s2: [2, 3] }, dl: {} };
+    const pub = slots.map(s => ({ n: s.n, skin: s.skin, bot: !!s.bot, pid: s.pid || '', up: s.up }));
+    slots.forEach((s, i) => hubDeliver(s, { t: 'table', id, humans: tb.humans, slots: pub, you: i }));
+    hubRound(tb, ['s1', 's2']);
+  }
+  function hubRound(tb, ms) {
+    for (const m of ms) {
+      const a = tb.pairs[m][0], b = tb.pairs[m][1];
+      tb.dl[m] = Date.now() + (TC.matchSeconds + 55) * 1000;
+      if (tb.slots[a].bot && tb.slots[b].bot) setTimeout(() => hubResult(tb.id, m, Math.random() < .5 ? a : b), 1500);   /* bot contra bot: se decide a suertes */
+    }
+    hubCheckGone(tb);
+  }
+  /* quien se fue pierde los partidos que le queden contra un bot o contra otro ausente */
+  function hubCheckGone(tb) {
+    for (const m in tb.pairs) if (tb.res[m] == null) {
+      const a = tb.pairs[m][0], b = tb.pairs[m][1], A = tb.slots[a], B = tb.slots[b];
+      if (A.gone && (B.bot || B.gone)) hubResult(tb.id, m, b); else if (B.gone && A.bot) hubResult(tb.id, m, a);
+    }
+  }
+  function hubResult(id, m, w) {
+    const hb = X.hb, tb = hb && hb.tables[id]; if (!tb || !tb.pairs[m] || tb.res[m] != null) return;
+    if (w !== tb.pairs[m][0] && w !== tb.pairs[m][1]) return;
+    tb.res[m] = w;
+    const all = msg => tb.slots.forEach(s => hubDeliver(s, msg)), loser = k => (tb.pairs[k][0] === tb.res[k] ? tb.pairs[k][1] : tb.pairs[k][0]);
+    all({ t: 'res', id, m, w });
+    if (!tb.pairs.f && tb.res.s1 != null && tb.res.s2 != null) {
+      tb.pairs.f = [tb.res.s1, tb.res.s2]; tb.pairs.t = [loser('s1'), loser('s2')];
+      all({ t: 'round', id, f: tb.pairs.f, th: tb.pairs.t }); hubRound(tb, ['f', 't']);
+    } else if (tb.pairs.f && tb.res.f != null && tb.res.t != null) {
+      delete hb.tables[id];
+      all({ t: 'done', id, places: [tb.res.f, loser('f'), tb.res.t, loser('t')] });
+    }
+  }
+  function hubTick() {
+    const hb = X.hb; if (!hb) return; const now = Date.now();
+    if (!X.local) {
+      if (hb.wait.length >= 4) hubForm(hb.wait.splice(0, 4));
+      else if (hb.wait.length >= 2 && hb.since && now - hb.since >= TC.waitSeconds * 1000) hubForm(hb.wait.splice(0));
+      if (X.hb) { hubSince(); hubWaitCast(); }
+    }
+    for (const id in hb.tables) {   /* un partido que no da resultado a tiempo se decide: gana quien siga conectado */
+      const tb = hb.tables[id];
+      for (const m in tb.pairs) if (tb.res[m] == null && now > tb.dl[m]) { const a = tb.pairs[m][0], b = tb.pairs[m][1], A = tb.slots[a], B = tb.slots[b]; hubResult(id, m, A.gone && !B.gone ? b : B.gone && !A.gone ? a : Math.random() < .5 ? a : b); }
+    }
+  }
+  function hubConn(c) {
+    c.on('data', m => {
+      const hb = X.hb; if (!m || !hb) return;
+      if (m.t === 'join') { if (!hb.wait.some(p => p.conn === c)) hubAdd({ conn: c, n: cleanName(m.n) || T('Agente'), skin: String(m.skin || 'centinela'), pid: String(m.pid || c.peer), up: tourStats(m.up).up }); }
+      else if (m.t === 'res') { const tb = hb.tables[m.id], si = tb ? tb.slots.findIndex(s => s.conn === c) : -1; if (tb && tb.pairs[m.m] && tb.pairs[m.m].includes(si)) hubResult(String(m.id), String(m.m), Number(m.w)); }
+    });
+    const gone = () => hubDrop(c); c.on('close', gone); c.on('error', gone);
+  }
+
+  /* ===== jugador ===== */
+  function netOff() {
+    clearTimeout(X.joinT); clearTimeout(X.startT); clearTimeout(X.woT);
+    const a = X.link, b = X.me, h = X.hub; X.link = X.me = X.hub = null; X.hb = null; X.local = false; X.inc = []; X.expect = null; X.playing = ''; X.hubGone = false;
+    try { a && a.close(); } catch (e) {} try { b && b.destroy(); } catch (e) {} try { h && h.destroy(); } catch (e) {}
+  }
+  function enter() {
+    if ((X.state !== 'idle' && X.state !== 'done') || !can()) return;
+    if (!tourWindow().open) { X.note = T('El torneo está cerrado ahora.'); render(); return; }
+    if (save.bits < TC.fee) { X.note = T('Te faltan {0} bits.', fmt(TC.fee - save.bits)); render(); return; }
+    X.note = ''; X.result = null; X.table = null; X.wait = { n: 1, left: -1 };
+    if (X.state === 'done' && !X.local && X.hb) { X.state = 'wait'; hubAdd(Object.assign({ conn: null, pid: X.me ? X.me.id : '' }, mine())); render(); return; }   /* sigo de organizador */
+    if (X.state === 'done' && !X.local && X.link && X.link.open) { X.state = 'wait'; tsend(X.link, Object.assign({ t: 'join', pid: X.me.id }, mine())); render(); return; }
+    netOff(); X.state = 'wait';
+    const p = X.me = new window.Peer();
+    p.on('open', joinHub);
+    p.on('connection', matchConn);
+    p.on('disconnected', () => { try { p.reconnect(); } catch (e) {} });
+    p.on('error', e => { if (p === X.me && e && e.type === 'peer-unavailable' && X.state === 'wait' && !X.hub && !(X.link && X.link.open)) { X.link = null; claimHub(); } });
+    render();
+  }
+  function joinHub() {
+    if (X.state !== 'wait' || X.hub || !X.me || X.me.destroyed) return;
+    const c = X.link = X.me.connect(HUB, { reliable: true });
+    c.on('open', () => tsend(c, Object.assign({ t: 'join', pid: X.me.id }, mine())));
+    c.on('data', onHub);
+    const lost = () => { if (X.link === c) { X.link = null; hubLost(); } };
+    c.on('close', lost); c.on('error', lost);
+  }
+  function claimHub() {   /* no hay organizador: lo soy yo */
+    if (X.hub || X.state !== 'wait' || !X.me) return;
+    const h = new window.Peer(HUB); let ok = false;
+    h.on('open', () => {
+      if (X.state !== 'wait' || X.hub) { try { h.destroy(); } catch (e) {} return; }
+      ok = true; X.hub = h; X.hb = { wait: [], since: 0, tables: {} };
+      hubAdd(Object.assign({ conn: null, pid: X.me.id }, mine()));
+    });
+    h.on('connection', hubConn);
+    h.on('disconnected', () => { try { h.reconnect(); } catch (e) {} });
+    h.on('error', () => { if (!ok) { try { h.destroy(); } catch (e) {} later(joinHub); } });
+  }
+  function hubLost() {
+    if (X.state === 'wait') { X.wait = { n: 1, left: -1 }; render(); later(joinHub); }
+    else if (X.state === 'table') { X.hubGone = true; if (!Duel.inMatch()) cancelTable(); }
+  }
+  function cancelTable() {
+    const tb = X.table; if (tb && tb.paid) { save.bits += tb.paid; save.tfee = 0; persist(); }
+    netOff(); X.table = null; X.state = 'idle'; X.note = T('El organizador de la mesa se desconectó. Se devuelve la inscripción.'); showTour();
+  }
+  function onHub(m) {
+    if (!m) return;
+    if (m.t === 'wait') { if (X.state === 'wait') { const n = Number(m.n) || 1, ch = n !== X.wait.n; X.wait = { n, left: Number(m.left) }; if (ch) render(); else status(); } return; }
+    if (m.t === 'table') {
+      if (X.state !== 'wait') return;
+      const slots = (Array.isArray(m.slots) ? m.slots : []).slice(0, 4).map(s => ({ n: cleanName(s && s.n) || T('Agente'), skin: String((s && s.skin) || 'centinela'), bot: !!(s && s.bot), pid: String((s && s.pid) || ''), up: tourStats(s && s.up).up }));
+      if (slots.length !== 4) return;
+      const tb = X.table = { id: String(m.id), slots, you: clamp(Number(m.you) | 0, 0, 3), humans: clamp(Number(m.humans) | 0, 1, 4), res: {}, pairs: { s1: [0, 1], s2: [2, 3] }, places: null, paid: 0 };
+      if (tb.humans >= 2) { tb.paid = Math.min(TC.fee, save.bits); save.bits -= tb.paid; save.tfee = tb.paid; persist(); }   /* la inscripción se aparta al formarse la mesa */
+      X.state = 'table'; X.note = ''; X.confirm = false; Sfx.init(); Sfx.alarm(); haptic('success'); render(); queueMatch(); return;
+    }
+    const tb = X.table; if (X.state !== 'table' || !tb || m.id !== tb.id) return;
+    if (m.t === 'res') { if (tb.pairs[m.m] && tb.res[m.m] == null) { tb.res[m.m] = Number(m.w); render(); } }
+    else if (m.t === 'round') { if (!tb.pairs.f && Array.isArray(m.f) && Array.isArray(m.th)) { tb.pairs.f = [m.f[0] | 0, m.f[1] | 0]; tb.pairs.t = [m.th[0] | 0, m.th[1] | 0]; render(); queueMatch(); } }
+    else if (m.t === 'done') { tb.places = (Array.isArray(m.places) ? m.places : []).map(Number); settle(); }
+  }
+  function myMatch() { const tb = X.table; if (!tb) return ''; for (const m of ['f', 't', 's1', 's2']) if (tb.pairs[m] && tb.res[m] == null && tb.pairs[m].includes(tb.you)) return m; return ''; }
+  function queueMatch() {
+    clearTimeout(X.startT); X.count = Date.now() + 3200;
+    X.startT = setTimeout(function go() {
+      if (X.state !== 'table' || !X.table) return;
+      if (Duel.inMatch() || X.playing) { X.startT = setTimeout(go, 500); return; }
+      const m = myMatch(); if (m) startMatch(m);
+    }, 3200);
+    status();
+  }
+  const LABEL = { s1: 'TORNEO · SEMIFINAL', s2: 'TORNEO · SEMIFINAL', f: 'TORNEO · FINAL', t: 'TORNEO · TERCER PUESTO' };
+  function tryAccept(c) {
+    const e = X.expect, d = c._tm;
+    if (!e || !d || c._duel || !X.table || d.id !== X.table.id || d.m !== e.m || c.peer !== e.from) return;
+    X.expect = null; c._duel = true; tsend(c, { t: 'tm', id: X.table.id, m: e.m }); Duel.beginTour(c, false, e.n, e.skin, e.tour);
+  }
+  function matchConn(c) {   /* conexión entrante: el rival de mi partido */
+    X.inc.push(c);
+    c.on('data', d => { if (c._duel) { Duel.onMsg(d); return; } if (d && d.t === 'tm') { c._tm = d; tryAccept(c); } });
+    const gone = () => { X.inc = X.inc.filter(x => x !== c); if (c._duel) Duel.onClose(c); }; c.on('close', gone); c.on('error', gone);
+  }
+  function startMatch(m) {
+    const tb = X.table, pr = tb.pairs[m], oi = pr[0] === tb.you ? pr[1] : pr[0], opp = tb.slots[oi];
+    X.playing = m; X.note = '';
+    const tour = { me: tourStats(tb.slots[tb.you].up), opp: tourStats(opp.up), label: T(LABEL[m]), secs: TC.matchSeconds, cb: (won, msg) => matchEnd(m, won ? tb.you : oi, msg) };
+    if (opp.bot) { Duel.beginTour(null, true, opp.n, opp.skin, tour); return; }
+    if (tb.you < oi) {   /* el de menor posición llama y hace de anfitrión del duelo */
+      const c = X.me.connect(opp.pid, { reliable: true }), hello = () => { if (!c._duel && X.playing === m) { tsend(c, { t: 'tm', id: tb.id, m }); setTimeout(hello, 1000); } };
+      c.on('open', hello);
+      c.on('data', d => { if (c._duel) { Duel.onMsg(d); return; } if (d && d.t === 'tm' && d.id === tb.id && d.m === m && X.playing === m) { c._duel = true; Duel.beginTour(c, true, opp.n, opp.skin, tour); } });
+      const gone = () => { if (c._duel) Duel.onClose(c); }; c.on('close', gone); c.on('error', gone);
+    } else { X.expect = { m, from: opp.pid, tour, n: opp.n, skin: opp.skin }; for (const c of X.inc.slice()) tryAccept(c); }
+    /* si el rival no aparece en 20 segundos, se gana por incomparecencia */
+    clearTimeout(X.woT); X.woT = setTimeout(() => { if (X.playing === m && !Duel.inMatch()) matchEnd(m, tb.you, T('El rival no se presentó.')); }, 20000);
+    status();
+  }
+  function matchEnd(m, w, msg) {
+    clearTimeout(X.woT); X.playing = ''; X.expect = null;
+    const tb = X.table; if (!tb || X.state !== 'table') { showTour(); return; }   /* la mesa ya se cerró mientras jugaba */
+    if (tb.res[m] == null) tb.res[m] = w;
+    X.note = (msg ? msg + ' ' : '') + (w === tb.you ? T('Has ganado el partido.') : T('Has perdido el partido.'));
+    if (X.hb) hubResult(tb.id, m, w); else tsend(X.link, { t: 'res', id: tb.id, m, w });
+    if (X.state === 'table' && X.hubGone) cancelTable(); else showTour();
+  }
+  function settle() {
+    const tb = X.table, place = tb.places.indexOf(tb.you), k = tb.humans >= 2 ? tb.humans / 4 : 0, w = tourWindow(), top = place >= 0 && place < 3;
+    const bits = top ? Math.round(TC.tablePrizes[place] * k / 10) * 10 : 0, pts = top && k > 0 && w.open ? TC.points[place] : 0;
+    save.bits += bits; save.earned += bits; save.tfee = 0;
+    if (k > 0) { save.tplay++; if (place === 0) save.twins++; }
+    if (pts) { if (save.tpts.id !== w.id) save.tpts = { id: w.id, p: 0 }; save.tpts.p += pts; }
+    persist(); if (pts) pushPoints();
+    X.result = { place, bits, pts, practice: k === 0 }; X.state = 'done'; X.note = ''; X.confirm = false; X.rank = null;
+    if (X.local) { X.hb = null; }
+    if (place === 0) { Sfx.win(); haptic('success'); }
+    if (!Duel.inMatch()) showTour();
+  }
+  function practice() {   /* mesa de práctica contra tres bots: sin inscripción, premios ni puntos */
+    if (X.state !== 'idle' && X.state !== 'done') return;
+    netOff(); X.note = ''; X.result = null; X.local = true; X.hb = { wait: [], since: 0, tables: {} }; X.state = 'wait';
+    hubForm([Object.assign({ conn: null, pid: '' }, mine())]);
+  }
+  function back() {
+    if (X.state === 'table') {
+      if (!X.confirm) { X.confirm = true; X.note = T('Si sales ahora pierdes la mesa y la inscripción. Pulsa otra vez para salir.'); render(); return; }
+      save.tfee = 0; persist();
+    }
+    X.confirm = false; netOff(); X.state = 'idle'; X.table = null; X.note = ''; closeSheet();
+  }
+
+  /* ===== clasificación del fin de semana (base de datos) ===== */
+  async function pushPoints() {
+    if (!dbOn) return;
+    try { await fetch(dbBase + '/torneo/' + save.tpts.id + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ n: myName(), p: save.tpts.p, t: Date.now() }) }); } catch (e) {}
+  }
+  async function board(id) {
+    const r = await fetch(dbBase + '/torneo/' + id + '.json'); if (!r.ok) throw new Error('http ' + r.status);
+    const d = (await r.json()) || {};
+    return Object.keys(d).map(k => ({ id: k, n: cleanName(d[k] && d[k].n) || T('Agente'), p: Math.max(0, Math.floor(Number(d[k] && d[k].p) || 0)), t: Number(d[k] && d[k].t) || 0 })).filter(x => x.p > 0).sort((a, b) => b.p - a.p || a.t - b.t);
+  }
+  /* al abrir el juego después de un torneo: si quedaste entre los 3 primeros, recibes el premio (una sola vez) */
+  async function claim() {
+    if (!dbOn) return;
+    const w = tourWindow(), last = w.open ? w.prevId : w.id;
+    if (save.tclaim === last) return;
+    try {
+      const list = await board(last), i = list.findIndex(x => x.id === myUid());
+      if (i >= 0 && i < 3) {
+        const b = TC.weekendPrizes[i]; save.bits += b; save.earned += b; if (i === 0) unlock('trofeo');
+        X.news = T('Torneo de fin de semana: quedaste en el puesto {0}. Premio: +{1} bits.', i + 1, fmt(b)) + (i === 0 ? ' ' + T('Has ganado la skin Trofeo.') : '');
+      }
+      save.tclaim = last; persist(); refreshMenu();
+    } catch (e) {}
+  }
+
+  /* ===== pantalla ===== */
+  function showTour() { goMenu(); hideAll(); X.tab = 'play'; show('tour', true); render(); }
+  function statusText() {
+    if (X.state === 'wait') return X.wait.left >= 0 ? T('La mesa empieza en {0} s. Los huecos se rellenan con bots.', X.wait.left) : T('Hace falta al menos otro jugador para abrir la mesa.');
+    if (X.state === 'table') {
+      if (X.playing) return T('Conectando con tu rival…');
+      if (myMatch()) return T('Tu partido empieza en {0}…', Math.max(0, Math.ceil((X.count - Date.now()) / 1000)));
+      return T('Esperando a que terminen los otros partidos…');
+    }
+    return '';
+  }
+  function status() { const e = $('tourStatus'); if (e) e.textContent = statusText(); }
+  function prizeRows(body, prizes, extra) {
+    prizes.forEach((b, i) => { const row = el('div', 'rrow'); row.append(el('b', null, T('{0}.º', i + 1)), el('span', 'nm', fmt(b) + ' bits'), el('span', null, extra(i))); body.append(row); });
+  }
+  function renderPlay(body, w) {
+    if (X.news) { body.append(el('p', 'note', X.news)); }
+    if (X.state === 'wait') {
+      const box = el('div', 'box'), cancel = el('button', 'btn alt', T('Cancelar'));
+      cancel.addEventListener('click', () => { Sfx.ui(); netOff(); X.state = 'idle'; X.note = ''; render(); });
+      const st = el('p', 'tag', statusText()); st.id = 'tourStatus';
+      box.append(el('span', 'lbl', T('Buscando rivales')), el('div', 'code', X.wait.n + ' / 4'), st, cancel); body.append(box);
+      body.append(el('p', 'tag', T('Mientras esperas puedes mejorar tu nave de torneo en la pestaña Nave.')));
+      return;
+    }
+    if (X.state === 'table' || X.state === 'done') {
+      const tb = X.table, nm = i => tb.slots[i].n + (i === tb.you ? ' (' + T('TÚ').toLowerCase() + ')' : '');
+      body.append(el('span', 'lbl', tb.humans >= 2 ? T('Cuadro de la mesa') : T('Mesa de práctica')));
+      for (const [m, label] of [['s1', T('Semifinal 1')], ['s2', T('Semifinal 2')], ['f', T('Final')], ['t', T('Tercer puesto')]]) {
+        const pr = tb.pairs[m], row = el('div', 'rrow' + (pr && pr.includes(tb.you) ? ' me' : '')), txt = el('span', 'nm');
+        if (!pr) txt.textContent = '—';
+        else { const w0 = tb.res[m]; txt.textContent = (w0 === pr[0] ? '✓ ' : '') + nm(pr[0]) + '  ·  ' + (w0 === pr[1] ? '✓ ' : '') + nm(pr[1]); }
+        txt.append(el('small', null, label)); row.append(el('span', null, m === 'f' ? '★' : '·'), txt, el('span', null, pr && tb.res[m] != null ? T('Jugado') : '')); body.append(row);
+      }
+      if (X.state === 'table') { const st = el('p', 'tag', statusText()); st.id = 'tourStatus'; body.append(st); return; }
+      const r = X.result;
+      body.append(el('span', 'lbl', T('Clasificación de la mesa')));
+      tb.places.forEach((si, i) => { const row = el('div', 'rrow' + (si === tb.you ? ' me' : '')); row.append(el('b', null, T('{0}.º', i + 1)), el('span', 'nm', nm(si)), el('span', null, i < 3 && tb.humans >= 2 ? '+' + fmt(Math.round(TC.tablePrizes[i] * tb.humans / 40) * 10) : '')); body.append(row); });
+      body.append(el('p', 'tag', r.practice ? T('Mesa de práctica: sin premios ni puntos.')
+        : r.place >= 0 && r.place < 3 ? T('Quedaste en el puesto {0}: +{1} bits.', r.place + 1, fmt(r.bits)) + (r.pts ? ' ' + T(r.pts === 1 ? '+{0} punto para la clasificación del fin de semana.' : '+{0} puntos para la clasificación del fin de semana.', r.pts) : '')
+        : T('Quedaste en el puesto 4. Esta vez no hay premio.')));
+    } else {
+      body.append(el('p', 'tag', T('Mesas de 4 jugadores en directo: dos semifinales, final y tercer puesto, con duelos de {0} segundos. Cada jugador usa su nave de torneo.', TC.matchSeconds)));
+      body.append(el('span', 'lbl', T('Premios de cada mesa')));
+      prizeRows(body, TC.tablePrizes, i => T(TC.points[i] === 1 ? '+{0} punto' : '+{0} puntos', TC.points[i]));
+      body.append(el('p', 'tag', T('Si faltan jugadores, los huecos se rellenan con bots y los premios bajan en proporción.')));
+      body.append(el('span', 'lbl', T('Premios del fin de semana')));
+      prizeRows(body, TC.weekendPrizes, i => (i === 0 ? T('y la skin Trofeo') : ''));
+      body.append(el('p', 'tag', T('Cada puesto en una mesa suma puntos. Los 3 jugadores con más puntos al cerrar el torneo se llevan estos premios.')));
+    }
+    const go = el('button', 'btn go', X.state === 'done' ? T('Jugar otra mesa') : T('Entrar en una mesa')), why = !w.open ? T('El torneo abre {0}', when(w.next)) : !can() ? T('Solo en la versión alojada del juego') : save.bits < TC.fee ? T('Te faltan {0} bits.', fmt(TC.fee - save.bits)) : '';
+    go.append(el('small', null, why || T('Inscripción: {0} bits', fmt(TC.fee)))); go.disabled = !!why; go.addEventListener('click', enter);
+    const pr = el('button', 'btn alt', T('Practicar contra bots')); pr.append(el('small', null, T('Gratis, sin premios ni puntos'))); pr.addEventListener('click', practice);
+    body.append(go, pr);
+  }
+  function renderShip(body) {
+    const st = tourStats(save.tup), head = el('div', 'item sel'), hi = el('div', 'info');
+    hi.append(el('b', null, T('Nave de torneo · nivel {0}', st.lvl)), el('span', null, T('Solo se usa en el torneo. Sus mejoras se compran con bits y son para siempre.')),
+      el('span', 'meta', T('Daño {0} · {1} disparos/s · Integridad {2} · Cuarentenas {3}', st.dmg.toFixed(2), (1 / st.gap).toFixed(1), st.maxInt, st.bombs)));
+    head.append(iconCanvas(g => { g.translate(0, 2); g.scale(1.1, 1.1); drawShip(g, SK, .9); }), hi, el('span', 'statv', String(st.lvl))); body.append(head);
+    const wl = el('div', 'row'); wl.append(el('span', null, T('Tus bits')), el('span', 'wallet')); wl.lastChild.append(el('i', 'gem'), el('strong', null, fmt(save.bits))); body.append(wl);
+    for (const u of TUPS) {
+      const lvl = save.tup[u.id] || 0, row = el('div', 'item up'), info = el('div', 'info'), pips = el('div', 'pips');
+      for (let i = 0; i < u.max; i++) pips.append(el('i', i < lvl ? 'on' : null));
+      info.append(el('b', null, T(u.name)), el('span', null, T(u.desc)), pips);
+      let act;
+      if (lvl >= u.max) act = el('span', 'state on', T('Máximo'));
+      else {
+        const cost = u.cost[lvl]; act = priceBtn(cost);
+        act.addEventListener('click', () => {
+          if (save.bits < cost) { X.note = T('Te faltan {0} bits.', fmt(cost - save.bits)); Sfx.hit(); render(); return; }
+          save.bits -= cost; save.tup[u.id] = lvl + 1; persist(); Sfx.buy(); haptic('success'); X.note = ''; render(); refreshMenu();
+        });
+      }
+      row.append(info, act); body.append(row);
+    }
+    if (X.state === 'table') body.append(el('p', 'tag', T('Las mejoras que compres ahora valen a partir de la siguiente mesa.')));
+  }
+  function renderRank(body, w) {
+    const id = w.open ? w.id : w.id, mineP = save.tpts.id === id ? save.tpts.p : 0;
+    body.append(el('span', 'lbl', w.open ? T('Clasificación de este fin de semana') : T('Resultado del último torneo')));
+    body.append(el('p', 'tag', T('Tus puntos: {0} · Mesas ganadas: {1}', mineP, save.twins)));
+    if (!dbOn) { body.append(el('p', 'tag', T('La clasificación se activa al conectar la base de datos en CONFIG.'))); return; }
+    const cache = X.rank;
+    if (cache && cache.id === id && cache.list) {
+      if (!cache.list.length) body.append(el('p', 'tag', T('Todavía no hay puntos en este torneo.')));
+      cache.list.slice(0, 20).forEach((p, i) => { const row = el('div', 'rrow' + (p.id === myUid() ? ' me' : '')); row.append(el('b', null, String(i + 1)), el('span', 'nm', p.n), el('b', null, fmt(p.p))); body.append(row); });
+    } else if (cache && cache.id === id && cache.error) body.append(el('p', 'tag', T('No se pudo cargar la clasificación. Revisa tu conexión.')));
+    else {
+      body.append(el('p', 'tag', T('Cargando clasificación…')));
+      if (!cache || cache.id !== id) { X.rank = { id }; board(id).then(list => { X.rank = { id, list }; }).catch(() => { X.rank = { id, error: true }; }).then(() => { if (X.tab === 'rank') render(); }); }
+    }
+    body.append(el('span', 'lbl', T('Premios del fin de semana')));
+    prizeRows(body, TC.weekendPrizes, i => (i === 0 ? T('y la skin Trofeo') : ''));
+  }
+  function render() {
+    if ($('tour').hidden) return;
+    const w = tourWindow(), body = $('tourBody'), top = body.scrollTop;
+    $('tourWhen').textContent = w.open ? T('Abierto hasta {0}', when(w.end)) : T('Abre {0}', when(w.next));
+    for (const k of ['play', 'ship', 'rank']) $('tt_' + k).classList.toggle('on', X.tab === k);
+    $('tourBack').textContent = X.state === 'table' ? T('Abandonar mesa') : T('Volver');
+    $('tourNote').textContent = X.note || '';
+    body.textContent = '';
+    if (X.tab === 'ship') renderShip(body); else if (X.tab === 'rank') renderRank(body, w); else renderPlay(body, w);
+    body.scrollTop = top;
+  }
+  function open() { X.tab = 'play'; if (X.state === 'idle') X.note = ''; render(); const n = X.news; if (n) setTimeout(() => { if (X.news === n) { X.news = ''; refreshMenu(); } }, 0); }
+  function label() { const w = tourWindow(); return w.open ? T('Abierto hasta {0}', when(w.end)) : T('Abre {0}', when(w.next)); }
+  setInterval(() => { hubTick(); if (X.state === 'wait' || X.state === 'table') status(); }, 500);
+  for (const k of ['play', 'ship', 'rank']) $('tt_' + k).addEventListener('click', () => { Sfx.ui(); X.tab = k; if (k === 'rank') X.rank = null; $('tourBody').scrollTop = 0; render(); });
+  $('tourBack').addEventListener('click', back);
+  return { open, render, label, claim, busy: () => X.state === 'wait' || X.state === 'table', hot: () => !!X.news || tourWindow().open, setNews: t => { X.news = t; }, state: () => X };
 })();
 
 /* ---------------- Primera vez: nombre del Centinela y mini tutorial ---------------- */
@@ -2681,10 +3196,10 @@ const Intro = (() => {
   }
   function slide() {
     const s = TUT[step], last = step === TUT.length - 1;
-    $('tutTitle').textContent = s.t; $('tutText').textContent = s.d; picture(step);
+    $('tutTitle').textContent = T(s.t); $('tutText').textContent = T(s.d); picture(step);
     const dots = $('tutDots'); dots.textContent = ''; for (let i = 0; i < TUT.length; i++) dots.append(el('i', i === step ? 'on' : null));
     $('tutBack').disabled = step === 0;
-    $('tutNext').textContent = last ? (kind === 'first' ? 'Jugar' : 'Entendido') : 'Siguiente';
+    $('tutNext').textContent = last ? (kind === 'first' ? T('Jugar') : T('Entendido')) : T('Siguiente');
     show('tutSkip', !last);
   }
   function open(k) {
@@ -2692,8 +3207,9 @@ const Intro = (() => {
     const name = k !== 'help';
     show('introName', name); show('introTut', !name);
     if (name) {
-      $('introTitle').textContent = k === 'first' ? 'Bienvenido, agente' : 'Nombre del Centinela';
-      $('introOk').textContent = k === 'first' ? 'Continuar' : 'Guardar';
+      $('introTitle').textContent = k === 'first' ? T('Bienvenido, agente') : T('Nombre del Centinela');
+      show('introLang', k === 'first');
+      $('introOk').textContent = k === 'first' ? T('Continuar') : T('Guardar');
       $('introInput').value = save.name || (tgUser && tgUser.first_name ? cleanName(tgUser.first_name) : '');
       $('introNote').textContent = '';
     } else { step = 0; slide(); }
@@ -2702,7 +3218,7 @@ const Intro = (() => {
   function close() { show('intro', false); }
   function okName() {
     const v = cleanName($('introInput').value);
-    if (v.length < 2) { $('introNote').textContent = 'Escribe un nombre de al menos 2 caracteres.'; return; }
+    if (v.length < 2) { $('introNote').textContent = T('Escribe un nombre de al menos 2 caracteres.'); return; }
     save.name = v; persist(); Sfx.init(); Sfx.ui(); refreshMenu();
     if (kind === 'rename') { close(); if (!$('shop').hidden) renderShop(); Online.submit(); return; }
     show('introName', false); show('introTut', true); step = 0; slide();
@@ -2730,6 +3246,7 @@ $('btnCodex').addEventListener('click', () => openSheet('codex', renderCodex));
 $('btnShop').addEventListener('click', () => openSheet('shop', () => { $('shopNote').textContent = ''; renderShop(); }));
 $('btnRank').addEventListener('click', () => openSheet('rank', renderRank));
 $('btnDuel').addEventListener('click', () => openSheet('duel', Duel.open));
+$('btnTour').addEventListener('click', () => { Duel.cancelLobby(); hideAll(); Sfx.ui(); show('tour', true); Tour.open(); });
 $('btnInvite').addEventListener('click', () => openSheet('invite', openInvite));
 $('btnHelp').addEventListener('click', () => { Sfx.init(); Sfx.ui(); Intro.open('help'); });
 for (const b of document.querySelectorAll('[data-close]')) b.addEventListener('click', closeSheet);
@@ -2738,17 +3255,25 @@ $('tabShip').addEventListener('click', () => { shopTab = 'ship'; $('shopBody').s
 $('tabUps').addEventListener('click', () => { shopTab = 'ups'; $('shopBody').scrollTop = 0; renderShop(); });
 $('btnBitsAd').addEventListener('click', async () => {
   const ok = await withAd(() => Ads.rewarded('arsenal'));
-  if (ok) { const n = CONFIG.ads.shopReward; save.bits += n; save.earned += n; persist(); Sfx.buy(); $('shopNote').textContent = 'Has recibido ' + fmt(n) + ' bits.'; renderShop(); }
-  else $('shopNote').textContent = 'El anuncio no se completó o no hay ninguno disponible ahora.';
+  if (ok) { const n = CONFIG.ads.shopReward; save.bits += n; save.earned += n; persist(); Sfx.buy(); $('shopNote').textContent = T('Has recibido {0} bits.', fmt(n)); renderShop(); }
+  else $('shopNote').textContent = T('El anuncio no se completó o no hay ninguno disponible ahora.');
 });
 $('btnName').addEventListener('click', () => {
   const v = cleanName($('nameInput').value);
-  if (v.length < 2) { $('rankNote').textContent = 'Escribe un nombre de al menos 2 caracteres.'; return; }
+  if (v.length < 2) { $('rankNote').textContent = T('Escribe un nombre de al menos 2 caracteres.'); return; }
   save.name = v; persist(); Sfx.ui(); renderRank();
 });
 $('btnCreate').addEventListener('click', () => { Sfx.ui(); Duel.create(); });
 $('btnJoin').addEventListener('click', () => { Sfx.ui(); Duel.join($('codeInput').value); });
 $('btnBot').addEventListener('click', () => { Duel.cancelLobby(); Duel.begin(true); });
+/* idioma: botón del menú y fila de la bienvenida; al cambiarlo se guarda y el juego se recarga en ese idioma */
+$('btnLang').textContent = LANG.toUpperCase();
+for (const l in LANGS) {
+  const b = el('button', 'btn ' + (l === LANG ? 'go' : 'alt'), LANGS[l]); b.addEventListener('click', () => { Sfx.ui(); if (!setLang(l)) show('langBox', false); }); $('langList').append(b);
+  const t = el('button', 'tab' + (l === LANG ? ' on' : ''), LANGS[l]); t.addEventListener('click', () => setLang(l)); $('introLang').append(t);
+}
+$('btnLang').addEventListener('click', () => { Sfx.init(); Sfx.ui(); show('langBox', true); });
+$('langClose').addEventListener('click', () => show('langBox', false));
 $('askYes').addEventListener('click', () => { if (!Duel.answerBet(true)) Lobby.answer(true); });
 $('askNo').addEventListener('click', () => { if (!Duel.answerBet(false)) Lobby.answer(false); });
 $('btnRoomCancel').addEventListener('click', () => { Duel.cancelLobby(); $('duelNote').textContent = ''; });
@@ -2768,8 +3293,8 @@ $('btnRevive').addEventListener('click', async () => {
   const ok = await withAd(() => Ads.rewarded('continuar'));
   if (ok) {
     S.revived = true; S.alive = true; P.int = Math.round(P.maxInt * .6); S.mode = 'play'; P.inv = 3; P.tx = P.x; P.ty = P.y;
-    show('hud', true); shockwave(); banner('SISTEMA RESTAURADO', 'Integridad al 60 %');
-  } else { $('overNote').textContent = 'El anuncio no se completó o no hay ninguno disponible ahora.'; show('over', true); }
+    show('hud', true); shockwave(); banner(T('SISTEMA RESTAURADO'), T('Integridad al 60 %'));
+  } else { $('overNote').textContent = T('El anuncio no se completó o no hay ninguno disponible ahora.'); show('over', true); }
 });
 $('btnDouble').addEventListener('click', async () => {
   if (S.mode !== 'over' || S.doubled) return;
@@ -2777,8 +3302,8 @@ $('btnDouble').addEventListener('click', async () => {
   const ok = await withAd(() => Ads.rewarded('bits_x2'));
   if (ok) {
     S.doubled = true; save.bits += S.runBits; save.earned += S.runBits; persist(); Sfx.buy();
-    $('finalBits').textContent = '+' + fmt(S.runBits) + ' ×2'; $('overNote').textContent = 'Bits duplicados.';
-  } else $('overNote').textContent = 'El anuncio no se completó o no hay ninguno disponible ahora.';
+    $('finalBits').textContent = '+' + fmt(S.runBits) + ' ×2'; $('overNote').textContent = T('Bits duplicados.');
+  } else $('overNote').textContent = T('El anuncio no se completó o no hay ninguno disponible ahora.');
   syncOverButtons(); show('over', true);
 });
 $('btnNext').addEventListener('click', async () => {
@@ -2792,7 +3317,7 @@ $('btnNext').addEventListener('click', async () => {
 });
 $('btnOverMenu').addEventListener('click', goMenu);
 $('btnShare').addEventListener('click', () => {
-  const text = 'Voy por el nivel ' + save.level + ' de Centinela con ' + fmt(rankPoints()) + ' puntos de rango. ¿Me superas?';
+  const text = T('Voy por el nivel {0} de Centinela con {1} puntos de rango. ¿Me superas?', save.level, fmt(rankPoints()));
   try { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(inviteLink('tg') || CONFIG.telegram.shareUrl) + '&text=' + encodeURIComponent(text)); } catch (e) {}
 });
 if (inTg && CONFIG.telegram.shareUrl) show('btnShare', true);
@@ -2837,12 +3362,13 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 function boot(data) {
-  let lostBet = 0;
-  try { const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); applySave(raw); if (raw && Number(raw.bet) > 0) lostBet = Math.floor(Number(raw.bet)); } catch (e) {}
+  let lostBet = 0, lostFee = 0;
+  try { const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); applySave(raw); if (raw && Number(raw.bet) > 0) lostBet = Math.floor(Number(raw.bet)); if (raw && Number(raw.tfee) > 0) lostFee = Math.floor(Number(raw.tfee)); } catch (e) {}
   if (data && data.save && Number(data.save.earned) >= save.earned) applySave(data.save);
   syncSkin(); ST = stats();
   /* un duelo con apuesta que no se terminó (se cerró el juego a mitad) cuenta como abandono: la apuesta ya estaba apartada y se pierde */
-  if (lostBet) { save.bet = 0; Duel.setNews('Saliste de un duelo con apuesta sin terminarlo: perdiste ' + fmt(lostBet) + ' bits.'); persist(); }
+  if (lostBet) { save.bet = 0; Duel.setNews(T('Saliste de un duelo con apuesta sin terminarlo: perdiste {0} bits.', fmt(lostBet))); persist(); }
+  if (lostFee) { save.tfee = 0; Tour.setNews(T('Saliste de una mesa de torneo sin terminarla: perdiste la inscripción de {0} bits.', fmt(lostFee))); persist(); }
   /* quién te invitó: solo cuenta para jugadores nuevos que abren el juego desde un enlace de invitación en Telegram */
   const afterLoad = () => {
     try {
@@ -2850,7 +3376,7 @@ function boot(data) {
       if (rm && tgUser && !save.ref && rm[1] !== myUid() && save.level === 1 && !save.earned) { save.ref = rm[1]; save.refSrc = rm[2] || ''; persist(); }
     } catch (e) {}
     Online.refPush(); refreshRefs().then(() => refreshMenu()); checkLanding();
-    Lobby.start(); refreshMenu();
+    Lobby.start(); Tour.claim(); refreshMenu();
     if (!save.intro) {
       const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
       if (save.level > 1 || save.earned) { save.intro = true; persist(); }        /* jugadores que ya tenían progreso */
@@ -2878,7 +3404,7 @@ function boot(data) {
   } catch (e) {}
 }
 /* las librerías externas (duelos y anuncios) se cargan sin frenar el juego: cuando llegan, se activan */
-window.__peerReady = () => { try { Lobby.start(); if (!$('duel').hidden && S.mode === 'menu') Duel.open(); } catch (e) {} };
+window.__peerReady = () => { try { Lobby.start(); if (!$('duel').hidden && S.mode === 'menu') Duel.open(); Tour.render(); } catch (e) {} };
 window.addEventListener('load', () => { try { Ads.preload(); window.__peerReady(); } catch (e) {} });
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => ({ save })); } catch (e) {}
