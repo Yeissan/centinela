@@ -678,6 +678,7 @@ const CONFIG = {
     interstitialBlockId: '',   // solo Adsgram: bloque de anuncio entre niveles
     interstitialEvery: 3,      // un anuncio cada N niveles jugados (0 = nunca)
     shopReward: 150,           // bits que da el anuncio del Arsenal
+    doubleAds: 2,              // anuncios que hay que ver para duplicar los bits de una partida o el regalo diario
     // Para otra red (Monetag, RichAds...): funciones async que devuelven true
     // cuando el anuncio se ha visto completo.
     custom: { rewarded: null, interstitial: null }
@@ -843,7 +844,7 @@ const SAVE_KEY = 'cen_save';
 const save = { v: 2, bits: 0, earned: 0, level: 1, best: {}, stars: {}, skin: 'centinela', skins: ['centinela'], up: {}, kills: {}, seen: {},
   bossKills: 0, duelWins: 0, duelPlayed: 0, uid: '', name: '', music: true, sfx: true,
   xp: 0, ref: '', refSrc: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, sharePaid: {}, intro: false, bet: 0,
-  tup: { rate: 0, power: 0, armor: 0, bomb: 0 }, tfee: 0, tpts: { id: '', p: 0 }, tclaim: '', twins: 0, tplay: 0, chan: 0, dayLast: 0, dayN: 0, dayDbl: 0, surv: { best: 0, bestW: 0, runs: 0 }, swk: { id: '', p: 0, w: 0 }, q: null, th: { ship: 'vigia', own: { vigia: [0, 0, 0] }, nuc: 0, mig: 0 } };   /* th: hangar de torneo (nave en uso, naves compradas con sus niveles, núcleos y si ya se devolvieron las mejoras antiguas) */   /* q: retos diarios {d: día, ids, p: progreso, c: recogidos, b: extra recogido} */   /* supervivencia: récord, y mejor marca de la semana (ranking semanal) */   /* regalo diario: último día recogido (n.º de día local), racha y día en que se duplicó */   /* torneo: nave, inscripción en juego, puntos del fin de semana */   /* bet: apuesta en juego de un duelo sin terminar */
+  tup: { rate: 0, power: 0, armor: 0, bomb: 0 }, tfee: 0, tpts: { id: '', p: 0 }, tclaim: '', twins: 0, tplay: 0, chan: 0, dayLast: 0, dayN: 0, dayDbl: 0, dayAdD: 0, dayAdN: 0, surv: { best: 0, bestW: 0, runs: 0 }, swk: { id: '', p: 0, w: 0 }, q: null, th: { ship: 'vigia', own: { vigia: [0, 0, 0] }, nuc: 0, mig: 0 } };   /* th: hangar de torneo (nave en uso, naves compradas con sus niveles, núcleos y si ya se devolvieron las mejoras antiguas) */   /* q: retos diarios {d: día, ids, p: progreso, c: recogidos, b: extra recogido} */   /* supervivencia: récord, y mejor marca de la semana (ranking semanal) */   /* regalo diario: último día recogido (n.º de día local), racha y día en que se duplicó */   /* torneo: nave, inscripción en juego, puntos del fin de semana */   /* bet: apuesta en juego de un duelo sin terminar */
 for (const u of UPS) save.up[u.id] = 0;
 function applySave(d) {
   if (!d || typeof d !== 'object') return;
@@ -888,6 +889,7 @@ function applySave(d) {
     if (!save.q || qd > save.q.d) save.q = { d: qd, ids, p: [0, 1, 2].map(i => num(d.q.p[i], 0)), c: [0, 1, 2].map(i => d.q.c[i] ? 1 : 0), b: d.q.b ? 1 : 0 };
     else if (qd === save.q.d && ids.join() === save.q.ids.join()) for (let i = 0; i < 3; i++) { save.q.p[i] = Math.max(save.q.p[i] | 0, num(d.q.p[i], 0)); if (d.q.c[i]) save.q.c[i] = 1; if (d.q.b) save.q.b = 1; }
   }
+  { const ad = num(d.dayAdD, 0), an = Math.min(9, num(d.dayAdN, 0)); if (ad > save.dayAdD) { save.dayAdD = ad; save.dayAdN = an; } else if (ad && ad === save.dayAdD) save.dayAdN = Math.max(save.dayAdN, an); }   /* anuncios ya vistos para duplicar el regalo de hoy */
   if (typeof d.music === 'boolean') save.music = d.music;
   if (typeof d.sfx === 'boolean') save.sfx = d.sfx;
 }
@@ -1408,7 +1410,7 @@ const P = newShip(0), Q = newShip(1);   /* P: tu nave. Q: la nave del rival en l
 const S = {
   mode: 'menu', kind: 'level', net: 'solo', levelN: 1, diff: 1, win: false, t: 0, bg: 0, score: 0, kills: 0, sectorKills: 0, quota: 14, wavesTotal: 1, wavesDone: 0,
   bossLevel: false, bossSpawned: false, chain: 0, combo: 1, comboT: 0, shake: 0, glitch: 0, flash: 0, spawnT: 1, hackT: 5, boss: null, banner: null, toasts: [],
-  revived: false, doubled: false, runBits: 0, credited: 0, overT: 0, runs: 0, hackTip: false, shock: null, shockN: 0, alive: true, duelT: 0,
+  revived: false, doubled: false, dblAds: 0, runBits: 0, credited: 0, overT: 0, runs: 0, hackTip: false, shock: null, shockN: 0, alive: true, duelT: 0,
   zone: 0, zonePrev: 0, zoneMix: 1, warp: 0
 };
 function musicState() {
@@ -1502,7 +1504,7 @@ function creditBits() {
 function reset() {
   ST = stats(); syncSkin();
   Object.assign(S, { t: 0, net: 'solo', score: 0, kills: 0, sectorKills: 0, wavesDone: 0, chain: 0, combo: 1, comboT: 0, win: false,
-    shake: 0, glitch: 0, flash: 0, spawnT: 1.2, hackT: 6, boss: null, bossSpawned: false, revived: false, doubled: false, runBits: 0, credited: 0, overT: 0, shock: null, shockN: 0, alive: true, warp: 1 });
+    shake: 0, glitch: 0, flash: 0, spawnT: 1.2, hackT: 6, boss: null, bossSpawned: false, revived: false, doubled: false, dblAds: 0, runBits: 0, credited: 0, overT: 0, shock: null, shockN: 0, alive: true, warp: 1 });
   bullets = []; enemies = []; ebullets = []; parts = []; picks = []; texts = []; S.toasts = []; eid = 0;
   for (const pl of [P, Q]) Object.assign(pl, { inv: 1.5, fire: 0, rapid: 0, spread: 0, shield: false, tilt: 0, hist: [], out: 0, kills: 0 });
   Object.assign(P, { x: W / 2, y: H - 120, tx: W / 2, ty: H - 120, sk: SK, name: myName(), maxInt: ST.maxInt, int: ST.maxInt, bombs: ST.bombs, maxBombs: ST.maxBombs,
@@ -2300,6 +2302,7 @@ function showResult() {
 function syncOverButtons() {
   const surv = S.kind === 'surv', canRevive = !S.win && !S.revived && !S.doubled && S.survEnd !== 'quit', canDouble = (S.win || surv) && !S.doubled && S.runBits > 0;
   show('btnRevive', canRevive); show('btnDouble', canDouble); show('adPair', canRevive || canDouble);
+  if (canDouble) { const b = $('btnDouble'); b.textContent = T('Bits ×2'); b.append(el('small', '', adsLeftTxt(S.dblAds || 0))); }
   show('btnShare', !surv && inTg && !!CONFIG.telegram.shareUrl); show('btnCard', surv);
 }
 function setPause(on) {
@@ -2307,6 +2310,14 @@ function setPause(on) {
   else if (!on && S.mode === 'pause') { S.mode = 'play'; show('pause', false); last = 0; }
 }
 async function withAd(fn) { const prev = S.mode; S.mode = 'ad'; const ok = await fn(); S.mode = prev; last = 0; return ok; }
+/* varios anuncios seguidos para un premio: cuenta los que se completan (si uno falla, lo visto se conserva) */
+const ADS_N = () => Math.max(1, CONFIG.ads.doubleAds | 0);
+async function adsInRow(tag, done, onStep) {
+  let n = done;
+  while (n < ADS_N()) { const ok = await withAd(() => Ads.rewarded(tag)); if (!ok) break; n++; if (onStep) onStep(n); }
+  return n;
+}
+const adsLeftTxt = n => { const k = ADS_N() - n; return k === 1 ? (ADS_N() === 1 ? T('Ver anuncio') : T('Falta 1 anuncio')) : n === 0 ? T('Ver {0} anuncios', k) : T('Faltan {0} anuncios', k); };
 function openSheet(id, render) { Sfx.init(); Sfx.ui(); hideAll(); if (render) render(); show(id, true); }
 function closeSheet() { Sfx.ui(); Duel.cancelLobby(); hideAll(); show('menu', true); refreshMenu(); }
 
@@ -4039,7 +4050,7 @@ const Daily = (() => {
     $('dailyNote').textContent = note || (s.streak > 0 ? (s.streak === 1 ? T('Racha: 1 día') : T('Racha: {0} días', fmt(s.streak))) : '');
     show('dailyGet', s.can); if (s.can) $('dailyGet').textContent = T('Recoger +{0} bits', fmt(s.bits));
     const ad = $('dailyAd'); show('dailyAd', s.dbl);
-    if (s.dbl) { ad.textContent = T('Duplicar: +{0} bits', fmt(s.bits)); ad.append(el('small', '', T('Ver anuncio'))); }
+    if (s.dbl) { ad.textContent = T('Duplicar: +{0} bits', fmt(s.bits)); ad.append(el('small', '', adsLeftTxt(save.dayAdD === save.dayLast ? save.dayAdN | 0 : 0))); }
   }
   function setTab(t) {
     tab = t; $('dt_gift').classList.toggle('on', t === 'gift'); $('dt_quest').classList.toggle('on', t === 'quest');
@@ -4055,10 +4066,11 @@ const Daily = (() => {
   async function double() {
     const s = state(); if (!s.dbl || busy) return;
     busy = true; show('daily', false);
-    const paid = save.dayLast, bits = s.bits, ok = await withAd(() => Ads.rewarded('regalo_x2'));
+    const paid = save.dayLast, bits = s.bits, before = save.dayAdD === paid ? save.dayAdN | 0 : 0;
+    const n = await adsInRow('regalo_x2', before, k => { save.dayAdD = paid; save.dayAdN = k; persist(); });
     busy = false;
-    if (ok && save.dayLast === paid && save.dayDbl !== paid) { save.dayDbl = paid; save.bits += bits; save.earned += bits; persist(); Sfx.buy(); haptic('success'); note = T('Premio duplicado: +{0} bits.', fmt(bits)); }
-    else if (!ok) note = T('El anuncio no se completó o no hay ninguno disponible ahora.');
+    if (n >= ADS_N() && save.dayLast === paid && save.dayDbl !== paid) { save.dayDbl = paid; save.bits += bits; save.earned += bits; persist(); Sfx.buy(); haptic('success'); note = T('Premio duplicado: +{0} bits.', fmt(bits)); }
+    else if (n < ADS_N()) note = n > 0 ? T('Has visto {0} de {1} anuncios. Ve el resto para duplicar el regalo.', n, ADS_N()) : T('El anuncio no se completó o no hay ninguno disponible ahora.');
     render(); show('daily', true); refreshMenu();
   }
   /* botón del menú, y aviso automático una vez al día cuando hay regalo y el jugador está en el menú sin nada abierto */
@@ -4243,11 +4255,11 @@ $('btnRevive').addEventListener('click', async () => {
 $('btnDouble').addEventListener('click', async () => {
   if (S.mode !== 'over' || S.doubled) return;
   show('over', false);
-  const ok = await withAd(() => Ads.rewarded('bits_x2'));
-  if (ok) {
+  S.dblAds = await adsInRow('bits_x2', S.dblAds || 0);
+  if (S.dblAds >= ADS_N()) {
     S.doubled = true; save.bits += S.runBits; save.earned += S.runBits; persist(); Sfx.buy();
     $('finalBits').textContent = '+' + fmt(S.runBits) + ' ×2'; $('overNote').textContent = T('Bits duplicados.');
-  } else $('overNote').textContent = T('El anuncio no se completó o no hay ninguno disponible ahora.');
+  } else $('overNote').textContent = S.dblAds > 0 ? T('Has visto {0} de {1} anuncios. Ve el resto para duplicar los bits.', S.dblAds, ADS_N()) : T('El anuncio no se completó o no hay ninguno disponible ahora.');
   syncOverButtons(); show('over', true);
 });
 $('btnNext').addEventListener('click', async () => {
