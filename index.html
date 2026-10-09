@@ -3965,13 +3965,15 @@ function boot(data) {
     Online.refPush(); refreshRefs().then(() => refreshMenu()); checkLanding();
     Lobby.start(); Tour.claim();
     const duelLink = /^duel_/.test((inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '');
-    Daily.ready(duelLink);   /* con un enlace de duelo el aviso del regalo no salta solo: primero el duelo */
+    const tourLink = ((inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '') === 'tour';   /* enlace de los avisos del torneo: ...?startapp=tour */
+    Daily.ready(duelLink || tourLink);   /* con un enlace de duelo el aviso del regalo no salta solo: primero el duelo */
     if (!save.intro) {
       const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
       if (save.level > 1 || save.earned) { save.intro = true; persist(); }        /* jugadores que ya tenían progreso */
       else if (!/^duel_/.test(sp || '')) Intro.open('first');
     }
     refreshMenu();   /* después de la bienvenida: así el regalo diario no la tapa */
+    if (tourLink && save.intro && S.mode === 'menu') { Duel.cancelLobby(); hideAll(); show('tour', true); Tour.open(); }
   };
   try {
     if (cloudOK) tg.CloudStorage.getItems(['save', 'st', 'b0', 'b1', 'b2', 'b3'], (err, v) => {
