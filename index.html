@@ -1067,13 +1067,13 @@ const Online = (() => {
       if (useApi) return await sync();
       const body = JSON.stringify({ n: myName(), p: rankPoints(), l: save.level, w: save.duelWins });
       if (body === lastSent) return true;
-      const r = await fetch(base + '/ranking/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
+      const r = await dbFetch(base + '/ranking/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
       if (r.ok) lastSent = body;
       return r.ok;
     } catch (e) { return false; }
   }
   async function top() {
-    const r = await fetch(useApi ? api + '/top' : base + '/ranking.json?orderBy=%22p%22&limitToLast=50');
+    const r = await dbFetch(useApi ? api + '/top' : base + '/ranking.json?orderBy=%22p%22&limitToLast=50');
     if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
     if (useApi) return (d.list || []).map(x => row(String(x.id), x)).sort((a, b) => b.p - a.p);
@@ -1086,12 +1086,12 @@ const Online = (() => {
     const o = { n: myName(), l: save.level }; if (save.refSrc) o.s = save.refSrc;   /* s: red desde la que llegó este jugador */
     const body = JSON.stringify(o);
     if (body === lastRef) return true;
-    try { const r = await fetch(base + '/refs/' + encodeURIComponent(save.ref) + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) lastRef = body; return r.ok; }
+    try { const r = await dbFetch(base + '/refs/' + encodeURIComponent(save.ref) + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) lastRef = body; return r.ok; }
     catch (e) { return false; }
   }
   async function refList() {
     if (useApi) { if (!(await sync())) throw new Error('sync'); const l = ((me.ref && me.ref.list) || []).map((x, i) => row('i' + i, x)); l.src = (me.ref && me.ref.src) || null; return l; }
-    const r = await fetch(base + '/refs/' + encodeURIComponent(myUid()) + '.json');
+    const r = await dbFetch(base + '/refs/' + encodeURIComponent(myUid()) + '.json');
     if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
     return Object.keys(d).map(k => row(k, d[k]));
@@ -1101,6 +1101,22 @@ const Online = (() => {
 
 /* ---------------- Servidor propio: conexión en tiempo real (misma forma que PeerJS) ---------------- */
 const SRV = /^https?:\/\//.test(String(CONFIG.online.serverUrl || '')) ? String(CONFIG.online.serverUrl).replace(/\/+$/, '') : '';
+/* base de datos (Firebase, de Google): en algunos países (por ejemplo Cuba) no se puede abrir directamente.
+   Si la conexión directa falla, se usa el servidor del juego como puente. */
+let dbVia = false;
+async function dbFetch(url, opts) {
+  const fb = /^https:\/\/[^/]+\.(firebaseio\.com|firebasedatabase\.app)\//.test(url);
+  if (!fb || !SRV) return fetch(url, opts);
+  const bridge = () => fetch(SRV + '/db' + url.replace(/^https:\/\/[^/]+/, ''), opts);
+  if (dbVia) return bridge();
+  let to = 0;
+  try {
+    const ac = window.AbortController ? new AbortController() : null; if (ac) to = setTimeout(() => ac.abort(), 7000);
+    const r = await fetch(url, Object.assign({}, opts, ac ? { signal: ac.signal } : {})); clearTimeout(to);
+    if (r.status === 451) throw new Error('bloqueado');
+    return r;
+  } catch (e) { clearTimeout(to); dbVia = true; return bridge(); }
+}
 const SRV_WS = SRV ? SRV.replace(/^http/, 'ws') + '/ws' : '';
 class WsConn {
   constructor(peer, cid, remote) { this._p = peer; this.cid = cid; this.peer = remote; this.open = false; this._closed = false; this.h = {}; }
@@ -1145,11 +1161,11 @@ const Surv = (() => {
     if (!on || !save.swk.p || !/^\d{4}-\d\d-\d\d$/.test(save.swk.id)) return false;
     const body = JSON.stringify({ n: myName(), p: save.swk.p, w: save.swk.w, s: save.skin });
     if (body === sent) return true;
-    try { const r = await fetch(base + '/superv/' + save.swk.id + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) sent = body; return r.ok; }
+    try { const r = await dbFetch(base + '/superv/' + save.swk.id + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) sent = body; return r.ok; }
     catch (e) { return false; }
   }
   async function board(id) {
-    const r = await fetch(base + '/superv/' + id + '.json'); if (!r.ok) throw new Error('http ' + r.status);
+    const r = await dbFetch(base + '/superv/' + id + '.json'); if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
     return Object.keys(d).map(k => ({ id: k, n: cleanName(d[k] && d[k].n) || T('Agente'), p: Math.max(0, Math.floor(Number(d[k] && d[k].p) || 0)), w: Math.max(0, Math.floor(Number(d[k] && d[k].w) || 0)) }))
       .filter(x => x.p > 0).sort((a, b) => b.p - a.p).slice(0, 100);
@@ -3632,10 +3648,10 @@ const Tour = (() => {
   /* ===== clasificación del fin de semana (base de datos) ===== */
   async function pushPoints() {
     if (!dbOn) return;
-    try { await fetch(dbBase + '/torneo/' + save.tpts.id + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ n: myName(), p: save.tpts.p, t: Date.now() }) }); } catch (e) {}
+    try { await dbFetch(dbBase + '/torneo/' + save.tpts.id + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ n: myName(), p: save.tpts.p, t: Date.now() }) }); } catch (e) {}
   }
   async function board(id) {
-    const r = await fetch(dbBase + '/torneo/' + id + '.json'); if (!r.ok) throw new Error('http ' + r.status);
+    const r = await dbFetch(dbBase + '/torneo/' + id + '.json'); if (!r.ok) throw new Error('http ' + r.status);
     const d = (await r.json()) || {};
     return Object.keys(d).map(k => ({ id: k, n: cleanName(d[k] && d[k].n) || T('Agente'), p: Math.max(0, Math.floor(Number(d[k] && d[k].p) || 0)), t: Number(d[k] && d[k].t) || 0 })).filter(x => x.p > 0).sort((a, b) => b.p - a.p || a.t - b.t);
   }
