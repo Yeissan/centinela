@@ -1330,7 +1330,7 @@ class WsPeer {
   _out(m) { try { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); } catch (e) {} }
   _in(m) {
     const c = m.cid != null ? this.conns[m.cid] : null;
-    if (m.t === 'open') { this.id = m.id; this.open = true; this._emit('open', m.id); }
+    if (m.t === 'open') { this.id = m.id; this.v = Number(m.v) || 1; this.open = true; this._emit('open', m.id); }
     else if (m.t === 'err') this._emit('error', { type: m.type });
     else if (m.t === 'inc') { const n = this.conns[m.cid] = new WsConn(this, m.cid, String(m.from || '')); n.open = true; this._emit('connection', n); setTimeout(() => n._emit('open'), 0); }
     else if (m.t === 'copen') { if (c) { c.open = true; c._emit('open'); } }
@@ -1874,7 +1874,8 @@ function vbBossDown(e) {
   persist();
 }
 function count(type) { let n = 0; for (const e of enemies) if (e.type === type && !e.dead) n++; return n; }
-function eb(x, y, vx, vy) { ebullets.push({ x, y, vx, vy, dead: false }); }
+let ebid = 0;   /* cada bala enemiga lleva un número: en los duelos solo se envían las nuevas */
+function eb(x, y, vx, vy) { ebullets.push({ id: ++ebid, x, y, vx, vy, dead: false }); }
 /* naves en juego y a cuál apunta cada enemigo (en los duelos, a la más cercana) */
 function actors() { return S.kind === 'duel' ? [P, Q].filter(p => p.out <= 0) : (S.alive ? [P] : []); }
 function target(e) {
@@ -3352,10 +3353,12 @@ const Duel = (() => {
       if (DC.peer !== p) return;
       const c = DC.link = p.connect(CONFIG.online.duelPrefix + 'torneo');
       c.on('open', () => { try { c.send(Object.assign({ t: 'dopen' }, info)); } catch (e) {} });
-      c.on('data', m => { if (m && m.t === 'dopen' && DC.link === c) DC.id = String(m.id || ''); });
+      c.on('data', m => { if (m && m.t === 'dopen' && DC.link === c) { DC.id = String(m.id || ''); DC.wn = 0; } if (m && m.t === 'wn' && DC.link === c) DC.wn = Number(m.n) || 0; });
     });
     p.on('error', () => {});
   }
+  /* con el servidor nuevo (v2) se sabe si alguien está mirando; con el antiguo, se manda siempre */
+  function dcWatched() { const c = DC.link; return !(c && c._p && c._p.v >= 2) || (DC.wn | 0) > 0; }
   function dcCast(d) { const c = DC.link; if (c && c.open && DC.id) { try { c.send({ t: 'dcast', id: DC.id, d }); } catch (e) {} } }
   function dcClose() {
     const p = DC.peer, c = DC.link, id = DC.id; DC.peer = DC.link = null; DC.id = '';
@@ -3397,6 +3400,7 @@ const Duel = (() => {
   function go() { if (D.bet > save.bits) D.bet = 0; send({ t: 'start', h: H, bet: D.bet }); begin(false); }
   function begin(bot, hostH) {
     D.bot = bot; D.ended = false; D.wantAgain = D.oppAgain = false; D.snapT = D.inT = 0; D.map = {}; D.shockN = 0;
+    D.oppPv = 0; D.pvSent = 0; D.ebPrev = new Set(); D.pkSig = ''; D.lightT = 0; D.lx = D.ly = -1; D.inIdle = 0;
     D.againBet = D.oppAgainBet = 0; D.oppAway = false; D.off = false; D.hidAt = 0; D.wait = false;
     D.t0 = D.rx = performance.now();
     if (bot) { D.host = true; if (!D.tour) { D.oppName = 'Bot'; D.oppSkin = pick(SKINS).id; } D.skill = rand(.7, 1.15); D.bet = D.betOk = 0; }
@@ -3469,6 +3473,7 @@ const Duel = (() => {
         break;
       case 'away': D.oppAway = true; break;      /* el rival ha minimizado o cerrado el juego */
       case 'back': D.oppAway = false; break;
+      case 'pv': D.oppPv = Number(m.v) || 0; break;
       case 'i': if (S.net === 'host' && !D.ended) { Q.tx = Number(m.x) || Q.tx; Q.ty = Number(m.y) || Q.ty; } break;
       case 'bomb': if (S.net === 'host' && !D.ended && S.mode === 'play' && Q.bombs > 0 && Q.out <= 0) { Q.bombs--; shockwave(Q); } break;
       case 'pow': if (S.net === 'host' && !D.ended) power(Q); break;
@@ -3551,12 +3556,22 @@ const Duel = (() => {
     return true;
   }
   function shipArr(pl) { return [r(pl.x), r(pl.y), r(pl.int), r(pl.out * 10), pl.shield ? 1 : 0, r(pl.rapid * 10), r(pl.spread * 10), r(pl.inv * 10), pl.bombs, pl.kills, pl.pw ? r(Math.max(0, pl.pw.cd) * 10) : 0, pl.pw ? r(Math.max(0, pl.pw.t) * 10) : 0]; }
-  function snap() {
-    return { t: 'w', T: r(S.duelT * 10) / 10, z: S.zone, n: S.shockN, s: S.shock ? [r(S.shock.x), r(S.shock.y)] : null,
+  /* estado del duelo que el anfitrión manda. Versión ligera (diet): de las balas enemigas solo van las nuevas (en) y las que
+     desaparecen (ed), porque se mueven en línea recta y el otro móvil las puede mover solo; los parches solo cuando cambian.
+     Así se envía mucho menos y va mejor con conexiones lentas (por ejemplo, en Cuba). */
+  function snap(diet) {
+    const s = { t: 'w', T: r(S.duelT * 10) / 10, z: S.zone, n: S.shockN, s: S.shock ? [r(S.shock.x), r(S.shock.y)] : null,
       e: enemies.map(e => [e.id, TYPES.indexOf(e.type), r(e.x), r(e.y), e.type === 'hacker' ? 100 : r(e.hp / e.max * 100), e.kind, e.state, r(e.ang * 100)]),
-      eb: ebullets.map(b => [r(b.x), r(b.y), r(b.vx), r(b.vy)]),
-      pk: picks.map(p => [PKT.indexOf(p.type), r(p.x), r(p.y)]), k: D.klog.splice(0),
-      a: shipArr(P), b: shipArr(Q) };
+      k: D.klog.splice(0), a: shipArr(P), b: shipArr(Q) };
+    const pk = picks.map(p => [PKT.indexOf(p.type), r(p.x), r(p.y)]);
+    if (diet) {
+      const cur = new Set(); s.en = []; s.ed = [];
+      for (const b of ebullets) { cur.add(b.id); if (!D.ebPrev.has(b.id)) s.en.push([b.id, r(b.x), r(b.y), r(b.vx), r(b.vy)]); }
+      for (const id of D.ebPrev) if (!cur.has(id)) s.ed.push(id);
+      D.ebPrev = cur;
+      const sig = pk.map(p => p[0] + ',' + p[1]).join(';'); if (sig !== D.pkSig) { D.pkSig = sig; s.pk = pk; }
+    } else { s.eb = ebullets.map(b => [r(b.x), r(b.y), r(b.vx), r(b.vy)]); s.pk = pk; }
+    return s;
   }
   function botTick(dt) {
     let best = null;
@@ -3576,7 +3591,16 @@ const Duel = (() => {
     if (D.bot) botTick(dt);
     moveShip(Q, dt);
     const cast = (D.tour && D.tour.cast) || (DC.peer ? dcCast : null);   /* con servidor, el anfitrión también manda el estado para los espectadores */
-    if (!D.bot || cast) { D.snapT -= dt; if (D.snapT <= 0) { D.snapT = 1 / 12; const s = snap(); if (!D.bot) send(s); if (cast) cast(s); } }
+    if (!D.bot || cast) {
+      D.snapT -= dt;
+      if (D.snapT <= 0) {
+        D.snapT = .1;
+        /* a los espectadores solo se les manda todo si hay alguien mirando; si no, un resumen por segundo (marcador y tiempo) */
+        const watched = !!cast && (D.tour ? (D.tour.watched ? D.tour.watched() : true) : dcWatched());
+        if (!D.bot || watched) { const s = snap(D.bot || D.oppPv >= 2); if (!D.bot) send(s); if (watched) cast(s); }
+        if (cast && !watched) { D.lightT -= .1; if (D.lightT <= 0) { D.lightT = 1; cast({ t: 'w', l: 1, T: r(S.duelT * 10) / 10, z: S.zone, a: shipArr(P), b: shipArr(Q) }); } }
+      }
+    }
     const goal = D.tour && D.tour.goal;   /* torneo: gana el primero que llega a la meta */
     if (S.duelT <= 0 || (goal && (P.kills >= goal || Q.kills >= goal))) {
       S.duelT = Math.max(0, S.duelT);
@@ -3603,6 +3627,7 @@ const Duel = (() => {
   function apply(m) {
     const ky = D.ky, seen = {};
     S.duelT = Number(m.T) || 0; if (m.z != null) setZone(m.z | 0);
+    if (m.l) { if (m.a) applyShip(Q, m.a, true); if (m.b) applyShip(P, m.b, !!D.spec); return; }   /* resumen: solo marcador y naves */
     if (!D.spec && Array.isArray(m.k)) for (const k of m.k) if (Array.isArray(k) && k[0] === 1) statAdd(D.tour ? 'tour' : 'duel', TYPES[k[1] | 0]);
     for (const a of m.e || []) {
       const id = a[0]; seen[id] = 1; let e = D.map[id];
@@ -3620,8 +3645,12 @@ const Duel = (() => {
       if (e.type !== 'hacker' && e.y > -10 && e.y < H + 10) { burst(e.x, e.y, e.color, e.r > 16 ? 28 : 15, 190); Sfx.boom(false); }
     }
     enemies = enemies.filter(e => !e.dead);
-    ebullets = (m.eb || []).map(b => ({ x: b[0], y: b[1] * ky, vx: b[2], vy: b[3] * ky, dead: false }));
-    picks = (m.pk || []).map(p => ({ type: PKT[p[0]] || 'patch', x: p[1], y: p[2] * ky, t: S.t, dead: false }));
+    if (m.eb) ebullets = m.eb.map(b => ({ x: b[0], y: b[1] * ky, vx: b[2], vy: b[3] * ky, dead: false }));
+    else {   /* versión ligera: añadir las balas nuevas y quitar las que ya no están */
+      for (const b of m.en || []) { const o = { id: b[0], x: b[1], y: b[2] * ky, vx: b[3], vy: b[4] * ky, dead: false }; ebullets.push(o); }
+      if (m.ed && m.ed.length) { const gone = new Set(m.ed); ebullets = ebullets.filter(b => !gone.has(b.id)); }
+    }
+    if (m.pk) picks = m.pk.map(p => ({ type: PKT[p[0]] || 'patch', x: p[1], y: p[2] * ky, t: S.t, dead: false }));
     if (m.a) applyShip(Q, m.a, true);
     if (m.b) applyShip(P, m.b, !!D.spec);   /* el espectador ve moverse las dos naves */
     if (m.n !== D.shockN) { D.shockN = m.n; if (m.s) { S.shock = { x: m.s[0], y: m.s[1] * ky, t: 0 }; S.flash = .3; S.shake = 12; Sfx.bomb(); } }
@@ -3629,7 +3658,14 @@ const Duel = (() => {
   function guestTick(dt) {
     S.duelT = Math.max(0, S.duelT - dt);
     if (performance.now() - D.rx > 6000) { if (D.spec) { const cb = D.spec.onEnd; cb && cb(null); } else dropped(); return; }
-    if (!D.spec) { D.inT -= dt; if (D.inT <= 0) { D.inT = .05; send({ t: 'i', x: r(P.x), y: r(P.y / D.ky) }); } }
+    if (!D.spec) {
+      if (!D.pvSent) { D.pvSent = 1; send({ t: 'pv', v: 2 }); }   /* este móvil entiende el estado ligero */
+      D.inT -= dt;
+      if (D.inT <= 0) {   /* la posición de la nave: 15 veces por segundo, y solo si se ha movido (o cada 0,25 s) */
+        D.inT = 1 / 15; const x = r(P.x), y = r(P.y / D.ky);
+        if (x !== D.lx || y !== D.ly || D.inIdle >= .25) { send({ t: 'i', x, y }); D.lx = x; D.ly = y; D.inIdle = 0; } else D.inIdle += 1 / 15;
+      }
+    }
     moveShip(Q, dt);
     const f = Math.min(1, dt * 14);
     for (const e of enemies) {
@@ -3643,7 +3679,8 @@ const Duel = (() => {
       for (const e of enemies) { const dx = e.x - b.x, dy = e.y - b.y, rr = e.r + 4; if (dx * dx + dy * dy < rr * rr) { b.dead = true; e.hit = .08; break; } }
     }
     bullets = bullets.filter(b => !b.dead);
-    for (const b of ebullets) { b.x += b.vx * dt; b.y += b.vy * dt; }
+    for (const b of ebullets) { b.x += b.vx * dt; b.y += b.vy * dt; if (b.y < -40 || b.y > H + 40 || b.x < -40 || b.x > W + 40) b.dead = true; }
+    if (ebullets.some(b => b.dead)) ebullets = ebullets.filter(b => !b.dead);
     for (const p of picks) p.y += 70 * dt;
   }
   function sendBomb() { send({ t: 'bomb' }); }
@@ -4142,6 +4179,7 @@ const Tour = (() => {
   }
   function onHub(m) {
     if (!m) return;
+    if (m.t === 'wn') { X.wn = X.wn || {}; X.wn[String(m.m)] = Number(m.n) || 0; return; }
     if (m.t === 'wait') { if (X.state === 'wait') { const n = Number(m.n) || 1, ch = n !== X.wait.n; X.wait = { n, left: Number(m.left) }; if (ch) render(); else status(); } return; }
     if (m.t === 'table') {
       if (X.state !== 'wait') return;
@@ -4182,7 +4220,8 @@ const Tour = (() => {
     const tb = X.table, pr = tb.pairs[m], oi = pr[0] === tb.you ? pr[1] : pr[0], opp = tb.slots[oi];
     X.playing = m; X.note = '';
     const tour = { me: tourShip(tb.slots[tb.you].sh), opp: tourShip(opp.sh), label: T(LABEL[m]), secs: TC.matchSeconds, goal: TC.goal | 0, cb: (won, msg) => matchEnd(m, won ? tb.you : oi, msg),
-      cast: SRV ? (d => tsend(X.link, { t: 'cast', id: tb.id, m, d })) : null };
+      cast: SRV ? (d => tsend(X.link, { t: 'cast', id: tb.id, m, d })) : null,
+      watched: () => !(X.link && X.link._p && X.link._p.v >= 2) || ((X.wn && X.wn[m]) | 0) > 0 };
     if (opp.bot) { Duel.beginTour(null, true, opp.n, opp.skin, tour); return; }
     if (tb.you < oi) {   /* el de menor posición llama y hace de anfitrión del duelo */
       const c = X.me.connect(opp.pid, { reliable: true }), hello = () => { if (!c._duel && X.playing === m) { tsend(c, { t: 'tm', id: tb.id, m }); setTimeout(hello, 1000); } };
