@@ -3999,6 +3999,26 @@ function buy(cost, apply) {
   save.bits -= cost; apply(); persist(); syncSkin(); ST = stats(); Sfx.buy(); haptic('success');
   $('shopNote').textContent = ''; renderShop();
 }
+/* ---------------- Naves en 3D de verdad ----------------
+   Cada nave que tiene modelo 3D trae una tira de 32 imágenes (8 columnas × 4 filas) con la nave girando.
+   Se descarga solo cuando hace falta; mientras tanto (o si falla) se dibuja la nave de siempre. */
+const S3D = (() => {
+  const LIST = { centinela: 'naves/centinela-giro.webp' }, N = 32, COLS = 8, OFF = Math.PI * 1.5, img = {};
+  function get(id) {
+    const f = LIST[id]; if (!f) return null;
+    let o = img[id];
+    if (!o) { o = img[id] = { ok: false, im: new Image() }; o.im.decoding = 'async'; o.im.onload = () => { o.ok = true; try { Pod.wake(); Hangar.reset(); } catch (e) {} }; o.im.src = assetUrl(f); }
+    return o.ok ? o : null;
+  }
+  /* ang: el mismo ángulo con el que gira la nave dibujada; size: lado del cuadro donde cabe la nave */
+  function draw(g, id, x, y, size, ang) {
+    const o = get(id); if (!o) return false;
+    const fw = o.im.width / COLS, k = Math.round((((ang + OFF) % TAU) + TAU) % TAU / TAU * N) % N;
+    g.drawImage(o.im, (k % COLS) * fw, (k / COLS | 0) * fw, fw, fw, x - size / 2, y - size / 2, size, size);
+    return true;
+  }
+  return { draw, has: id => !!LIST[id] };
+})();
 /* ---------------- Pod: la nave en 3D sobre su plataforma, dentro de las ventanas ----------------
    Un solo bucle para todos los lienzos que se ven; se para solo cuando no se ve ninguno (móviles flojos). */
 const Pod = (() => {
@@ -4021,6 +4041,7 @@ const Pod = (() => {
     g.strokeStyle = 'rgba(92,240,255,.8)'; g.lineWidth = 1.5; g.setLineDash([8, 7]); g.beginPath(); g.ellipse(cx, py, R * 1.1, R * .23, 0, 0, TAU); g.stroke(); g.setLineDash([]);
   }
   function ship(g, sk, cx, sy, sz, ang, D) {
+    if (S3D.draw(g, sk.id, cx, sy + sz * 3, sz * 58, ang)) return;
     const s = sprite(sk, D * sz * 1.1), Z = s.Z / D, L = LITE ? 6 : 13, step = sz * 5 / L;
     for (let i = L; i >= 0; i--) { g.save(); g.translate(cx, sy + i * step); g.scale(1, .62); g.rotate(ang); g.drawImage(i === 0 ? s.a : i < 3 ? s.mid : s.dk, -Z, -Z, Z * 2, Z * 2); g.restore(); }
   }
@@ -7043,6 +7064,8 @@ const Hangar = (() => {
     ctx.globalCompositeOperation = 'source-over';
     /* la nave gira y flota; se ve desde arriba (más estrecha en vertical) y con grosor */
     const ang = -Math.PI / 2 + t * .55, cy0 = sy + Math.sin(t * 2) * 4, pitch = .62, L = LITE ? 7 : 14, Z = spr.Z, step = 16 / L;
+    const { sz: hs } = geo();
+    if (S3D.has(SK.id) && S3D.draw(ctx, SK.id, cx, cy0 + hs * 3, hs * 58, ang)) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; return; }
     ctx.save(); ctx.translate(cx, py - 2); ctx.scale(1, .2); ctx.rotate(ang); ctx.globalAlpha = .45; ctx.drawImage(spr.dk, -Z, -Z, Z * 2, Z * 2); ctx.restore();
     for (let i = L; i >= 0; i--) {
       ctx.save(); ctx.translate(cx, cy0 + i * step); ctx.scale(1, pitch); ctx.rotate(ang);
