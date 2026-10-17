@@ -3310,7 +3310,7 @@ function paintShip(pl) {
   if (sk.id === 'espectro') for (let i = 0; i < pl.hist.length; i++) {
     const h = pl.hist[i]; ctx.save(); ctx.translate(h.x, h.y); ctx.globalAlpha = .05 + .05 * i; drawShip(ctx, sk, S.t); ctx.restore();
   }
-  ctx.save(); ctx.translate(pl.x, pl.y); ctx.rotate(pl.tilt * .35); ctx.globalAlpha = blink ? .35 : 1; drawShip(ctx, sk, S.t); ctx.restore(); ctx.globalAlpha = 1;
+  ctx.save(); ctx.translate(pl.x, pl.y); ctx.globalAlpha = blink ? .35 : 1; if (!S3D.top(ctx, sk.id, pl.tilt, 52)) { ctx.rotate(pl.tilt * .35); drawShip(ctx, sk, S.t); } ctx.restore(); ctx.globalAlpha = 1;
   if (pl.shield) { ctx.beginPath(); ctx.arc(pl.x, pl.y, 27, 0, TAU); ctx.strokeStyle = C.mint; ctx.lineWidth = 1.6; ctx.stroke(); }
   if (pwOn === 'shield') { ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = S.t * 1.5 + i * TAU / 6; ctx.lineTo(pl.x + Math.cos(a) * 30, pl.y + Math.sin(a) * 30); } ctx.closePath(); ctx.strokeStyle = C.amber; ctx.lineWidth = 2; ctx.globalAlpha = .65 + .25 * Math.sin(S.t * 8); ctx.stroke(); ctx.globalAlpha = 1; }
   if (pwOn === 'over') { ctx.globalCompositeOperation = 'lighter'; drawGlow(pl.x, pl.y - 6, 38, C.ember, .45 + .2 * Math.sin(S.t * 20)); ctx.globalCompositeOperation = 'source-over'; }
@@ -4003,21 +4003,29 @@ function buy(cost, apply) {
    Cada nave que tiene modelo 3D trae una tira de 32 imágenes (8 columnas × 4 filas) con la nave girando.
    Se descarga solo cuando hace falta; mientras tanto (o si falla) se dibuja la nave de siempre. */
 const S3D = (() => {
-  const LIST = { centinela: 'naves/centinela-giro.webp' }, N = 32, COLS = 8, OFF = Math.PI * 1.5, img = {};
-  function get(id) {
-    const f = LIST[id]; if (!f) return null;
-    let o = img[id];
-    if (!o) { o = img[id] = { ok: false, im: new Image() }; o.im.decoding = 'async'; o.im.onload = () => { o.ok = true; try { Pod.wake(); Hangar.reset(); } catch (e) {} }; o.im.src = assetUrl(f); }
+  /* spin: la nave girando (n imágenes en cols columnas); top: vista desde arriba para jugar, inclinándose de izquierda a derecha */
+  const LIST = { centinela: { spin: 'naves/centinela-giro.webp', n: 48, cols: 8, top: 'naves/centinela-juego.webp', tn: 9 } }, OFF = Math.PI * 1.5, img = {};
+  function get(f) {
+    let o = img[f];
+    if (!o) { o = img[f] = { ok: false, im: new Image() }; o.im.decoding = 'async'; o.im.onload = () => { o.ok = true; try { Pod.wake(); Hangar.reset(); } catch (e) {} }; o.im.src = assetUrl(f); }
     return o.ok ? o : null;
   }
-  /* ang: el mismo ángulo con el que gira la nave dibujada; size: lado del cuadro donde cabe la nave */
+  /* ang: el ángulo con el que gira la nave; se mezclan dos imágenes seguidas para que el giro sea suave */
   function draw(g, id, x, y, size, ang) {
-    const o = get(id); if (!o) return false;
-    const fw = o.im.width / COLS, k = Math.round((((ang + OFF) % TAU) + TAU) % TAU / TAU * N) % N;
-    g.drawImage(o.im, (k % COLS) * fw, (k / COLS | 0) * fw, fw, fw, x - size / 2, y - size / 2, size, size);
+    const d = LIST[id]; if (!d) return false; const o = get(d.spin); if (!o) return false;
+    const fw = o.im.width / d.cols, f = (((ang + OFF) % TAU) + TAU) % TAU / TAU * d.n, k0 = Math.floor(f) % d.n, k1 = (k0 + 1) % d.n, a = f - Math.floor(f), ga = g.globalAlpha;
+    g.drawImage(o.im, (k0 % d.cols) * fw, (k0 / d.cols | 0) * fw, fw, fw, x - size / 2, y - size / 2, size, size);
+    if (a > .04) { g.globalAlpha = ga * a; g.drawImage(o.im, (k1 % d.cols) * fw, (k1 / d.cols | 0) * fw, fw, fw, x - size / 2, y - size / 2, size, size); g.globalAlpha = ga; }
     return true;
   }
-  return { draw, has: id => !!LIST[id] };
+  /* en la partida: tilt de -1 (hacia la izquierda) a 1 (hacia la derecha) */
+  function top(g, id, tilt, size) {
+    const d = LIST[id]; if (!d || !d.top) return false; const o = get(d.top); if (!o) return false;
+    const fw = o.im.width / d.tn, k = Math.round((clamp(tilt, -1, 1) + 1) / 2 * (d.tn - 1));
+    g.drawImage(o.im, k * fw, 0, fw, o.im.height, -size / 2, -size / 2, size, size);
+    return true;
+  }
+  return { draw, top, has: id => !!LIST[id] };
 })();
 /* ---------------- Pod: la nave en 3D sobre su plataforma, dentro de las ventanas ----------------
    Un solo bucle para todos los lienzos que se ven; se para solo cuando no se ve ninguno (móviles flojos). */
