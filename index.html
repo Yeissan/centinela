@@ -4113,7 +4113,7 @@ const Taller = (() => {
   const _t = () => [T('Daño'), T('Cadencia'), T('Integridad'), T('Imán'), T('Cuarentenas'), T('Duración'), T('Reparación'), T('Minería'), T('Daño doble'), T('Nv {0}/{1}'), T('Máximo'), T('Nave nivel {0} · {1} / {2} XP')];
   const val = (id, s) => ({ power: s.dmg.toFixed(2), rate: (1 / s.fire).toFixed(1), armor: String(s.maxInt), magnet: String(s.magnet), bomb: String(s.maxBombs), time: '×' + s.dur.toFixed(2), regen: '+' + s.regen.toFixed(1), loot: '+' + Math.round((s.loot - 1) * 100) + '%', crit: Math.round(s.crit * 100) + '%' }[id]);
   const RING = (q, rgb) => { const C = 2 * Math.PI * 28; return '<svg class="r" viewBox="0 0 62 62" aria-hidden="true"><circle cx="31" cy="31" r="28" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3"/><circle cx="31" cy="31" r="28" fill="none" stroke="rgb(' + rgb + ')" stroke-width="3" stroke-linecap="round" stroke-dasharray="' + (C * Math.max(.03, q)).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 31 31)"/></svg>'; };
-  let sel = 'power';
+  let sel = null;   /* sin mejora elegida no sale el bocadillo (tapaba la nave) */
   const ringGeo = (w, h) => { const R = Math.max(80, Math.min(w / 2 - 40, h / 2 - 48)); return { cx: w / 2, cy: h / 2 - 6, R }; };
   function render(body) {
     ST = stats();
@@ -4125,11 +4125,11 @@ const Taller = (() => {
       const c = el('span', 'c'); c.innerHTML = SVGI(d, rgb, 21) + RING(lvl / u.max, rgb);
       if (!mx && save.bits >= upCost(u, lvl)) c.append(el('span', 'plus', '+'));
       b.append(c, el('span', 'v', val(u.id, ST)), el('span', 'n', T(nm)));
-      b.addEventListener('click', () => { Sfx.ui(); sel = u.id; renderShop(); });
+      b.addEventListener('click', () => { Sfx.ui(); sel = sel === u.id ? null : u.id; renderShop(); });
       wrap.append(b); nodes.push(b);
     }
     /* bocadillo de la mejora elegida */
-    const u = UPS.find(x => x.id === sel) || UPS[0], [rgb] = UI[u.id], lvl = save.up[u.id] || 0, mx = lvl >= u.max, si = UPS.indexOf(u);
+    const u = UPS.find(x => x.id === sel) || UPS[0], has = !!sel && UPS.some(x => x.id === sel), [rgb] = UI[u.id], lvl = save.up[u.id] || 0, mx = lvl >= u.max, si = UPS.indexOf(u);
     const bub = el('div', 'tbub'); bub.style.setProperty('--rgb', rgb);
     bub.append(el('b', null, T(UI[u.id][2]) + ' · ' + T('Nv {0}/{1}', lvl, u.max)));
     const cmp = el('div', 'cm'); cmp.append(document.createTextNode(val(u.id, ST)));
@@ -4138,7 +4138,7 @@ const Taller = (() => {
     if (mx) bub.append(el('span', 'pay max', T('Máximo')));
     else { const cost = upCost(u, lvl), bb = el('button', 'pay' + (save.bits < cost ? ' poor' : '')); bb.append(el('i', 'gem'), document.createTextNode(fmt(cost)));
       bb.addEventListener('click', () => buy(cost, () => { save.up[u.id] = lvl + 1; })); bub.append(bb); }
-    wrap.append(bub);
+    if (has) wrap.append(bub);
     const lv = shipLevel(), nm = el('div', 'tname'); nm.append(el('b', null, T(SK.name)), el('small', null, T('Nave nivel {0} · {1} / {2} XP', lv.L, fmt(lv.cur), fmt(lv.need))));
     body.append(wrap, nm);
     Pod.mount(cv, {
@@ -4147,13 +4147,14 @@ const Taller = (() => {
       layout: (w, h) => {
         const { cx, cy, R } = ringGeo(w, h);
         nodes.forEach((b, i) => { const a = -Math.PI / 2 + i * TAU / 9; b.style.left = (cx + Math.cos(a) * R) + 'px'; b.style.top = (cy + Math.sin(a) * R) + 'px'; });
+        if (!bub.isConnected) return;
         const a = -Math.PI / 2 + si * TAU / 9, bw = Math.min(176, w - 24), nx = cx + Math.cos(a) * R, ny = cy + Math.sin(a) * R, bh = bub.offsetHeight || 118;
         bub.style.width = bw + 'px'; bub.style.left = clamp(nx - bw / 2, 4, w - bw - 4) + 'px';
         bub.style.top = clamp(Math.sin(a) < .2 ? ny + 50 : ny - 30 - bh, 2, h - bh - 2) + 'px';
       }
     });
   }
-  return { render };
+  return { render, clear: () => { sel = null; } };
 })();
 /* ---------------- Arsenal → Nave: tu nave en 3D, tu potencia en estrella y tus récords ---------------- */
 function renderNave(body) {
@@ -6871,7 +6872,7 @@ for (const b of document.querySelectorAll('[data-close]')) b.addEventListener('c
 $('tabWpn').addEventListener('click', () => { shopTab = 'wpn'; $('shopBody').scrollTop = 0; $('shopNote').textContent = ''; renderShop(); });
 $('tabSkins').addEventListener('click', () => { shopTab = 'skins'; $('shopBody').scrollTop = 0; renderShop(); });
 $('tabShip').addEventListener('click', () => { shopTab = 'ship'; $('shopBody').scrollTop = 0; renderShop(); });
-$('tabUps').addEventListener('click', () => { shopTab = 'ups'; $('shopBody').scrollTop = 0; renderShop(); });
+$('tabUps').addEventListener('click', () => { shopTab = 'ups'; Taller.clear(); $('shopBody').scrollTop = 0; renderShop(); });
 $('btnBitsAd').addEventListener('click', async () => {
   const ok = await withAd(() => Ads.rewarded('arsenal'));
   if (ok) { const n = CONFIG.ads.shopReward; save.bits += n; save.earned += n; persist(); Sfx.buy(); $('shopNote').textContent = T('Has recibido {0} bits.', fmt(n)); renderShop(); }
