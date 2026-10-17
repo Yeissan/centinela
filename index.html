@@ -4004,7 +4004,75 @@ function buy(cost, apply) {
    Se descarga solo cuando hace falta; mientras tanto (o si falla) se dibuja la nave de siempre. */
 const S3D = (() => {
   /* spin: la nave girando (n imágenes en cols columnas); top: vista desde arriba para jugar, inclinándose de izquierda a derecha */
-  const LIST = { centinela: { spin: 'naves/centinela-giro.webp', n: 48, cols: 8, top: 'naves/centinela-juego.webp', tn: 9 } }, OFF = Math.PI * 1.5, img = {};
+  const LIST = { centinela: { mesh: 'naves/centinela-3d.txt', spin: 'naves/centinela-giro.webp', n: 48, cols: 8, top: 'naves/centinela-juego.webp', tn: 9 } }, OFF = Math.PI * 1.5, img = {};
+  /* motor 3D en vivo: la nave de verdad (malla reducida con su color), girando suave a cualquier ángulo y nítida.
+     Si el móvil no tiene WebGL o falla, se usan las imágenes del giro (spin) como antes. */
+  const GLS = (() => {
+    let cv = null, gl = null, pr = null, U = null, big = null, dead = false; const mesh = {};
+    function init() {
+      if (gl || dead) return !!gl;
+      try {
+        cv = document.createElement('canvas'); cv.width = cv.height = 2;
+        gl = cv.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: true, depth: true, powerPreference: 'low-power' });
+        if (!gl) throw 0;
+        big = gl.getExtension('OES_element_index_uint');
+        const VS = 'attribute vec3 p; attribute vec3 n; attribute vec3 c; uniform mat4 M, P; uniform float S; varying vec3 vn, vc, vp;' +
+          'void main(){ vec4 w = M * vec4(p*S,1.0); vp = w.xyz; vn = mat3(M) * n; vc = c; gl_Position = P * w; }';
+        const FS = 'precision mediump float; varying vec3 vn, vc, vp; uniform vec3 tint; uniform float tintK;' +
+          'void main(){ vec3 N = normalize(vn); vec3 L = normalize(vec3(-0.5,0.8,0.6)); vec3 V = normalize(vec3(0.0,0.0,4.0) - vp); vec3 col = vc;' +
+          ' float neon = smoothstep(0.25,0.6, col.b - col.r) * smoothstep(0.3,0.7,col.g);' +
+          ' vec3 nc = mix(col, tint * max(col.g,col.b) * 1.15, tintK * neon);' +
+          ' float d = max(dot(N,L),0.0); float s = pow(max(dot(reflect(-L,N),V),0.0), 28.0); float rim = pow(1.0 - max(dot(N,V),0.0), 3.0);' +
+          ' vec3 o = nc * (0.32 + 0.85*d) + vec3(0.55)*s*(1.0-neon) + tint*rim*0.45 + nc*neon*0.9; gl_FragColor = vec4(o, 1.0); }';
+        const sh = (k, src) => { const o = gl.createShader(k); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+        pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr);
+        if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw 0;
+        U = {}; for (const n of ['M', 'P', 'S', 'tint', 'tintK']) U[n] = gl.getUniformLocation(pr, n);
+        cv.addEventListener('webglcontextlost', e => { e.preventDefault(); dead = true; gl = null; try { Pod.wake(); Hangar.reset(); } catch (er) {} });
+        return true;
+      } catch (e) { dead = true; gl = null; return false; }
+    }
+    /* malla (en base64 dentro de un .txt): cabecera (vértices, índices, índices de 16 bits, escala) + posiciones int16 + color uint8 + normales int8 + índices */
+    function upload(buf) {
+      const h = new Uint32Array(buf, 0, 3), nv = h[0], ni = h[1], u16 = h[2] === 1, sc = new Float32Array(buf, 12, 1)[0];
+      if (!u16 && !big) throw 0;
+      let o = 16; const pos = new Int16Array(buf, o, nv * 3); o += nv * 6; const col = new Uint8Array(buf, o, nv * 3); o += nv * 3; const nrm = new Int8Array(buf, o, nv * 3); o += nv * 3; o += (4 - o % 4) % 4;
+      const idx = u16 ? new Uint16Array(buf, o, ni) : new Uint32Array(buf, o, ni);
+      const att = (name, arr, type) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW); return { b, loc: gl.getAttribLocation(pr, name), type }; };
+      const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+      return { a: [att('p', pos, gl.SHORT), att('c', col, gl.UNSIGNED_BYTE), att('n', nrm, gl.BYTE)], ib, ni, it: u16 ? gl.UNSIGNED_SHORT : gl.UNSIGNED_INT, sc };
+    }
+    function get(f) {
+      if (!init()) return null;
+      let m = mesh[f];
+      if (!m) {
+        m = mesh[f] = { st: 0 };
+        fetch(assetUrl(f)).then(r => { if (!r.ok) throw 0; return r.text(); }).then(t => { const a = atob(t.trim()), u = new Uint8Array(a.length); for (let i = 0; i < a.length; i++) u[i] = a.charCodeAt(i); return u.buffer; })
+          .then(b => { if (!gl) throw 0; m.d = upload(b); m.st = 1; try { Pod.wake(); Hangar.reset(); } catch (e) {} })
+          .catch(() => { m.st = -1; try { Pod.wake(); Hangar.reset(); } catch (e) {} });
+      }
+      return m;
+    }
+    const mul = (a, b) => { const o = new Float32Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + i] * b[j * 4 + k]; o[j * 4 + i] = s; } return o; };
+    const rotY = a => [Math.cos(a), 0, -Math.sin(a), 0, 0, 1, 0, 0, Math.sin(a), 0, Math.cos(a), 0, 0, 0, 0, 1];
+    const rotX = a => [1, 0, 0, 0, 0, Math.cos(a), Math.sin(a), 0, 0, -Math.sin(a), Math.cos(a), 0, 0, 0, 0, 1];
+    const PROJ = (() => { const t = 1 / Math.tan(.31), n = .1, fa = 20; return new Float32Array([t, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]); })();
+    /* devuelve el lienzo con la nave pintada (cuadrado de px píxeles), o null si aún no está lista */
+    function render(f, yaw, px) {
+      const m = get(f); if (!m || m.st !== 1 || !gl) return m && m.st === -1 ? false : null;
+      px = Math.max(32, Math.min(560, Math.round(px)));
+      if (cv.width !== px) { cv.width = cv.height = px; }
+      const d = m.d; gl.viewport(0, 0, px, px); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST); gl.useProgram(pr);
+      for (const a of d.a) { gl.bindBuffer(gl.ARRAY_BUFFER, a.b); gl.enableVertexAttribArray(a.loc); gl.vertexAttribPointer(a.loc, 3, a.type, true, 0, 0); }
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, d.ib);
+      const k = .82; gl.uniformMatrix4fv(U.M, false, mul([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -3.2, 1], mul(rotX(.62), mul(rotY(yaw), [k, 0, 0, 0, 0, k, 0, 0, 0, 0, k, 0, 0, 0, 0, 1]))));
+      gl.uniformMatrix4fv(U.P, false, PROJ); gl.uniform1f(U.S, d.sc); gl.uniform3fv(U.tint, [0.36, 0.94, 1.0]); gl.uniform1f(U.tintK, 0);
+      gl.drawElements(gl.TRIANGLES, d.ni, d.it, 0);
+      return cv;
+    }
+    return { render, ok: () => !dead };
+  })();
   function get(f) {
     let o = img[f];
     if (!o) { o = img[f] = { ok: false, im: new Image() }; o.im.decoding = 'async'; o.im.onload = () => { o.ok = true; try { Pod.wake(); Hangar.reset(); } catch (e) {} }; o.im.src = assetUrl(f); }
@@ -4012,7 +4080,14 @@ const S3D = (() => {
   }
   /* ang: el ángulo con el que gira la nave; se mezclan dos imágenes seguidas para que el giro sea suave */
   function draw(g, id, x, y, size, ang) {
-    const d = LIST[id]; if (!d) return false; const o = get(d.spin); if (!o) return false;
+    const d = LIST[id]; if (!d) return false;
+    if (d.mesh && GLS.ok()) {
+      let sc = 1; try { const m = g.getTransform(); sc = Math.hypot(m.a, m.b) || 1; } catch (e) { sc = dpr || 1; }
+      const c = GLS.render(d.mesh, ang + OFF, size * sc);
+      if (c) { g.drawImage(c, x - size / 2, y - size / 2, size, size); return true; }
+      if (c === null) return false;   /* aún cargando: mientras tanto, la nave dibujada */
+    }
+    const o = get(d.spin); if (!o) return false;
     const fw = o.im.width / d.cols, f = (((ang + OFF) % TAU) + TAU) % TAU / TAU * d.n, k0 = Math.floor(f) % d.n, k1 = (k0 + 1) % d.n, a = f - Math.floor(f), ga = g.globalAlpha;
     g.drawImage(o.im, (k0 % d.cols) * fw, (k0 / d.cols | 0) * fw, fw, fw, x - size / 2, y - size / 2, size, size);
     if (a > .04) { g.globalAlpha = ga * a; g.drawImage(o.im, (k1 % d.cols) * fw, (k1 / d.cols | 0) * fw, fw, fw, x - size / 2, y - size / 2, size, size); g.globalAlpha = ga; }
@@ -7074,7 +7149,7 @@ const Hangar = (() => {
     /* la nave gira y flota; se ve desde arriba (más estrecha en vertical) y con grosor */
     const ang = -Math.PI / 2 + t * .55, cy0 = sy + Math.sin(t * 2) * 4, pitch = .62, L = LITE ? 7 : 14, Z = spr.Z, step = 16 / L;
     const { sz: hs } = geo();
-    if (S3D.has(SK.id) && S3D.draw(ctx, SK.id, cx, cy0 + hs * 3, hs * 58, ang)) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; return; }
+    if (S3D.has(SK.id) && S3D.draw(ctx, SK.id, cx, cy0 + hs * 3, hs * 54, ang)) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; return; }
     ctx.save(); ctx.translate(cx, py - 2); ctx.scale(1, .2); ctx.rotate(ang); ctx.globalAlpha = .45; ctx.drawImage(spr.dk, -Z, -Z, Z * 2, Z * 2); ctx.restore();
     for (let i = L; i >= 0; i--) {
       ctx.save(); ctx.translate(cx, cy0 + i * step); ctx.scale(1, pitch); ctx.rotate(ang);
