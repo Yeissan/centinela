@@ -4152,7 +4152,12 @@ function buy(cost, apply) {
 const S3D = (() => {
   /* spin: la nave girando (n imágenes en cols columnas); top: vista desde arriba para jugar, inclinándose de izquierda a derecha */
   const LIST = { centinela: { mesh: 'naves/centinela-3d.txt', spin: 'naves/centinela-giro.webp', n: 48, cols: 8, top: 'naves/centinela-juego.webp', tn: 9, neon: [0.36, 0.94, 1.0], hue: 186 },
-    f_espectro: { mesh: 'naves/espectro-3d.txt', top: 'naves/espectro-juego.webp', tn: 9, neon: [0.85, 0.35, 0.9], hue: 300 } }, OFF = Math.PI * 1.5, img = {};
+    f_espectro: { mesh: 'naves/espectro-3d.txt', top: 'naves/espectro-juego.webp', tn: 9, neon: [0.85, 0.35, 0.9], hue: 300 },
+    f_shuriken: { mesh: 'naves/shuriken-3d.txt', top: 'naves/shuriken-juego.webp', tn: 9, neon: [0.95, 0.78, 0.3], hue: 45 },
+    f_bastion: { mesh: 'naves/bastion-3d.txt', top: 'naves/bastion-juego.webp', tn: 9, neon: [1.0, 0.62, 0.1], hue: 38 },
+    f_nucleo: { mesh: 'naves/nucleo-3d.txt', top: 'naves/nucleo-juego.webp', tn: 9, neon: [0.3, 0.9, 1.0], hue: 186 },
+    f_furia: { mesh: 'naves/furia-3d.txt', top: 'naves/furia-juego.webp', tn: 9, neon: [0.8, 0.15, 0.45], hue: 335 },
+    f_corona: { mesh: 'naves/corona-3d.txt', top: 'naves/corona-juego.webp', tn: 9, neon: [0.5, 0.35, 0.9], hue: 260 } }, OFF = Math.PI * 1.5, img = {};
   /* motor 3D en vivo: la nave de verdad (malla reducida con su color), girando suave a cualquier ángulo y nítida.
      Si el móvil no tiene WebGL o falla, se usan las imágenes del giro (spin) como antes. */
   const GLS = (() => {
