@@ -483,7 +483,8 @@ a.buy{text-decoration:none}
 #menu .si{width:24px;height:24px;fill:none;stroke:var(--c,var(--core));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px var(--c,var(--core)))}
 .mtop{position:relative;display:flex;align-items:center;gap:10px}
 .mtop .av{width:42px;height:42px;border-radius:50%;clip-path:none;border:2px solid var(--core);box-shadow:0 0 14px -2px var(--core);font-size:17px}
-.mwho{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mwho{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;position:relative}
+.mins{position:absolute;left:-30px;bottom:-12px;width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 4px rgba(0,0,0,.8));pointer-events:none}
 .mwho b{font-size:14px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mwho small{font-family:var(--mono);font-size:11px;color:var(--dim)}.mwho strong{color:var(--ink)}
 .mtop .wallet{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-radius:999px;background:rgba(10,14,40,.85);border:1px solid rgba(255,182,46,.6);font-weight:800;color:var(--amber);font-size:15px}
@@ -579,6 +580,9 @@ a.buy{text-decoration:none}
 #stats .pwho b{font-size:21px}
 #stats .ptitle{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(255,182,46,.15);border:1px solid rgba(255,182,46,.5);color:#ffd76a !important;font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 #stats .ptitle .pi{width:14px;height:14px}
+#stats .ptitle .tins{width:30px;height:30px;margin:-8px -2px -8px -8px;object-fit:contain}
+.rkr .rkins{width:30px;height:30px;flex:none;object-fit:contain;margin-left:-4px}
+.rkme{position:relative}.rkme .rkmeins{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(255,182,46,.35))}
 #stats .ptiles{gap:8px}
 #stats .ptiles div{padding:10px 4px;border-radius:20px;border:1px solid rgba(var(--rgb),.35);background:linear-gradient(180deg,rgba(var(--rgb),.2),rgba(12,14,40,.9))}
 #stats .ptiles .o{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(5,6,15,.6);color:rgb(var(--rgb));filter:drop-shadow(0 0 4px rgb(var(--rgb)))}
@@ -1086,7 +1090,7 @@ button.cxbtn.go{border:0;background:linear-gradient(180deg,#ffd76a,#ffb62e);colo
       <div class="panel-in">
         <div class="mtop">
           <button class="ico av" id="btnAv" aria-label="Perfil y estadísticas">C</button>
-          <div class="mwho"><b id="mName">Agente</b><small>Rango <strong id="rankMenu">0</strong></small></div>
+          <div class="mwho"><b id="mName">Agente</b><img id="mIns" class="mins" alt="" hidden><small>Rango <strong id="rankMenu">0</strong></small></div>
           <span class="wallet"><i class="gem"></i><strong id="walletMenu">0</strong></span>
           <button class="ico mset" id="btnSet" aria-label="Ajustes" aria-expanded="false"><svg class="si" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
           <div class="setpop" id="setPop" hidden>
@@ -3656,7 +3660,7 @@ function refreshMenu() {
   $('survS').textContent = save.surv.best ? T('Récord {0}', fmt(save.surv.best)) : T('Oleadas sin fin');
   $('btnChan').hidden = !(CHAN || GROUP); $('btnChan').classList.toggle('hot', chanGift); $('chanS').textContent = chanGift ? T('+{0} bits', fmt((!save.chan ? CONFIG.telegram.channelBonus : 0) + (TIKTOK && !save.tt ? CONFIG.telegram.tiktokBonus : 0))) : CHAN && GROUP ? T('Grupo y canal') : CHAN ? T('Canal oficial') : T('Grupo oficial');
   $('playSub').textContent = T('Nivel {0} · {1}', pad2(save.level), T(ZONES[zoneOfLevel(save.level)].name));
-  $('mName').textContent = myName(); $('mShipN').textContent = T(SK.name); $('mShipS').textContent = T('Tu nave · nivel {0}', shipLevel().L);
+  $('mName').textContent = myName(); { const mi = $('mIns'); if (save.title && ACH.some(x => x.id === save.title)) { const u = assetUrl('insignias/' + save.title + '.webp'); if (mi.dataset.u !== u) { mi.dataset.u = u; mi.src = u; } mi.hidden = false; mi.onerror = () => { mi.hidden = true; }; } else mi.hidden = true; } $('mShipN').textContent = T(SK.name); $('mShipS').textContent = T('Tu nave · nivel {0}', shipLevel().L);
   if (typeof Hangar !== 'undefined') Hangar.reset();
   if (save.name || tgUser) $('greet').textContent = T('{0}: eres el antivirus. Limpia la red nivel a nivel antes de que la infección la cruce.', myName());
 }
@@ -4609,11 +4613,13 @@ function rkCard(card, pos, total, line, delta) {
   nm.append(el('b', null, myName() + (save.pr ? ' ★' + save.pr : '')), pen); t.append(nm, el('small', null, line));
   if (delta > 0) t.append(el('span', 'up', '▲ ' + (delta === 1 ? T('subes 1 puesto') : T('subes {0} puestos', delta))));
   else if (delta < 0) t.append(el('span', 'up dn', '▼ ' + (delta === -1 ? T('bajas 1 puesto') : T('bajas {0} puestos', -delta))));
-  card.append(big, t);
+  card.append(big, t); if (save.title) card.append(insImg(save.title, 'rkmeins'));
 }
-function rkRow(i, name, sub, pts, me) {
+/* insignia del título en uso (imagen pequeña) */
+const insImg = (id, cls) => { const im = el('img', cls || 'tins'); im.src = assetUrl('insignias/' + id + '.webp'); im.alt = ''; im.onerror = () => im.remove(); return im; };
+function rkRow(i, name, sub, pts, me, ins) {
   const r = el('div', 'rkr' + (me ? ' me' : '')), pos = el('span', 'p', i < 3 ? ['🥇', '🥈', '🥉'][i] : String(i + 1)), a = el('span', 'a', (name[0] || '?').toUpperCase()), w = el('span', 'w');
-  a.style.setProperty('--cc', rkCol(name)); w.append(el('b', null, name), el('small', null, sub)); r.append(pos, a, w, el('em', null, fmt(pts))); return r;
+  a.style.setProperty('--cc', rkCol(name)); w.append(el('b', null, name), el('small', null, sub)); r.append(pos, a, w); if (ins && ACH.some(x => x.id === ins)) r.append(insImg(ins, 'rkins')); r.append(el('em', null, fmt(pts))); return r;
 }
 /* quita las filas que no caben: la ventana nunca se desplaza */
 function rkFit(list) { requestAnimationFrame(() => { const lim = list.getBoundingClientRect().bottom + 1; for (const r of [...list.children].reverse()) { if (r.getBoundingClientRect().bottom > lim && list.children.length > 1) r.remove(); else break; } }); }
@@ -4668,7 +4674,7 @@ async function renderRank() {
     $('rankNote').textContent = top.length ? '' : T('Todavía no hay nadie en el ranking.');
     const uid = Online.myId(); let pos = 0;
     if (!Online.useApi) { for (const p of top) if (p.id === uid) { p.p = mine; p.n = myName(); p.l = save.level; p.w = save.duelWins; p.t = save.title; p.pr = save.pr; } top.sort((a, b) => b.p - a.p); }
-    top.forEach((p, i) => { const me = p.id === uid; if (me) pos = i + 1; list.append(rkRow(i, p.n + (p.pr ? ' ★' + p.pr : ''), sub(p.t, p.l), p.p, me)); });
+    top.forEach((p, i) => { const me = p.id === uid; if (me) pos = i + 1; list.append(rkRow(i, p.n + (p.pr ? ' ★' + p.pr : ''), sub(p.t, p.l), p.p, me, p.t)); });
     rkCard(card, pos, top.length, myLine, rkDelta('gen', pos)); rkFit(list);
     if (Online.useApi) $('rankNote').textContent = inTg ? (pos ? '' : T('Tu fila aparecerá cuando el servidor confirme tu progreso.')) : T('Abre el juego dentro de Telegram para aparecer en el ranking.');
   } catch (e) {
@@ -7089,7 +7095,7 @@ function renderStats() {
   ring.innerHTML = '<svg viewBox="0 0 92 92" aria-hidden="true"><defs><linearGradient id="avg"><stop offset="0" stop-color="#ff5ad1"/><stop offset="1" stop-color="#5cf0ff"/></linearGradient></defs><circle cx="46" cy="46" r="42" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/><circle cx="46" cy="46" r="42" fill="none" stroke="url(#avg)" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + (C * Math.max(.02, sl.cur / sl.need)).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 46 46)"/></svg>';
   ring.append(av, el('em', null, T('NV {0}', sl.L)));
   const who = el('div', 'pwho'); who.append(el('b', null, myName() + (save.pr ? ' ★' + save.pr : '')));
-  if (save.title) { const tt = el('span', 'ptitle'); tt.innerHTML = PI.medal; tt.append(Ach.title(save.title)); who.append(tt); }
+  if (save.title) { const tt = el('span', 'ptitle'); tt.append(insImg(save.title), Ach.title(save.title)); who.append(tt); }
   who.append(el('span', null, T('Rango {0} · ★ {1} estrellas', fmt(rankPoints()), fmt(totalStars()))));
   const acts = el('div', 'pacts'), ch = el('button', 'linkbtn', Avatar.has() ? T('Cambiar foto') : T('Poner foto'));
   ch.addEventListener('click', () => $('avFile').click()); acts.append(ch);
