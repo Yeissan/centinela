@@ -1814,11 +1814,10 @@ const CHARGE = { pack: 5, gift: 5, adEnergy: 2 };   /* red de captura: se compra
 const wpnDur = lv => 6 + .6 * lv, wpnCool = lv => 20 - lv;
 function useWeapon(i) {
   const w = S.wl && S.wl[i | 0]; if (!w || S.kind === 'duel' || S.mode !== 'play' || P.out > 0 || w.act.cd > 0) return;
-  if (S.wact && S.wact.t > 0 && S.wact !== w.act) return;   /* un arma especial cada vez */
   S.wpn = w; S.wact = w.act;
   S.wact.t = wpnDur(w.lv); S.wact.cd = wpnDur(w.lv) + wpnCool(w.lv);
   const nm = T((WEAPONS.find(x => x.id === w.id) || {}).name || '').toUpperCase();
-  floatText(P.x, P.y - 40, nm + '!', w.id === 'missile' ? C.ember : w.id === 'arc' ? C.hack : C.core, 15, 1.2);
+  floatText(P.x, P.y - 40 - 20 * (S.wl.filter(x => x !== w && x.act.t > 0).length), nm + '!', w.id === 'missile' ? C.ember : w.id === 'arc' ? C.hack : C.core, 15, 1.2);
   burst(P.x, P.y, w.id === 'missile' ? C.ember : w.id === 'arc' ? C.hack : C.core, 20, 220); Sfx.warp(); haptic('medium');
 }
 /* se pueden llevar hasta 3 armas especiales a la vez; cada una gasta 1 carga por partida */
@@ -3236,10 +3235,12 @@ function moveShip(pl, dt) {
   pl.tilt += (clamp((pl.x - px) / Math.max(dt, .001) / 420, -1, 1) - pl.tilt) * Math.min(1, dt * 10);
 }
 /* temporizadores, reinicio tras caer, disparo automático y estela de una nave */
+/* arma especial activa ahora mismo (pueden estarlo varias a la vez) */
+function wOn(id) { return S.kind !== 'duel' && S.wl ? S.wl.find(w => w.id === id && w.act.t > 0) || null : null; }
 /* láser: daña sin parar a todo lo que está en la columna de la nave */
 function laserTick(dt, live) {
-  if (!live || S.kind === 'duel' || !S.wpn || S.wpn.id !== 'laser' || !(S.wact && S.wact.t > 0) || P.out > 0 || S.mode !== 'play') return;
-  const dps = P.dmg / P.gap * 1.05 * S.wpn.mul * (P.rapid > 0 ? 1.8 : 1);
+  const lw = wOn('laser'); if (!live || !lw || P.out > 0 || S.mode !== 'play') return;
+  const dps = P.dmg / P.gap * 1.05 * lw.mul * (P.rapid > 0 ? 1.8 : 1);
   for (const e of enemies) if (!e.dead && (e.type !== 'hacker' || e.net > 0) && e.y < P.y - 10 && e.y > -e.r && Math.abs(e.x - P.x) < e.r + 6) {
     e.hp -= dps * dt; e.hit = .05; if (e.hp <= .001) kill(e, P);
   }
@@ -3298,14 +3299,18 @@ function shipTick(pl, dt, live) {
     /* como mucho 10 disparos por segundo: lo que pase de ahí se convierte en más daño, así las balas no se ven como una línea */
     const want = pl.gap * (pl.rapid > 0 ? .55 : 1) * (pl.pw && pl.pw.k === 'over' && pl.pw.t > 0 ? .5 : 1), FMIN = .1;
     pl.fire = Math.max(FMIN, want);
-    const w = pl === P && S.kind !== 'duel' && S.wpn && S.wact && S.wact.t > 0 ? S.wpn : null, wid = w ? w.id : 'pulse', m = (w ? w.mul : 1) * (want < FMIN ? FMIN / want : 1);
-    if (wid === 'laser') { /* rayo continuo: se calcula en laserTick */ }
-    else if (wid === 'spread') for (const a of [-.17, 0, .17]) bullets.push({ x: pl.x, y: pl.y - 14, vx: Math.sin(a) * 640, vy: -Math.cos(a) * 640, dead: false, o: pl, m: m * .62 });
-    else if (wid === 'missile') { pl.fire *= 1.8; bullets.push({ x: pl.x, y: pl.y - 16, vx: 0, vy: -430, dead: false, o: pl, m: m * 1.7, hom: 1, t: 0 }); }
-    else if (wid === 'arc') { pl.fire *= 1.15; bullets.push({ x: pl.x, y: pl.y - 16, vx: 0, vy: -640, dead: false, o: pl, m, arc: 2 + (w.lv >= 3 ? 1 : 0) + (w.lv >= 5 ? 1 : 0) }); }
-    else bullets.push({ x: pl.x, y: pl.y - 16, vx: 0, vy: -640, dead: false, o: pl, m });
-    if (pl.spread > 0 && wid !== 'laser') for (const a of [-.2, .2]) bullets.push({ x: pl.x, y: pl.y - 12, vx: Math.sin(a) * 640, vy: -Math.cos(a) * 640, dead: false, o: pl, m });
-    if (live && pl === P && wid !== 'laser') Sfx.shoot();
+    /* las armas especiales activas disparan a la vez; si no hay ninguna, el Pulso */
+    const acts = pl === P && S.kind !== 'duel' && S.wl ? S.wl.filter(w => w.act.t > 0) : [], k = want < FMIN ? FMIN / want : 1;
+    const onlyLaser = acts.length > 0 && acts.every(w => w.id === 'laser');
+    if (!acts.length) bullets.push({ x: pl.x, y: pl.y - 16, vx: 0, vy: -640, dead: false, o: pl, m: k });
+    for (const w of acts) {
+      const m = w.mul * k;
+      if (w.id === 'spread') for (const a of [-.17, 0, .17]) bullets.push({ x: pl.x, y: pl.y - 14, vx: Math.sin(a) * 640, vy: -Math.cos(a) * 640, dead: false, o: pl, m: m * .62 });
+      else if (w.id === 'missile') { w.mc = (w.mc | 0) + 1; if (w.mc % 2 === 1) bullets.push({ x: pl.x + (acts.length > 1 ? 10 : 0), y: pl.y - 16, vx: 0, vy: -430, dead: false, o: pl, m: m * 1.9, hom: 1, t: 0 }); }
+      else if (w.id === 'arc') bullets.push({ x: pl.x - (acts.length > 1 ? 8 : 0), y: pl.y - 16, vx: 0, vy: -640, dead: false, o: pl, m: m * .87, arc: 2 + (w.lv >= 3 ? 1 : 0) + (w.lv >= 5 ? 1 : 0) });
+    }
+    if (pl.spread > 0 && !onlyLaser) for (const a of [-.2, .2]) bullets.push({ x: pl.x, y: pl.y - 12, vx: Math.sin(a) * 640, vy: -Math.cos(a) * 640, dead: false, o: pl, m: k });
+    if (live && pl === P && !onlyLaser) Sfx.shoot();
   }
   if (parts.length < (LITE ? 180 : 520)) parts.push({ x: pl.x + rand(-3, 3), y: pl.y + 13, vx: rand(-12, 12), vy: rand(70, 140), life: .28, max: .28, color: pl.sk.main, size: rand(2, 3.5), bit: false, ch: '' });
 }
@@ -3700,7 +3705,7 @@ function draw() {
   for (const b of bullets) { if (b.hom) drawGlow(b.x, b.y, 16, C.ember, .9); else { const sk = (b.o || P).sk; ctx.drawImage(b.arc ? bolt(C.hack, '#e8d8ff') : bolt(sk.main, sk.acc || sk.main), b.x - 12, b.y - 30); } }
   ctx.fillStyle = '#ffffff';
   for (const b of bullets) { if (b.hom) { ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(Math.atan2(b.vy, b.vx) + Math.PI / 2); ctx.fillRect(-2.2, -8, 4.4, 14); ctx.restore(); } }
-  if (S.kind !== 'duel' && S.wpn && S.wpn.id === 'laser' && S.wact && S.wact.t > 0 && S.mode === 'play' && S.alive && P.out <= 0) {   /* rayo del láser */
+  if (wOn('laser') && S.mode === 'play' && S.alive && P.out <= 0) {   /* rayo del láser */
     const fl = .75 + .25 * Math.sin(S.t * 50), x = P.x;
     let gr = ctx.createLinearGradient(x - 9, 0, x + 9, 0); gr.addColorStop(0, rgba(SK.main, 0)); gr.addColorStop(.5, rgba(SK.main, .55 * fl)); gr.addColorStop(1, rgba(SK.main, 0));
     ctx.fillStyle = gr; ctx.fillRect(x - 9, 0, 18, P.y - 16); ctx.fillStyle = 'rgba(255,255,255,' + (.85 * fl).toFixed(2) + ')'; ctx.fillRect(x - 1.5, 0, 3, P.y - 16);
@@ -7547,7 +7552,6 @@ var Acts = (() => {
       cls(nb, 'hot', enemies.some(e => e.type === 'hacker' && !e.dead && !e.flee && !(e.net > 0))); dis(nb, P.out > 0);
     }
     /* hasta 3 armas especiales */
-    const other = S.wact && S.wact.t > 0 ? S.wact : null;
     ['btnWpn', 'btnWpn2', 'btnWpn3'].forEach((id, i) => {
       const b = $(id), w = !duel && play && S.wl ? S.wl[i] : null;
       if (b.hidden === !!w) b.hidden = !w;
@@ -7556,7 +7560,7 @@ var Acts = (() => {
       const on = w.act.t > 0, cd = !on && w.act.cd > 0, d = wpnDur(w.lv), c = wpnCool(w.lv);
       ring(b, 24, Math.round(24 * (on ? clamp(w.act.t / d, 0, 1) : cd ? 1 - clamp(w.act.cd / c, 0, 1) : 1)));
       badge(b, on ? String(Math.ceil(w.act.t)) : cd ? String(Math.ceil(w.act.cd)) : '');
-      cls(b, 'on', on); dis(b, on || cd || P.out > 0 || (!!other && other !== w.act));
+      cls(b, 'on', on); dis(b, on || cd || P.out > 0);
     });
     const sg = ['btnBomb', 'btnNet', 'btnWpn', 'btnWpn2', 'btnWpn3'].map(id => $(id).hidden ? 0 : 1).join('') + lay;
     if (sg !== sig) { sig = sg; place(); }
@@ -7669,10 +7673,11 @@ $('btnDuelExit').addEventListener('click', () => { Duel.leave(); goMenu(); });
 $('btnResume').addEventListener('click', () => setPause(false));
 $('btnQuit').addEventListener('click', () => { if (S.kind === 'surv' && S.mode === 'pause') { show('pause', false); S.survEnd = 'quit'; showSurv(); } else goMenu(); });
 $('btnPause').addEventListener('click', () => setPause(true));
-$('btnBomb').addEventListener('click', () => bomb());
-$('btnWpn2').addEventListener('click', () => useWeapon(1)); $('btnWpn3').addEventListener('click', () => useWeapon(2));
-NewShip.init(); Prizes.init(); $('btnNet').addEventListener('click', throwNet); 
-$('btnWpn').addEventListener('click', () => useWeapon(0));
+/* los botones de disparo responden al tocar (pointerdown): así funcionan con otro dedo moviendo la nave y varios a la vez */
+const actBtn = (id, fn) => { const b = $(id); b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (!b.disabled) fn(); }); b.addEventListener('click', e => { if (e.detail === 0) fn(); }); };
+actBtn('btnBomb', () => bomb()); actBtn('btnWpn', () => useWeapon(0)); actBtn('btnWpn2', () => useWeapon(1)); actBtn('btnWpn3', () => useWeapon(2)); actBtn('btnNet', throwNet);
+NewShip.init(); Prizes.init();  
+
 $('btnMuteRow').addEventListener('click', () => { Sfx.init(); const on = !(save.music || save.sfx); save.music = save.sfx = on; persist(); refreshAudioUi(); });
 $('togMusic').addEventListener('click', () => { save.music = !save.music; persist(); refreshAudioUi(); });
 $('togGfx').addEventListener('click', () => { Sfx.ui(); Gfx.cycle(); });
