@@ -1765,7 +1765,7 @@ const SAVE_KEY = 'cen_save';
 const save = { v: 2, bits: 0, earned: 0, level: 1, best: {}, stars: {}, skin: 'centinela', skins: ['centinela'], up: {}, kills: {}, seen: {},
   bossKills: 0, duelWins: 0, duelPlayed: 0, uid: '', name: '', music: true, sfx: true,
   xp: 0, ref: '', refSrc: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, sharePaid: {}, intro: false, bet: 0,
-  tup: { rate: 0, power: 0, armor: 0, bomb: 0 }, tfee: 0, tpts: { id: '', p: 0 }, tclaim: '', twins: 0, tplay: 0, chan: 0, tt: 0, dayLast: 0, dayN: 0, dayDbl: 0, dayAdD: 0, dayAdN: 0, surv: { best: 0, bestW: 0, runs: 0 }, swk: { id: '', p: 0, w: 0 }, q: null, stk: { level: {}, surv: {}, duel: {}, tour: {}, mig: 0 }, stg: { level: 0, surv: 0, duel: 0, tour: 0 }, wpn: { eq: 'pulse', own: { pulse: 0 }, ch: {} }, nrg: 0, nets: 0, hackKills: 0, vb: 0, vbw: 0, homeAsk: 0, flv: 0, cred: 0, ovc: { e: 500, et: 0, p: 0, n: 0, auto: 1 }, col: '', colSeen: [], vsn: 0, vk: {}, crk: {}, cxv: 0, ach: {}, title: '', przSeen: '', cleanBoss: 0, pr: 0, ppBank: 0, lvMax: 0, th: { ship: 'vigia', own: { vigia: [0, 0, 0] }, nuc: 0, mig: 0 } };   /* th: hangar de torneo (nave en uso, naves compradas con sus niveles, núcleos y si ya se devolvieron las mejoras antiguas) */   /* q: retos diarios {d: día, ids, p: progreso, c: recogidos, b: extra recogido} */   /* supervivencia: récord, y mejor marca de la semana (ranking semanal) */   /* regalo diario: último día recogido (n.º de día local), racha y día en que se duplicó */   /* torneo: nave, inscripción en juego, puntos del fin de semana */   /* bet: apuesta en juego de un duelo sin terminar */
+  tup: { rate: 0, power: 0, armor: 0, bomb: 0 }, tfee: 0, tpts: { id: '', p: 0 }, tclaim: '', twins: 0, tplay: 0, chan: 0, tt: 0, dayLast: 0, dayN: 0, dayDbl: 0, dayAdD: 0, dayAdN: 0, surv: { best: 0, bestW: 0, runs: 0 }, swk: { id: '', p: 0, w: 0 }, q: null, stk: { level: {}, surv: {}, duel: {}, tour: {}, mig: 0 }, stg: { level: 0, surv: 0, duel: 0, tour: 0 }, wpn: { eq: 'pulse', own: { pulse: 0 }, ch: {} }, nrg: 0, nets: 0, hackKills: 0, vb: 0, vbw: 0, homeAsk: 0, flv: 0, cred: 0, ovc: { e: 300, et: 0, p: 0, n: 0, auto: 1 }, col: '', colSeen: [], vsn: 0, vk: {}, crk: {}, cxv: 0, ach: {}, title: '', przSeen: '', cleanBoss: 0, pr: 0, ppBank: 0, lvMax: 0, th: { ship: 'vigia', own: { vigia: [0, 0, 0] }, nuc: 0, mig: 0 } };   /* th: hangar de torneo (nave en uso, naves compradas con sus niveles, núcleos y si ya se devolvieron las mejoras antiguas) */   /* q: retos diarios {d: día, ids, p: progreso, c: recogidos, b: extra recogido} */   /* supervivencia: récord, y mejor marca de la semana (ranking semanal) */   /* regalo diario: último día recogido (n.º de día local), racha y día en que se duplicó */   /* torneo: nave, inscripción en juego, puntos del fin de semana */   /* bet: apuesta en juego de un duelo sin terminar */
 for (const u of UPS) save.up[u.id] = 0;
 /* tras renacer (prestigio), una copia antigua de otro dispositivo no debe devolver los niveles */
 function applySave(d) {
@@ -1834,7 +1834,7 @@ function applySave0(d) {
   if (d.crk && typeof d.crk === 'object') for (const k in d.crk) if (/^(v\d{1,2}|[a-z]{2,8})$/.test(k)) save.crk[k] = clamp(Math.max(save.crk[k] | 0, num(d.crk[k], 0)), 0, 3);
   if (d.vk && typeof d.vk === 'object') for (const k in d.vk) { const i = Number(k); if (i >= 0 && i < 100) save.vk[i] = Math.max(save.vk[i] | 0, num(d.vk[k], 0)); }
   save.homeAsk = Math.max(save.homeAsk | 0, num(d.homeAsk, 0)); save.vsn = clamp(Math.max(save.vsn | 0, num(d.vsn, 0)), 0, 100); save.cxv = Math.max(save.cxv | 0, num(d.cxv, 0)); save.flv = Math.max(save.flv | 0, num(d.flv, 0)); save.cred = Math.max(0, num(d.cred, save.cred | 0));
-  if (d.ovc && typeof d.ovc === 'object') save.ovc = { e: clamp(num(d.ovc.e, 500), 0, 500), et: num(d.ovc.et, 0), p: clamp(num(d.ovc.p, 0), 0, 100), n: clamp(num(d.ovc.n, 0), 0, 3), auto: d.ovc.auto === 0 ? 0 : 1 }; if (typeof d.col === 'string') save.col = d.col.slice(0, 12); if (Array.isArray(d.colSeen)) { if (!Array.isArray(save.colSeen)) save.colSeen = []; for (const c of d.colSeen) if (COLS.some(x => x.id && x.id === c) && !save.colSeen.includes(c)) save.colSeen.push(c); }
+  if (d.ovc && typeof d.ovc === 'object') save.ovc = { e: clamp(num(d.ovc.e, 300), 0, 300), et: num(d.ovc.et, 0), p: clamp(num(d.ovc.p, 0), 0, 100), n: clamp(num(d.ovc.n, 0), 0, 3), auto: d.ovc.auto === 0 ? 0 : 1 }; if (typeof d.col === 'string') save.col = d.col.slice(0, 12); if (Array.isArray(d.colSeen)) { if (!Array.isArray(save.colSeen)) save.colSeen = []; for (const c of d.colSeen) if (COLS.some(x => x.id && x.id === c) && !save.colSeen.includes(c)) save.colSeen.push(c); }
   /* paso al Códice con canje: lo ganado con las metas antiguas (ya cobrado) se queda como tarjeta tuya */
   cxMigrate();
   save.ppBank = Math.max(save.ppBank, num(d.ppBank, 0)); save.lvMax = clamp(Math.max(save.lvMax, num(d.lvMax, 0)), 0, MAXLV); save.vbw = clamp(num(d.vbw, save.vbw), 0, VB_WINS);
@@ -3950,8 +3950,9 @@ function startLevel(n) {
    La energía se recarga sola (500 en 3 horas) o al momento viendo un anuncio. Con los 3 escudos guardados, los toques dan bits.
    El escudo para 3 golpes en niveles y Supervivencia (no en duelos ni torneo). */
 const Ovc = (() => {
-  const EMAX = 500, REG = 3 * 3600 / EMAX, PER = 2, MAXN = 3, HITS = 3;
-  const st = () => { if (!save.ovc || typeof save.ovc !== 'object') save.ovc = { e: EMAX, et: 0, p: 0, n: 0, auto: 1 }; return save.ovc; };
+  const EMAX = 300, REG = 6 * 3600 / EMAX, PER = 1, MAXN = 3, HITS = 3, AD_GAP = 180000;   /* 100 toques por escudo; la energía tarda 6 h en llenarse */
+  let lastAd = 0;
+  const st = () => { if (!save.ovc || typeof save.ovc !== 'object') save.ovc = { e: EMAX, et: 0, p: 0, n: 0, auto: 1 }; if (save.ovc.e > EMAX) save.ovc.e = EMAX; return save.ovc; };
   function energy() { const o = st(), now = Date.now(); if (!o.et) o.et = now; const add = Math.floor((now - o.et) / 1000 / REG); if (add > 0) { o.e = Math.min(EMAX, o.e + add); o.et = o.e >= EMAX ? now : o.et + add * REG * 1000; } if (o.e >= EMAX) o.et = now; return o.e; }
   /* escudo B: dos anillos de plasma que giran en sentido contrario; con los golpes los arcos se acortan */
   function ring(g, x, y, R, hp, t, hitAgo, fill) {
@@ -3982,11 +3983,16 @@ const Ovc = (() => {
     const now = performance.now(); streak = now - lastT < 450 ? streak + 1 : 0; lastT = now; combo = 1 + Math.min(2, Math.floor(streak / 15));
     o.e--; let txt;
     if (o.n >= MAXN) { const b = combo; save.bits += b; save.earned += b; txt = '+' + b + ' ◆'; }
-    else { o.p += PER; txt = '+' + PER + ' %'; if (o.p >= 100) { o.p = 0; o.n++; Sfx.buy(); haptic('success'); txt = T('¡ESCUDO LISTO!'); } }
+    else { o.p += PER; txt = '+' + PER + ' %'; if (o.p >= 100) { o.p = 0; o.n++; Sfx.buy(); haptic('success'); txt = T('¡ESCUDO LISTO!'); shieldAd(); } }
     if (o.e % 10 === 0 || o.p === 0) persist();
     Sfx.pick(); haptic('light');
     if (ui) ui.pop(ev, txt);
     paint();
+  }
+  /* al completar un escudo (una pausa natural) sale un anuncio, como mucho uno cada 3 minutos */
+  async function shieldAd() {
+    if (Date.now() - lastAd < AD_GAP) return; lastAd = Date.now(); persist();
+    setTimeout(async () => { if ($('ovc').hidden) return; await withAd(Ads.interstitial); paint(); }, 700);
   }
   function paint() {
     if (!ui) return; const o = st(), e = energy();
