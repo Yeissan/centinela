@@ -1234,7 +1234,6 @@ button.cxbtn.go{border:0;background:linear-gradient(180deg,#ffd76a,#ffb62e);colo
           <div class="setpop" id="setPop" hidden>
             <button class="setit" id="btnLangRow"><span class="ico" id="btnLang" aria-label="Idioma">ES</span><span>Idioma</span></button>
             <button class="setit" id="btnMuteRow"><span class="ico" id="btnMute" aria-label="Activar o silenciar el sonido"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path class="wave" d="M15.5 12a4 4 0 0 0-2-3.5v7a4 4 0 0 0 2-3.5zm-2-8.3v2.1a7 7 0 0 1 0 12.4v2.1a9 9 0 0 0 0-16.6z"/></svg></span><span>Sonido</span></button>
-            <button class="setit" id="btnViewRow"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20L9 6h6l6 14z"/><path d="M6 13h12M12 6v14"/></svg></span><span>Vista: <b id="viewRowS">Profundidad</b></span></button>
             <button class="setit" id="btnBgRow"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg></span><span>Fondos: <b id="bgRowS">Animados</b></span></button>
             <button class="setit" id="btnLayRow"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="9" r="2.4"/><circle cx="6" cy="10" r="2.4"/></svg></span><span>Botones de disparo</span></button>
             <button class="setit" id="btnHelp"><span class="ico">?</span><span>Cómo se juega</span></button>
@@ -1281,10 +1280,7 @@ button.cxbtn.go{border:0;background:linear-gradient(180deg,#ffd76a,#ffb62e);colo
           <button class="btn alt" id="togGfx">Gráficos<small id="togGfxS">Automático</small></button>
           <button class="btn alt" id="togLay">Botones<small id="togLayS">Lados</small></button>
         </div>
-        <div class="pair">
-          <button class="btn alt" id="togView">Vista<small id="togViewS">Profundidad</small></button>
-          <button class="btn alt" id="togBg">Fondos<small id="togBgS">Animados</small></button>
-        </div>
+        <button class="btn alt" id="togBg">Fondos<small id="togBgS">Clásico</small></button>
         <button class="btn go" id="btnResume">Reanudar</button>
         <button class="btn alt" id="btnQuit">Salir al menú</button>
       </div>
@@ -3872,7 +3868,7 @@ const BG3 = (() => {
     W = r.width; H = r.height; cvb.width = Math.round(W * res); cvb.height = Math.round(H * res);
     if (scene) { VX = SC[scene].vx * W; VY = SC[scene].vy * H; }
   }
-  let on = (() => { try { return localStorage.getItem('cen_bg') !== 'off'; } catch (e) { return true; } })();
+  let on = (() => { try { return localStorage.getItem('cen_bg') === 'on'; } catch (e) { return false; } })();
   function want() {
     if (!on || S.mode === 'menu' || !S.kind) return '';
     if (S.kind === 'surv') return S.bossLevel ? 'firewall' : 'rain';
@@ -8003,11 +7999,9 @@ $('btnMuteRow').addEventListener('click', () => { Sfx.init(); const on = !(save.
 $('togMusic').addEventListener('click', () => { save.music = !save.music; persist(); refreshAudioUi(); });
 $('togGfx').addEventListener('click', () => { Sfx.ui(); Gfx.cycle(); });
 $('togLay').addEventListener('click', () => { Sfx.ui(); Acts.choose(); });
-$('togView').addEventListener('click', () => { Sfx.ui(); View3D.toggle(); });
 $('togBg').addEventListener('click', () => { Sfx.ui(); BG3.toggle(); });
 $('btnBgRow').addEventListener('click', e => { e.stopPropagation(); Sfx.init(); Sfx.ui(); BG3.toggle(); });
 BG3.paint();
-$('btnViewRow').addEventListener('click', e => { e.stopPropagation(); Sfx.init(); Sfx.ui(); View3D.toggle(); });
 $('btnLayRow').addEventListener('click', () => { Sfx.init(); Sfx.ui(); $('setPop').hidden = true; Acts.choose(); });
 $('layOk').addEventListener('click', () => { Sfx.ui(); show('layBox', false); });
 $('togSfx').addEventListener('click', () => { save.sfx = !save.sfx; persist(); refreshAudioUi(); Sfx.ui(); });
@@ -8053,7 +8047,7 @@ $('btnShare').addEventListener('click', () => {
    acercarse. La lógica del juego no cambia; solo el dibujo y la conversión del dedo a coordenadas del juego. */
 var View3D = (() => {
   const get = () => { try { return localStorage.getItem('cen_view') || ''; } catch (e) { return ''; } };
-  let on = get() !== 'flat';
+  let on = false;   /* vista inclinada desactivada: el juego se ve plano */
   const A = 30 * Math.PI / 180, cA = Math.cos(A), sA = Math.sin(A);
   let d = 900, ox = 0, oy = 0, Ws = 1, Hs = 1;
   function apply() {
@@ -8142,25 +8136,54 @@ const Hangar = (() => {
   };
   function place() { const m = $('mShip'); if (m && box) { const { py } = geo(); m.style.top = Math.min(box.h - 58, py - box.y + 12) * scale + 'px'; } }
   function soft(g, x, y, r, col, a) { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, rgbaH(col, a)); gr.addColorStop(.35, rgbaH(col, a * .45)); gr.addColorStop(1, rgbaH(col, 0)); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  /* fondo fijo del hangar: cielo del ciberespacio, ciudad de datos lejana y niebla de luz en el horizonte */
   function makeBg() {
     const k = dpr * scale, c = newCanvas(cv.width, cv.height), g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0);
-    const { cx, py } = geo(), TAU2 = Math.PI * 2; let sd = 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-    let gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#0a0d2a'); gr.addColorStop(.42, '#060818'); gr.addColorStop(1, '#020309'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
-    g.globalCompositeOperation = 'lighter'; soft(g, cx, py - 80, 270, '#5cf0ff', .15); soft(g, 60, 80, 210, '#a66bff', .18); soft(g, 350, 120, 190, '#ff3b7f', .12); g.globalCompositeOperation = 'source-over';
-    g.strokeStyle = 'rgba(92,240,255,.07)'; g.lineWidth = 1;
-    for (let row = 0; 40 + row * 26 < py; row++) for (let col = -1; col < 11; col++) { const x = col * 44 + (row % 2) * 22, y = 40 + row * 26; g.beginPath(); for (let i = 0; i < 6; i++) { const a = i * TAU2 / 6 + Math.PI / 6; g.lineTo(x + Math.cos(a) * 15, y + Math.sin(a) * 15); } g.closePath(); g.stroke(); }
-    for (const x of [72, W - 72]) { const lg = g.createLinearGradient(x - 10, 0, x + 10, 0); lg.addColorStop(0, 'rgba(166,107,255,0)'); lg.addColorStop(.5, 'rgba(166,107,255,.2)'); lg.addColorStop(1, 'rgba(166,107,255,0)'); g.fillStyle = lg; g.fillRect(x - 10, 0, 20, py); }
-    const hz = py + 6; g.save(); g.beginPath(); g.rect(0, hz, W, H - hz); g.clip();
-    gr = g.createLinearGradient(0, hz, 0, H); gr.addColorStop(0, '#0b1030'); gr.addColorStop(1, '#03040c'); g.fillStyle = gr; g.fillRect(0, hz, W, H - hz);
-    g.strokeStyle = 'rgba(92,240,255,.2)';
-    for (let i = -14; i <= 14; i++) { g.beginPath(); g.moveTo(cx + i * 6, hz); g.lineTo(cx + i * 90, H); g.stroke(); }
-    for (let q = 0; q < 14; q++) { const y = hz + Math.pow(q / 13, 2.2) * (H - hz); g.globalAlpha = .25 + .5 * q / 13; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
-    g.restore(); g.globalAlpha = 1; g.strokeStyle = 'rgba(92,240,255,.6)'; g.beginPath(); g.moveTo(0, hz); g.lineTo(W, hz); g.stroke();
-    /* plataforma */
-    g.globalCompositeOperation = 'lighter'; soft(g, cx, py, 140, '#ff5ad1', .33); g.globalCompositeOperation = 'source-over';
-    for (const [rx, a, w] of [[118, .9, 2.4], [94, .5, 1.2], [70, .35, 1]]) { g.strokeStyle = rgbaH('#ff5ad1', a); g.lineWidth = w; g.beginPath(); g.ellipse(cx, py, rx, rx * .2, 0, 0, TAU2); g.stroke(); }
-    g.strokeStyle = 'rgba(92,240,255,.8)'; g.lineWidth = 2; g.setLineDash([10, 8]); g.beginPath(); g.ellipse(cx, py, 128, 26, 0, 0, TAU2); g.stroke(); g.setLineDash([]);
+    const { cx, py } = geo(), hz = py + 6; let sd = 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    let gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#070a26'); gr.addColorStop(hz / H * .7, '#0b0d33'); gr.addColorStop(hz / H, '#1a0f3d'); gr.addColorStop(Math.min(1, hz / H + .02), '#080a22'); gr.addColorStop(1, '#020309');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'lighter'; soft(g, cx, hz, 300, '#5cf0ff', .16); soft(g, 40, 70, 230, '#a66bff', .2); soft(g, W - 30, 110, 210, '#ff3b7f', .14); soft(g, cx, py - 90, 200, '#ff5ad1', .12);
+    /* estrellas de datos */
+    for (let i = 0; i < 70; i++) { g.fillStyle = 'rgba(180,220,255,' + (.15 + R() * .5).toFixed(2) + ')'; const z = R() * 1.6 + .4; g.fillRect(R() * W, R() * (hz - 30), z, z); }
+    g.globalCompositeOperation = 'source-over';
+    /* ciudad de datos en el horizonte: tres capas, la lejana más clara */
+    for (const [lay, hMax, col, edge] of [[0, 70, '#141a4a', 'rgba(92,240,255,.25)'], [1, 110, '#0d1238', 'rgba(166,107,255,.35)'], [2, 150, '#080b26', 'rgba(92,240,255,.45)']]) {
+      let x = -10; while (x < W + 10) {
+        const w = 10 + R() * 22, h = (20 + R() * hMax) * (Math.abs(x - cx) < 70 ? .45 : 1); if (Math.abs(x + w / 2 - cx) < 46 && lay === 2) { x += w + 2; continue; }
+        g.fillStyle = col; g.fillRect(x, hz - h, w, h); g.strokeStyle = edge; g.lineWidth = 1; g.beginPath(); g.moveTo(x, hz); g.lineTo(x, hz - h); g.lineTo(x + w, hz - h); g.lineTo(x + w, hz); g.stroke();
+        if (lay) { g.fillStyle = lay === 2 ? 'rgba(92,240,255,.55)' : 'rgba(255,90,209,.45)'; for (let wy = hz - h + 6; wy < hz - 4; wy += 7) for (let wx = x + 3; wx < x + w - 3; wx += 5) if (R() < .28) g.fillRect(wx, wy, 2, 2); }
+        x += w + 2 + R() * 6;
+      }
+    }
+    /* torre central con anillo, detrás de la nave */
+    g.globalCompositeOperation = 'lighter';
+    const tg = g.createLinearGradient(0, hz - 210, 0, hz); tg.addColorStop(0, 'rgba(92,240,255,0)'); tg.addColorStop(1, 'rgba(92,240,255,.35)'); g.fillStyle = tg; g.beginPath(); g.moveTo(cx, hz - 210); g.lineTo(cx + 14, hz); g.lineTo(cx - 14, hz); g.closePath(); g.fill();
+    /* niebla de luz que funde el horizonte (sin raya dura) */
+    gr = g.createLinearGradient(0, hz - 40, 0, hz + 50); gr.addColorStop(0, 'rgba(92,240,255,0)'); gr.addColorStop(.45, 'rgba(92,240,255,.22)'); gr.addColorStop(.55, 'rgba(255,90,209,.16)'); gr.addColorStop(1, 'rgba(92,240,255,0)'); g.fillStyle = gr; g.fillRect(0, hz - 40, W, 90);
+    g.globalCompositeOperation = 'source-over';
     return c;
+  }
+  /* suelo de rejilla que avanza hacia la pantalla, con pulsos de luz, y la plataforma */
+  const pulses = []; for (let i = 0; i < 7; i++) pulses.push({ l: (i * 5 + 2) % 15 - 7, o: Math.random(), v: .18 + Math.random() * .2, c: i % 2 ? '#ff5ad1' : '#5cf0ff' });
+  function floor(cx, py, t) {
+    const hz = py + 6, g = ctx, Hh = H - hz, vy = hz - 70;
+    g.save(); g.beginPath(); g.rect(0, hz, W, Hh); g.clip();
+    const fx = (l, y) => cx + (l * 26) * (y - vy) / (hz - vy) * .55;   /* líneas que nacen del punto de fuga */
+    g.lineWidth = 1;
+    for (let l = -16; l <= 16; l++) { g.strokeStyle = 'rgba(92,240,255,' + (.22 - Math.abs(l) * .008).toFixed(3) + ')'; g.beginPath(); g.moveTo(fx(l, hz), hz); g.lineTo(fx(l, H), H); g.stroke(); }
+    const off = (t * .35) % 1;
+    for (let q = 0; q < 12; q++) { const u = (q + off) / 12, y = hz + Math.pow(u, 2.3) * Hh; g.strokeStyle = 'rgba(92,240,255,' + (.08 + .45 * u).toFixed(3) + ')'; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    if (!LITE) { g.globalCompositeOperation = 'lighter'; for (const p of pulses) { const u = (p.o + t * p.v) % 1, y1 = hz + Math.pow(u, 2.3) * Hh, y2 = hz + Math.pow(Math.min(1, u + .08), 2.3) * Hh; const lg = g.createLinearGradient(0, y1, 0, y2); lg.addColorStop(0, rgbaH(p.c, 0)); lg.addColorStop(1, rgbaH(p.c, .95)); g.strokeStyle = lg; g.lineWidth = 1 + 2.5 * u; g.beginPath(); g.moveTo(fx(p.l, y1), y1); g.lineTo(fx(p.l, y2), y2); g.stroke(); } }
+    g.restore(); g.globalCompositeOperation = 'source-over';
+    /* reflejo de la plataforma en el suelo */
+    g.globalCompositeOperation = 'lighter'; soft(g, cx, py + 30, 160, '#ff5ad1', .16); soft(g, cx, py, 140, '#ff5ad1', .3); g.globalCompositeOperation = 'source-over';
+    const pa = .75 + .25 * Math.sin(t * 2.2);
+    for (const [rx, a, w] of [[118, .9, 2.4], [94, .5, 1.2], [70, .35, 1]]) { g.strokeStyle = rgbaH('#ff5ad1', a * pa); g.lineWidth = w; g.beginPath(); g.ellipse(cx, py, rx, rx * .2, 0, 0, Math.PI * 2); g.stroke(); }
+    g.strokeStyle = 'rgba(92,240,255,.8)'; g.lineWidth = 2; g.setLineDash([10, 8]); g.lineDashOffset = -t * 14; g.beginPath(); g.ellipse(cx, py, 128, 26, 0, 0, Math.PI * 2); g.stroke(); g.setLineDash([]); g.lineDashOffset = 0;
+    /* anillo holográfico que gira detrás de la nave */
+    const { sy } = geo(); g.globalCompositeOperation = 'lighter'; g.lineWidth = 1.5;
+    for (let k2 = 0; k2 < 3; k2++) { const a0 = t * (.5 + k2 * .25) + k2 * 2; g.strokeStyle = rgbaH(k2 === 1 ? '#ff5ad1' : '#5cf0ff', .35 - k2 * .08); g.beginPath(); g.ellipse(cx, sy + 10, 150 - k2 * 18, 40 - k2 * 5, 0, a0, a0 + 2.2); g.stroke(); }
+    g.globalCompositeOperation = 'source-over';
   }
   /* tres copias de la nave: color, un poco oscura y muy oscura (para el canto) */
   function makeSpr() {
@@ -8179,6 +8202,7 @@ const Hangar = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(bg, 0, 0);
     const k = dpr * scale; ctx.setTransform(k, 0, 0, k, 0, 0);
     const { cx, py, sy } = geo(), t = S.t, top = sy - 70;
+    floor(cx, py, t);
     ctx.globalCompositeOperation = 'lighter';
     const bm = ctx.createLinearGradient(0, top, 0, py); bm.addColorStop(0, 'rgba(255,90,209,0)'); bm.addColorStop(1, 'rgba(255,90,209,' + (.24 + .05 * Math.sin(t * 2)).toFixed(3) + ')');
     ctx.fillStyle = bm; ctx.beginPath(); ctx.moveTo(cx - 46, top); ctx.lineTo(cx + 46, top); ctx.lineTo(cx + 110, py); ctx.lineTo(cx - 110, py); ctx.closePath(); ctx.fill();
