@@ -6540,9 +6540,11 @@ const Tour = (() => {
     if (X.state !== 'idle' && X.state !== 'done') return;
     netOff(); X.note = ''; X.result = null; X.table = null; X.state = 'gwait'; X.gn = 0; makeMe(); render();
   }
-  const gtCan = () => { const g = gtNext(), now = Date.now(); return now >= g.start - TC.bigCheckin * 60000 && now < g.start; };
+  /* si el servidor ha reabierto el Gran Torneo de hoy, manda su hora */
+  const gtG = () => { const g = gtNext(); if (X.gt && X.gt.ov && Number(X.gt.start) > Date.now() - 10 * 60000) return Object.assign({}, g, { start: Number(X.gt.start) }); return g; };
+  const gtCan = () => { const g = gtG(), now = Date.now(); return now >= g.start - TC.bigCheckin * 60000 && now < g.start; };
   function renderGT(body) {
-    const g = gtNext(), I = X.gt, reg = !!(I && I.me), now = Date.now(), card = el('div', 'gtcard');
+    const g = gtG(), I = X.gt, reg = !!(I && I.me), now = Date.now(), card = el('div', 'gtcard');
     card.append(el('span', 'gtk', T('Gran Torneo')), el('b', null, when(g.start)));
     const cnt = I ? I.count : 0;
     card.append(el('span', 'gts', T('Eliminatoria en directo · {0} apuntados', cnt)));
@@ -6717,7 +6719,7 @@ const Tour = (() => {
   /* ===== pantalla ===== */
   function showTour() { goMenu(); hideAll(); X.tab = 'play'; show('tour', true); render(); }
   function statusText() {
-    if (X.state === 'gwait') { const g = gtNext(); return T('Plaza confirmada ({0} conectados). El Gran Torneo empieza en {1}. No cierres el juego.', X.gn || 1, fmtLeft(g.start - Date.now())); }
+    if (X.state === 'gwait') { const g = gtG(); return T('Plaza confirmada ({0} conectados). El Gran Torneo empieza en {1}. No cierres el juego.', X.gn || 1, fmtLeft(g.start - Date.now())); }
     if (X.state === 'wait') return X.wait.left >= 0 ? T('La mesa empieza en {0} s. Los huecos se rellenan con bots.', X.wait.left) : T('Hace falta al menos otro jugador para abrir la mesa.');
     if (X.state === 'table') {
       if (X.playing) return T('Conectando con tu rival…');
@@ -6827,14 +6829,14 @@ const Tour = (() => {
   /* ===== Mesa (sin partido en marcha): cuadro en árbol hacia el trofeo del Gran Torneo ===== */
   const cdTxt = ms => { const s = Math.max(0, ms / 1000 | 0), d = s / 86400 | 0, h = (s % 86400) / 3600 | 0, m = (s % 3600) / 60 | 0; return d + 'd ' + pad2(h) + 'h ' + pad2(m) + 'm'; };
   function gtPill() {
-    const g = gtNext(), now = Date.now(), I = X.gt, n = I ? I.count | 0 : 0, live = g.live && now - g.last < 60 * 60000;
+    const g = gtG(), now = Date.now(), I = X.gt, n = I ? I.count | 0 : 0, live = g.live && now - g.last < 60 * 60000;
     if (live) return [T('En directo'), T('Gran Torneo'), n ? T('{0} apuntados', n) : '', true];
     if (gtCan()) return [T('¡Confirma!'), fmtLeft(g.start - now), n ? T('{0} apuntados', n) : '', false];
     return [T('Empieza en'), cdTxt(g.start - now), n ? T('{0} apuntados', n) : '', false];
   }
   function paintPill() { const p = $('gtPill'); if (!p) return; const [a, b, c] = gtPill(); p.children[0].textContent = a; p.children[1].textContent = b; p.children[2].textContent = c ? '· ' + c : ''; }
   function renderMesa(body, w) {
-    const g = gtNext(), I = X.gt, reg = !!(I && I.me), wrap = el('div', 'tmesa fit');
+    const g = gtG(), I = X.gt, reg = !!(I && I.me), wrap = el('div', 'tmesa fit');
     const [pa, pb, pc, live] = gtPill(), pill = el('button', 'tpill' + (live ? ' live' : '')); pill.id = 'gtPill';
     pill.append(el('span', null, pa), el('b', null, pb), el('small', null, pc ? '· ' + pc : ''));
     pill.addEventListener('click', () => { Sfx.ui(); if (live || Live.list.length) { hideAll(); openSheet('duel', () => Duel.open('live')); } });
