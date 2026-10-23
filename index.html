@@ -1927,6 +1927,7 @@ const save = { v: 2, bits: 0, earned: 0, level: 1, best: {}, stars: {}, skin: 'c
   xp: 0, sxp: {}, sxpMig: 0, ref: '', refSrc: '', refBonus: 0, refQual: 0, refClaim: 0, shares: {}, sharePaid: {}, intro: false, bet: 0,
   tup: { rate: 0, power: 0, armor: 0, bomb: 0 }, tfee: 0, tpts: { id: '', p: 0 }, tclaim: '', twins: 0, tplay: 0, chan: 0, tt: 0, dayLast: 0, dayN: 0, dayDbl: 0, dayAdD: 0, dayAdN: 0, surv: { best: 0, bestW: 0, runs: 0 }, swk: { id: '', p: 0, w: 0 }, q: null, stk: { level: {}, surv: {}, duel: {}, tour: {}, mig: 0 }, stg: { level: 0, surv: 0, duel: 0, tour: 0 }, wpn: { eq: 'pulse', own: { pulse: 0 }, ch: {} }, nrg: 0, nets: 0, hackKills: 0, vb: 0, vbw: 0, homeAsk: 0, flv: 0, cred: 0, ovc: { e: 300, et: 0, p: 0, n: 0, auto: 1 }, col: '', colSeen: [], vsn: 0, vk: {}, crk: {}, cxv: 0, ach: {}, title: '', przSeen: '', cleanBoss: 0, pr: 0, ppBank: 0, lvMax: 0, th: { ship: 'vigia', own: { vigia: [0, 0, 0] }, nuc: 0, mig: 0 } };   /* th: hangar de torneo (nave en uso, naves compradas con sus niveles, núcleos y si ya se devolvieron las mejoras antiguas) */   /* q: retos diarios {d: día, ids, p: progreso, c: recogidos, b: extra recogido} */   /* supervivencia: récord, y mejor marca de la semana (ranking semanal) */   /* regalo diario: último día recogido (n.º de día local), racha y día en que se duplicó */   /* torneo: nave, inscripción en juego, puntos del fin de semana */   /* bet: apuesta en juego de un duelo sin terminar */
 for (const u of UPS) save.up[u.id] = 0;
+save.sup = {}; save.supMig = 0;
 /* tras renacer (prestigio), una copia antigua de otro dispositivo no debe devolver los niveles */
 function applySave(d) {
   const keep = d && (Number(d.pr) || 0) < (save.pr | 0) ? { level: save.level, best: save.best, stars: save.stars } : null;
@@ -1956,6 +1957,8 @@ function applySave0(d) {
   if (Array.isArray(d.skins)) for (const id of d.skins) if (SKINS.some(s => s.id === id) && !save.skins.includes(id)) save.skins.push(id);
   if (typeof d.skin === 'string' && (save.skins.includes(d.skin) || (FLEET.includes(d.skin) && save.level >= (SKINS.find(s => s.id === d.skin).lv || 1)))) save.skin = d.skin;
   if (d.up && typeof d.up === 'object') for (const u of UPS) save.up[u.id] = clamp(num(d.up[u.id], save.up[u.id]), 0, u.max);
+  if (d.sup && typeof d.sup === 'object') { if (!save.sup || typeof save.sup !== 'object') save.sup = {}; for (const k in d.sup) if (SKINS.some(x => x.id === k) && d.sup[k] && typeof d.sup[k] === 'object') { const t = save.sup[k] || (save.sup[k] = {}); for (const u of UPS) t[u.id] = clamp(Math.max(t[u.id] | 0, num(d.sup[k][u.id], 0)), 0, u.max); } }
+  if (d.supMig) save.supMig = 1;
   if (typeof d.uid === 'string' && /^[a-z0-9]{6,20}$/.test(d.uid) && !save.uid) save.uid = d.uid;
   if (typeof d.name === 'string' && d.name) save.name = cleanName(d.name);
   if (d.intro === true) save.intro = true;
@@ -2037,10 +2040,17 @@ function syncSkin() { SK = SKINS.find(s => s.id === save.skin) || SKINS[0]; P.sk
 /* cada nave sube de nivel por separado: la experiencia de cada partida va a la nave con la que juegas */
 const curShipId = () => (typeof SK !== 'undefined' && SK && SK.id) || save.skin || 'centinela';
 const shipXp = id => (save.sxp && save.sxp[id]) | 0;
+/* mejoras de cada nave por separado (save.sup[id]); save.up queda solo como dato antiguo */
+function shipUp(id) {
+  id = id || curShipId(); if (!save.sup || typeof save.sup !== 'object') save.sup = {};
+  let u = save.sup[id]; if (!u || typeof u !== 'object') u = save.sup[id] = {};
+  for (const x of UPS) if (!(u[x.id] >= 0)) u[x.id] = 0;
+  return u;
+}
 function shipLevel(id) { let xp = shipXp(id || curShipId()), L = 1, need = 80; while (xp >= need) { xp -= need; L++; need = 60 + 20 * L; } return { L, cur: xp, need }; }
 const PR_MAX = 10, PR_LV = 150, prMul = () => 1 + .1 * Math.min(PR_MAX, save.pr | 0);   /* cada renacimiento: +10 % de bits para siempre (máx. +100 %) */
 function stats() {
-  const u = save.up, L = shipLevel().L;
+  const u = shipUp(), L = shipLevel().L;
   /* los 5 primeros niveles de cadencia y potencia rinden como siempre; los siguientes suben más despacio */
   return { L, fire: .17 * (1 - .07 * Math.min(u.rate, 5)) * (1 - .03 * Math.max(0, u.rate - 5)),
     dmg: (1 + .3 * Math.min(u.power, 5) + .12 * Math.max(0, u.power - 5)) * (1 + .05 * (L - 1)),
@@ -4922,7 +4932,7 @@ const Taller = (() => {
     const wrap = el('div', 'ring fit'), cv = el('canvas', 'pcv'), nodes = [];
     wrap.append(cv);
     for (const u of UPS) {
-      const [rgb, d, nm] = UI[u.id], lvl = save.up[u.id] || 0, mx = lvl >= u.max, b = el('button', 'anode' + (sel === u.id ? ' sel' : '') + (mx ? ' max' : ''));
+      const [rgb, d, nm] = UI[u.id], lvl = shipUp()[u.id] || 0, mx = lvl >= u.max, b = el('button', 'anode' + (sel === u.id ? ' sel' : '') + (mx ? ' max' : ''));
       b.style.setProperty('--rgb', rgb);
       const c = el('span', 'c'); c.innerHTML = SVGI(d, rgb, 21) + RING(lvl / u.max, rgb);
       if (!mx && save.bits >= upCost(u, lvl)) c.append(el('span', 'plus', '+'));
@@ -4931,15 +4941,15 @@ const Taller = (() => {
       wrap.append(b); nodes.push(b);
     }
     /* bocadillo de la mejora elegida */
-    const u = UPS.find(x => x.id === sel) || UPS[0], has = !!sel && UPS.some(x => x.id === sel), [rgb] = UI[u.id], lvl = save.up[u.id] || 0, mx = lvl >= u.max, si = UPS.indexOf(u);
+    const u = UPS.find(x => x.id === sel) || UPS[0], has = !!sel && UPS.some(x => x.id === sel), [rgb] = UI[u.id], lvl = shipUp()[u.id] || 0, mx = lvl >= u.max, si = UPS.indexOf(u);
     const bub = el('div', 'tbub'); bub.style.setProperty('--rgb', rgb);
     bub.append(el('b', null, T(UI[u.id][2]) + ' · ' + T('Nv {0}/{1}', lvl, u.max)));
     const cmp = el('div', 'cm'); cmp.append(document.createTextNode(val(u.id, ST)));
-    if (!mx) { save.up[u.id] = lvl + 1; const nx = stats(); save.up[u.id] = lvl; cmp.append(el('span', null, '›'), el('em', null, val(u.id, nx))); }
+    if (!mx) { shipUp()[u.id] = lvl + 1; const nx = stats(); shipUp()[u.id] = lvl; cmp.append(el('span', null, '›'), el('em', null, val(u.id, nx))); }
     bub.append(cmp, el('small', null, T(u.desc)));
     if (mx) bub.append(el('span', 'pay max', T('Máximo')));
     else { const cost = upCost(u, lvl), bb = el('button', 'pay' + (save.bits < cost ? ' poor' : '')); bb.append(el('i', 'gem'), document.createTextNode(fmt(cost)));
-      bb.addEventListener('click', () => buy(cost, () => { save.up[u.id] = lvl + 1; })); bub.append(bb); }
+      bb.addEventListener('click', () => buy(cost, () => { shipUp()[u.id] = lvl + 1; })); bub.append(bb); }
     if (has) wrap.append(bub);
     const lv = shipLevel(), nm = el('div', 'tname'); nm.append(el('b', null, T(SK.name)), el('small', null, T('Nave nivel {0} · {1} / {2} XP', lv.L, fmt(lv.cur), fmt(lv.need))));
     body.append(wrap, nm);
@@ -4961,7 +4971,7 @@ const Taller = (() => {
 /* ---------------- Arsenal → Nave: tu nave en 3D, tu potencia en estrella y tus récords ---------------- */
 function renderNave(body) {
   ST = stats();
-  const lv = shipLevel(), u = save.up, mx = k => UPS.find(x => x.id === k).max, w = el('div', 'nave fit');
+  const lv = shipLevel(), u = shipUp(), mx = k => UPS.find(x => x.id === k).max, w = el('div', 'nave fit');
   const pc = el('canvas', 'npod'); w.append(pc); Pod.mount(pc, { sk: SK, col: SK.main, py: .84, k: 66 });
   const nb = el('div', 'nname'), rn = el('button', 'nren'); rn.setAttribute('aria-label', T('Cambiar el nombre del Centinela'));
   rn.append(el('b', null, myName())); rn.insertAdjacentHTML('beforeend', SVGI(ICO.pen, '92,240,255', 15)); rn.addEventListener('click', () => Intro.open('rename'));
@@ -8252,6 +8262,10 @@ function boot(data) {
   try { const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); applySave(raw); if (raw && Number(raw.bet) > 0) lostBet = Math.floor(Number(raw.bet)); if (raw && Number(raw.tfee) > 0) lostFee = Math.floor(Number(raw.tfee)); } catch (e) {}
   if (data && data.save && Number(data.save.earned) >= save.earned) applySave(data.save);
   cxMigrate(); fleetMig(); syncSkin();
+  if (!save.supMig) {   /* las mejoras que había (compartidas) pasan a la nave con más experiencia */
+    let best = curShipId(), bx = -1; for (const k in (save.sxp || {})) if ((save.sxp[k] | 0) > bx) { bx = save.sxp[k] | 0; best = k; }
+    const t = shipUp(best); for (const u of UPS) t[u.id] = Math.max(t[u.id] | 0, save.up[u.id] | 0); save.supMig = 1; persist();
+  }
   if (!save.sxpMig) { if (!save.sxp || typeof save.sxp !== 'object') save.sxp = {}; const id = curShipId(); save.sxp[id] = Math.max(save.sxp[id] | 0, save.xp | 0); save.sxpMig = 1; persist(); }
   ST = stats();
   if (fleetNews) setTimeout(() => toast(T('NAVES NUEVAS · +{0} BITS POR TUS SKINS', fmt(fleetNews)), C.amber), 2500);
