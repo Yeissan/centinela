@@ -318,6 +318,12 @@ button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 .mm{border-radius:50%;overflow:visible}.mm canvas{border-radius:50%}.mm small{bottom:calc(-1.8*var(--u));background:none;text-shadow:0 0 calc(.4*var(--u)) #000;color:#ffc8f6}
 .tch #medals{top:32%}.tch .medal .mi{width:calc(3.8*var(--u));height:calc(4.2*var(--u))}.tch .medal b{font-size:calc(1.6*var(--u))}
 
+.fade .ldg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(.6*var(--u))}
+.fade .ldg i{width:calc(3.4*var(--u));height:calc(3.4*var(--u));border-radius:50%;border:calc(.3*var(--u)) solid rgba(92,240,255,.2);border-top-color:var(--cyan);animation:spinr .8s linear infinite}
+.fade .ldg b{font:800 italic calc(1.6*var(--u)) var(--hx,var(--ui));letter-spacing:.14em;color:#fff}
+.fade .ldg small{font:600 calc(.9*var(--u)) var(--ui);letter-spacing:.1em;color:var(--dim)}
+.fade:not(.ld) .ldg{display:none}
+
 /* ================= PANTALLAS DEL MENÚ (estilo premium) ================= */
 :root{--rc0:#8fa6bf;--rc1:#3aa8ff;--rc2:#b45cff;--rc3:#ffb02e;--rc4:#ff3d6e}
 .hx{font-family:var(--hx);font-style:italic;font-weight:800;text-transform:uppercase;letter-spacing:.02em;line-height:.95}
@@ -776,7 +782,7 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
       <div class="ost"><div><small>BAJAS</small><b id="oKills">0</b></div><div><small>TIEMPO</small><b id="oTime">0:00</b></div><div><small>BITS</small><b id="oBits">0</b></div><div><small>XP PASE</small><b id="oXp">0</b></div></div><p class="sub" id="oMore" hidden style="color:var(--gold)"></p>
       <div class="btns"><button type="button" class="btn2" id="toH">Hangar</button><button type="button" class="play" id="again"><svg class="i"><use href="#i-play"/></svg>OTRA VEZ</button></div></div>
   </div>
-  <div class="fade" id="fade"></div>
+  <div class="fade" id="fade"><div class="ldg"><i></i><b>PREPARANDO PARTIDA</b><small>Cargando naves y mapa…</small></div></div>
 
 </div>
 
@@ -801,6 +807,8 @@ const PDEF={bits:12480,xp:6200,pxp:600,lv:18,lo:{w:'laser',s:'missile',a:'bubble
 let PR=JSON.parse(JSON.stringify(PDEF));
 try{const raw=localStorage.getItem(PKEY);if(raw){const o=JSON.parse(raw);PR=Object.assign(PR,o);for(const k of['lo','cl','mis','ev','st','set'])PR[k]=Object.assign(JSON.parse(JSON.stringify(PDEF[k])),o[k]||{})}}catch(e){}
 function saveP(){try{localStorage.setItem(PKEY,JSON.stringify(PR))}catch(e){}}
+let _hasP=false;try{_hasP=!!localStorage.getItem(PKEY)}catch(e){}
+if(!_hasP&&matchMedia('(pointer:coarse)').matches)PR.set.q='media';
 let PLAYER_LV=PR.lv;
 
 /* Las 7 naves de la flota de Centinela (mismos niveles de desbloqueo que en el juego) */
@@ -833,7 +841,7 @@ function showInfo(){
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;$('stage').appendChild(d);setTimeout(()=>d.remove(),2700)}
 $('prev').addEventListener('click',()=>pick((sel+SHIPS.length-1)%SHIPS.length));
 $('next').addEventListener('click',()=>pick((sel+1)%SHIPS.length));
-addEventListener('keydown',e=>{if(MODE!=='hangar')return;if(e.key==='ArrowLeft')pick((sel+SHIPS.length-1)%SHIPS.length);if(e.key==='ArrowRight')pick((sel+1)%SHIPS.length)});
+addEventListener('keydown',e=>{if(MODE!=='hangar'||document.getElementById('ov')&&!document.getElementById('ov').hidden)return;if(e.key==='ArrowLeft')pick((sel+SHIPS.length-1)%SHIPS.length);if(e.key==='ArrowRight')pick((sel+1)%SHIPS.length)});
 $('play').addEventListener('click',()=>{if(!TOUCH){try{const r=cv.requestPointerLock&&cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{})}catch(e){}}startGame()});
 document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));toast(b.textContent+' · pantalla en la propuesta')}));
 document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b))));
@@ -913,6 +921,11 @@ const hexIn=new THREE.Mesh(new THREE.CircleGeometry(2.25,6),new THREE.MeshBasicM
 for(const sx of[-1,1])for(let k=0;k<5;k++){
   const p=new THREE.Mesh(new THREE.BoxGeometry(.04,.9,.9),emis(k%2?0xff3df2:0x5cf0ff,.9));p.position.set(sx*(4.6+k*.15),1.2+((k*37)%3)*.6,-2-k*2.6);hangar.add(p);
 }
+/* une las piezas fijas del hangar para dibujarlas de una vez */
+function bakeGroup(gp){gp.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(gp.matrixWorld).invert(),by=new Map(),rm=[];
+  gp.traverse(o=>{if(o.isMesh&&o!==gp){const k=o.material.uuid;if(!by.has(k))by.set(k,{mat:o.material,parts:[]});by.get(k).parts.push({g:o.geometry.index?o.geometry:o.geometry,m:new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)});rm.push(o)}});
+  rm.forEach(o=>o.parent.remove(o));by.forEach(v=>gp.add(new THREE.Mesh(mergeG(v.parts,true),v.mat)))}
+bakeGroup(hangar);bakeGroup(dashes);
 // Partículas
 const PN=300,pp=new Float32Array(PN*3),pv=new Float32Array(PN);
 for(let i=0;i<PN;i++){pp[i*3]=(Math.random()-.5)*14;pp[i*3+1]=Math.random()*6;pp[i*3+2]=-Math.random()*14+3;pv[i]=.1+Math.random()*.35}
@@ -978,7 +991,10 @@ function pick(i){
     }).catch(()=>{$('loading').hidden=false;$('loading').innerHTML='No se pudo cargar la nave'});
 }
 // precarga de las naves cercanas
-function preload(){SHIPS.forEach((s,i)=>setTimeout(()=>load(s),600+i*500))}
+const cacheL={};
+function loadLod(s){if(!cacheL[s.id])cacheL[s.id]=fetch('naves/'+s.id+'-lod.txt').then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>decode(t,s.neon));return cacheL[s.id]}
+/* precarga: solo los modelos ligeros (para la partida); el modelo completo se baja al elegir la nave */
+function preload(){SHIPS.forEach((s,i)=>setTimeout(()=>loadLod(s).catch(()=>{}),1500+i*300))}
 
 /* girar con el ratón o el dedo */
 let yaw=-.6, vel=reduce?0:.25, drag=false, lx=0, idle=0;
@@ -1056,16 +1072,20 @@ function buildGame(){
   const towerMat=new THREE.MeshStandardMaterial({color:0x0a1830,metalness:.7,roughness:.35,envMapIntensity:.35});
   const edgeC=new THREE.LineBasicMaterial({color:neonC.clone().multiplyScalar(1.6),toneMapped:false}), edgeM=new THREE.LineBasicMaterial({color:neonM.clone().multiplyScalar(1.5),toneMapped:false});
   const stripC=new THREE.MeshBasicMaterial({color:neonC.clone().multiplyScalar(1.4),toneMapped:false}),stripM=new THREE.MeshBasicMaterial({color:neonM.clone().multiplyScalar(1.3),toneMapped:false});
+  const PB=[],PEc=[],PEm=[],PSc=[],PSm=[],M4=(x,y,z)=>new THREE.Matrix4().makeTranslation(x,y,z);
   for(let i=0;i<170;i++){
     const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*(ARENA-40), x=Math.cos(a)*r, z=Math.sin(a)*r;
     if(Math.hypot(x,z)<60)continue;
-    const w=rand(10,30),d=rand(10,30),h=Math.random()<.15?rand(90,150):rand(15,80);
-    const g=new THREE.BoxGeometry(w,h,d), m=new THREE.Mesh(g,towerMat), mag=Math.random()<.22;
-    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g),mag?edgeM:edgeC));
+    const w=rand(10,30),d=rand(10,30),h=Math.random()<.15?rand(90,150):rand(15,80), mag=Math.random()<.22;
+    const g=new THREE.BoxGeometry(w,h,d),mt=M4(x,h/2,z);
+    PB.push({g,m:mt});(mag?PEm:PEc).push({g:new THREE.EdgesGeometry(g),m:mt});
     // franjas de luz en las fachadas
-    const n=Math.floor(h/18);for(let k=1;k<=n;k++){const s=new THREE.Mesh(new THREE.BoxGeometry(w+.4,.5,d+.4),mag?stripM:stripC);s.position.y=-h/2+k*h/(n+1);m.add(s)}
-    m.position.set(x,h/2,z);GS.add(m);boxes.push({x,z,hw:w/2,hd:d/2,h});
+    const n=Math.floor(h/18);for(let k=1;k<=n;k++)(mag?PSm:PSc).push({g:new THREE.BoxGeometry(w+.4,.5,d+.4),m:M4(x,k*h/(n+1),z)});
+    boxes.push({x,z,hw:w/2,hd:d/2,h});
   }
+  GS.add(new THREE.Mesh(mergeG(PB,true),towerMat));
+  GS.add(new THREE.LineSegments(mergeG(PEc,false),edgeC));GS.add(new THREE.LineSegments(mergeG(PEm,false),edgeM));
+  GS.add(new THREE.Mesh(mergeG(PSc,true),stripC));GS.add(new THREE.Mesh(mergeG(PSm,true),stripM));
   for(let i=0;i<14;i++){
     const t=new THREE.Mesh(new THREE.TorusGeometry(rand(14,26),.6,6,40),new THREE.MeshBasicMaterial({color:(i%2?neonC:neonM).clone().multiplyScalar(1.4),toneMapped:false}));
     t.position.set(rand(-ARENA*.7,ARENA*.7),rand(60,140),rand(-ARENA*.7,ARENA*.7));t.rotation.set(rand(0,3),rand(0,3),0);t.userData.spin=rand(-.3,.3);GS.add(t);boxes.push({ring:t});
@@ -1089,11 +1109,36 @@ function buildGame(){
   plasmaGeo=new THREE.SphereGeometry(1.1,12,10);
   mineGeo=new THREE.OctahedronGeometry(1.6);mineMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0xff3df2).multiplyScalar(2),wireframe:true,toneMapped:false});
   shieldGeo=new THREE.IcosahedronGeometry(1,1);
+  pool('s_laser',shotGeo,shotMatP,300);pool('s_scatter',shotGeo,SHOTMAT.scatter,300);pool('s_plasma',plasmaGeo,SHOTMAT.plasma,120);pool('s_e',shotGeo,shotMatE,400);
+  pickIn=new THREE.OctahedronGeometry(1);
+  for(const t of PICK){PKM[t.k]=[new THREE.MeshBasicMaterial({color:new THREE.Color(t.c).multiplyScalar(1.6),wireframe:true,toneMapped:false}),new THREE.MeshBasicMaterial({color:new THREE.Color(t.c).multiplyScalar(2),toneMapped:false})];pool('po_'+t.k,pickGeo,PKM[t.k][0],96);pool('pi_'+t.k,pickIn,PKM[t.k][1],96)}
   fxInit();
   gcomp=new THREE.EffectComposer(renderer);
   gcomp.addPass(new THREE.RenderPass(GS,gcam));
   gbloom=new THREE.UnrealBloomPass(new THREE.Vector2(512,288),.75,.4,.78);gcomp.addPass(gbloom);
   gResize(cv.clientWidth,cv.clientHeight);applyQuality();
+}
+/* une muchas piezas en una sola para dibujarlas de una vez */
+function mergeG(parts,nrm){
+  let nv=0,ni=0;for(const p of parts){nv+=p.g.attributes.position.count;ni+=p.g.index?p.g.index.count:0}
+  const P=new Float32Array(nv*3),N=nrm?new Float32Array(nv*3):null,I=ni?new Uint32Array(ni):null,v=new THREE.Vector3(),nm=new THREE.Matrix3();let ov=0,oi=0;
+  for(const p of parts){const g=p.g,c=g.attributes.position.count;nm.getNormalMatrix(p.m);
+    for(let i=0;i<c;i++){v.fromBufferAttribute(g.attributes.position,i).applyMatrix4(p.m);P[(ov+i)*3]=v.x;P[(ov+i)*3+1]=v.y;P[(ov+i)*3+2]=v.z;
+      if(N){v.fromBufferAttribute(g.attributes.normal,i).applyMatrix3(nm).normalize();N[(ov+i)*3]=v.x;N[(ov+i)*3+1]=v.y;N[(ov+i)*3+2]=v.z}}
+    if(I){const ia=g.index.array;for(let i=0;i<ia.length;i++)I[oi+i]=ia[i]+ov;oi+=ia.length}
+    ov+=c;g.dispose()}
+  const out=new THREE.BufferGeometry();out.setAttribute('position',new THREE.BufferAttribute(P,3));if(N)out.setAttribute('normal',new THREE.BufferAttribute(N,3));if(I)out.setIndex(new THREE.BufferAttribute(I,1));
+  out.computeBoundingSphere();return out;
+}
+/* proyectiles y mejoras: se dibujan todos juntos (mucho más rápido en móviles) */
+const POOLS={};
+function pool(key,geo,mat,max){const im=new THREE.InstancedMesh(geo,mat,max);im.count=0;im.frustumCulled=false;im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);GS.add(im);POOLS[key]=im;return im}
+function drawPools(){
+  for(const k in POOLS)POOLS[k].count=0;
+  const put=(im,o)=>{if(im.count>=im.instanceMatrix.count)return;im.setMatrixAt(im.count++,o.matrix)};
+  for(const s of shots){const o=s.mesh;o.updateMatrix();put(POOLS['s_'+o.userData.k],o)}
+  for(const k of pickups){const o=k.mesh;o.updateMatrix();put(POOLS['po_'+o.userData.k],o);put(POOLS['pi_'+o.userData.k],o)}
+  for(const k in POOLS)POOLS[k].instanceMatrix.needsUpdate=true;
 }
 function gResize(w,h){if(!gcomp)return;gcomp.setSize(w,h);gcam.aspect=w/h;gcam.updateProjectionMatrix();}
 
@@ -1178,11 +1223,8 @@ function clearWorld(){
 function pickNext(z){const ph=ZONES[z.phase];if(!ph)return;const maxOff=Math.max(0,z.r-ph.r)*.8,a=Math.random()*Math.PI*2,d=Math.random()*maxOff;z.toR=ph.r;z.toX=z.cx+Math.cos(a)*d;z.toZ=z.cz+Math.sin(a)*d}
 const PKM={};let pickIn=null;
 function addPickup(type,pos){
-  if(!PKM[type.k])PKM[type.k]=[new THREE.MeshBasicMaterial({color:new THREE.Color(type.c).multiplyScalar(1.6),wireframe:true,toneMapped:false}),new THREE.MeshBasicMaterial({color:new THREE.Color(type.c).multiplyScalar(2),toneMapped:false})];
-  if(!pickIn)pickIn=new THREE.OctahedronGeometry(1);
-  const m=new THREE.Mesh(pickGeo,PKM[type.k][0]);
-  m.add(new THREE.Mesh(pickIn,PKM[type.k][1]));
-  m.position.copy(pos);GS.add(m);pickups.push({mesh:m,type});
+  const m=new THREE.Object3D();m.userData.k=type.k;
+  m.position.copy(pos);pickups.push({mesh:m,type});
 }
 function spawnPickup(){const z=G.zone,a=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*Math.min(z.r,ARENA-30)*.95;
   const type=PICK[Math.random()<.35?0:Math.random()<.5?1:Math.random()<.4?2:3];addPickup(type,new THREE.Vector3(z.cx+Math.cos(a)*r,rand(15,110),z.cz+Math.sin(a)*r))}
@@ -1190,15 +1232,21 @@ function spawnPickup(){const z=G.zone,a=Math.random()*Math.PI*2,r=Math.sqrt(Math
 /* las cualidades de la nave elegida cambian cómo vuela */
 function shipMods(s){const st=s.st;return {spd:.75+st[0]/200,hull:Math.round(60+st[1]*.6),shield:Math.round(80+st[1]*.3),dmg:.7+st[2]/200,turn:.7+st[3]/180}}
 
+let starting=false;
 async function startGame(){
+  if(starting)return;
   const s=SHIPS[sel];
   if(s.lv>PLAYER_LV){toast(s.name+' está bloqueada · elige otra nave');return}
+  starting=true;
+  try{await startGame2(s)}finally{starting=false}
+}
+async function startGame2(s){
   audio();
-  $('fade').classList.add('on');
-  try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen&&!TOUCH)await document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}
+  $('fade').classList.add('on','ld');
+  try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen&&!TOUCH){const fp=document.documentElement.requestFullscreen();fp&&fp.catch&&fp.catch(()=>{})}}catch(e){}
   if(!GS)buildGame();
   // las naves enemigas usan los modelos de toda la flota
-  const protos=await Promise.all(SHIPS.map(x=>load(x).catch(()=>null)));
+  const protos=await Promise.all(SHIPS.map(x=>loadLod(x).catch(()=>load(x)).catch(()=>null)));
   clearWorld();
   const D=DIFF[diff], M=shipMods(s);
   G={t:0,ships:[],player:null,mods:M,ship:s,zone:{phase:0,state:'wait',timer:ZONES[0].wait,cx:0,cz:0,r:ARENA,fromR:ARENA,fromX:0,fromZ:0,toR:ZONES[0].r,toX:0,toZ:0},
@@ -1231,7 +1279,7 @@ async function startGame(){
   buildSegs();setWeaponHud();genCracks();$('tAut').classList.toggle('on',G.auto);
   banner('ELIMINA A LOS VIRUS','Sé la última nave en pie · '+s.name,'',3.5);
   feed('Partida empezada · <b>16</b> naves · dificultad '+DIFF[diff].n);
-  setTimeout(()=>$('fade').classList.remove('on'),80);
+  setTimeout(()=>$('fade').classList.remove('on','ld'),80);
   if(!TOUCH){lockWanted=true;requestLock()}
 }
 function toHangar(){
@@ -1329,9 +1377,9 @@ function setWeaponHud(){
 const tmp=new THREE.Vector3(),tmp2=new THREE.Vector3(),desired=new THREE.Vector3();
 function spawnShot(owner,from,dir,dmg,W){
   const pl=owner.isPlayer;W=W||WSTAT.laser;const key=pl?(W===WSTAT.plasma?'plasma':W===WSTAT.scatter?'scatter':'laser'):'e';
-  const m=new THREE.Mesh(key==='plasma'?plasmaGeo:shotGeo,pl?SHOTMAT[key]:shotMatE);
+  const m=new THREE.Object3D();m.userData.k=key;
   if(key==='scatter')m.scale.set(1,1,.5);
-  m.position.copy(from);m.lookAt(tmp.copy(from).add(dir));GS.add(m);
+  m.position.copy(from);m.lookAt(tmp.copy(from).add(dir));
   shots.push({mesh:m,pos:from.clone(),vel:dir.clone().multiplyScalar(pl?W.spd:420).add(owner.vel),owner,life:pl?W.life:1.1,dmg,splash:pl?(W.splash||0):0});
 }
 
@@ -1649,6 +1697,7 @@ function step(dt){
 }
 function worldFx(dt){
   if(FXT)fxStep(dt);
+  if(GS&&G)drawPools();
   for(const b of boxes)if(b.ring)b.ring.rotation.z+=b.ring.userData.spin*dt;
   for(let i=booms.length-1;i>=0;i--){const b=booms[i];b.t+=dt;const arr=b.p.geometry.attributes.position.array;
     for(let j=0;j<b.vel.length;j++){arr[j*3]+=b.vel[j].x*dt;arr[j*3+1]+=b.vel[j].y*dt;arr[j*3+2]+=b.vel[j].z*dt}
@@ -1657,7 +1706,7 @@ function worldFx(dt){
   if(G){const z=G.zone;zoneObj.scale.set(z.r,1,z.r);zoneObj.position.x=z.cx;zoneObj.position.z=z.cz;zoneObj.rotation.y+=dt*.04;
     nextRing.visible=z.state==='wait';nextRing.scale.setScalar(z.toR);nextRing.position.x=z.toX;nextRing.position.z=z.toZ}
 }
-function segFill(el,v,max){const n=Math.round(clamp(v/max,0,1)*20);[...el.children].forEach((c,i)=>c.classList.toggle('f',i<n))}
+function segFill(el,v,max){const n=Math.round(clamp(v/max,0,1)*20);if(el._n===n)return;el._n=n;[...el.children].forEach((c,i)=>c.classList.toggle('f',i<n))}
 function hud(dt){
   dt=dt||1/60;
   const p=G.player,z=G.zone;
@@ -1692,7 +1741,7 @@ function hud(dt){
   $('cAlt').textContent=alt;$('cRiv').textContent=G.ships.filter(s=>s.alive&&!s.isPlayer).length;
   const zd=Math.max(0,Math.round(Math.hypot(p.pos.x-z.cx,p.pos.z-z.cz)-z.r));$('cZone').textContent=zd?zd+' m':'DENTRO';
   $('warp').style.opacity=p.speed>120?Math.min(1,(p.speed-120)/40):0;
-  G.spread=Math.max(0,(G.spread||0)-dt*3);document.querySelector('#P .xh').style.transform='translate(-50%,-50%) scale('+(1+G.spread*.35)+')';
+  G.spread=Math.max(0,(G.spread||0)-dt*3);(window.__xh||(window.__xh=document.querySelector('#P .xh'))).style.transform='translate(-50%,-50%) scale('+(1+G.spread*.35)+')';
   // flecha hacia la zona si estás fuera
   const za=$('zarr');if(zd>0&&p.alive){_v.set(z.cx-p.pos.x,0,z.cz-p.pos.z);_q.copy(gcam.quaternion).invert();_v.applyQuaternion(_q);za.hidden=false;za.style.transform='rotate('+Math.atan2(_v.x,-_v.z)+'rad)';$('zarrT').textContent=zd+' m'}else za.hidden=true;
   // etiquetas sobre los enemigos cercanos
@@ -1700,9 +1749,16 @@ function hud(dt){
   while(nps.children.length<5){const d=document.createElement('div');d.className='np';d.innerHTML='<b></b><span class="bb"><i><u style="background:#5cf0ff"></u></i><i><u style="background:#ff2a4d"></u></i></span>';nps.appendChild(d)}
   [...nps.children].forEach((el,i)=>{const s=near[i];const o=s&&scr(tmp2.copy(s.pos).add({x:0,y:6,z:0}),{});if(!o){el.style.display='none';return}
     el.style.display='';el.style.left=o.x+'px';el.style.top=o.y+'px';el.firstChild.textContent=s.name;const u=el.querySelectorAll('u');u[0].style.width=(s.shield/s.maxS*100)+'%';u[1].style.width=(s.hull/s.maxH*100)+'%'});
-  drawMini();
+  if((G.mmF=(G.mmF||0)+1)%2===0)drawMini();
+}
+function autoQ(dt){
+  if(!G||G.qDone||paused)return;
+  if(G.t>2&&G.t<6){G.qN=(G.qN||0)+1;G.qT=(G.qT||0)+dt}
+  else if(G.t>=6&&G.qN){G.qDone=true;const avg=G.qT/G.qN;
+    if(avg>1/34&&PR.set.q!=='baja'){PR.set.q=PR.set.q==='alta'?'media':'baja';saveP();applyQuality();toast('Calidad gráfica ajustada a «'+PR.set.q+'» para que vaya más fluido')}}
 }
 function gameFrame(dt){
+  autoQ(dt);
   if(!paused&&G){step(dt);hud(dt)}
   worldFx(paused?0:dt);
   gcomp.render();
@@ -1979,7 +2035,7 @@ document.querySelectorAll('.inv,#squad button').forEach(b=>{const nb=b.cloneNode
 /* calidad gráfica */
 function applyQuality(){const q=PR.set.q;
   try{bloom.enabled=q!=='baja';if(gbloom)gbloom.enabled=q!=='baja';mir.visible=q==='alta';floorTop.material.opacity=q==='alta'?.86:1;
-    renderer.setPixelRatio(q==='baja'?1:Math.min(devicePixelRatio,TOUCH?1.25:1.75));resize()}catch(e){}}
+    renderer.setPixelRatio(q==='alta'?Math.min(devicePixelRatio,TOUCH?1.5:1.75):q==='media'?Math.min(devicePixelRatio,1):.85);resize()}catch(e){}}
 
 /* al acabar una partida */
 function metaEnd(r){
@@ -2002,6 +2058,6 @@ refreshLobby();applyQuality();
 pick(0);preload();
 setTimeout(()=>{$('hint').style.opacity=0},7000);
 requestAnimationFrame(frame);
-window.__h={pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},dbg:()=>({G,damage,boom,kill,PR})};
+window.__h={pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},dbg:()=>({G,damage,boom,kill,PR})};window.__R=renderer;
 })();
 </script>
