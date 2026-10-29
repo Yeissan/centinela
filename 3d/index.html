@@ -346,6 +346,12 @@ button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 .tthr em{position:absolute;left:50%;bottom:calc(-1.6*var(--u));transform:translateX(-50%);font-style:normal;font:700 calc(.72*var(--u)) var(--ui);letter-spacing:.08em;color:rgba(238,248,255,.75);white-space:nowrap}
 .tch .tthr{display:block}.tch .thrG{display:none}
 
+/* vista exterior */
+.vbtn{left:calc(18*var(--u))}.vbtn svg.i{font-size:calc(1.4*var(--u))}
+#P.ext .ckp,#P.ext .cracks,#P.ext .tape,#P.ext .hz,#P.ext .thrG{display:none}
+#P.ext .xh{transition:none}
+#P.ext .tthr{display:none}.tch.ext .tthr{display:block}
+
 /* ================= PANTALLAS DEL MENÚ (estilo premium) ================= */
 :root{--rc0:#8fa6bf;--rc1:#3aa8ff;--rc2:#b45cff;--rc3:#ffb02e;--rc4:#ff3d6e}
 .hx{font-family:var(--hx);font-style:italic;font-weight:800;text-transform:uppercase;letter-spacing:.02em;line-height:.95}
@@ -648,6 +654,7 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
   <symbol id="i-missile" viewBox="0 0 24 24"><path d="M14.5 3.5c3 0 6 3 6 6l-8.5 8.5-6-6z"/><path d="M6 12 3 13l2 2M12 18l-1 3-2-2M5.5 18.5 3 21"/></symbol>
   <symbol id="i-mine" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12c3-6 17-6 20 0-3 6-17 6-20 0z"/><circle cx="12" cy="12" r="3"/><path d="M4 20 20 4"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M3 8.5a2 2 0 0 1 2-2h2.2L9 4h6l1.8 2.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.8"/></symbol>
   <symbol id="i-cross" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
 </svg>
 <div id="rot"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="7" width="16" height="10" rx="2"/><path d="M8 3.5A9 9 0 0 1 19 6M19 2.5V6h-3.5"/></svg>Gira el móvil en horizontal para jugar</div></div>
@@ -794,7 +801,7 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
       <div class="tg"><span id="lockTx"></span><div class="hpb"><i id="lockHp"></i></div></div>
     </div>
     <div class="mm"><canvas id="mmc" width="240" height="240"></canvas><small id="mmTx">ZONA</small></div>
-    <button type="button" class="pbtn p" id="pbtn" aria-label="Pausa">II</button>
+    <button type="button" class="pbtn p" id="pbtn" aria-label="Pausa">II</button><button type="button" class="pbtn vbtn p" id="vbtn" aria-label="Cambiar vista"><svg class="i"><use href="#i-cam"/></svg></button>
     <div class="gtop">
       <div class="mt"><svg class="i"><use href="#i-users"/></svg><span id="gAlive">16</span></div>
       <div class="mt z" id="gZone"><svg class="i"><use href="#i-zone"/></svg><span id="gZoneTx">Zona 00:40</span></div>
@@ -820,7 +827,7 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
     <div class="thrG" id="thrG"><span class="tt">GASES</span><div class="trk"><i class="tz"></i><i id="thrF"></i><i class="knb" id="thrK"></i><span class="m m4">MÁX</span><span class="m m3">RÁP</span><span class="m m2">CRU</span><span class="m m1">LEN</span></div><b id="thrN">CRUCERO</b></div>
     <div class="thrPop" id="thrPop"></div>
     <div class="padI" id="padI" hidden><svg class="i"><use href="#i-cross"/></svg>MANDO</div>
-    <div class="pchelp" id="pchelp" style="left:calc(2.4*var(--u));bottom:auto;top:calc(14.6*var(--u))"><span><b>Ratón</b> girar · <b>Clic</b> láser · <b>Clic der.</b> arma secundaria</span><span><b>W/S</b>, <b>rueda</b> o <b>1-4</b> velocidad · <b>A/D</b> de lado · <b>R/F</b> subir/bajar · <b>Shift</b> turbo · <b>Q</b> habilidad · <b>Esc</b> pausa</span></div>
+    <div class="pchelp" id="pchelp" style="left:calc(2.4*var(--u));bottom:auto;top:calc(14.6*var(--u))"><span><b>Ratón</b> girar · <b>Clic</b> láser · <b>Clic der.</b> arma secundaria</span><span><b>W/S</b>, <b>rueda</b> o <b>1-4</b> velocidad · <b>A/D</b> de lado · <b>R/F</b> subir/bajar · <b>Shift</b> turbo · <b>Q</b> habilidad · <b>V</b> vista · <b>Esc</b> pausa</span></div>
     <div id="T" hidden>
       <div class="tc joy" id="tJoy"><span class="knob" id="tKnob"></span><em>MOVER</em></div>
       <div class="tc tfire" id="tFire"><svg class="i"><use href="#i-cross"/></svg><em>DISPARAR</em></div>
@@ -1255,6 +1262,22 @@ function hitFx(pos,col,shield,tgt){
   if(shield&&tgt){const sh=spr(FXT.ring,0x7ff8ff);addFx(sh,.25,(o,k)=>{o.position.copy(tgt.pos);const q=9+k*5;o.scale.set(q,q,1);o.material.opacity=.85*(1-k)})}
 }
 let shieldGeo=null;
+/* ---------- vista exterior: tu nave vista desde detrás ---------- */
+function playerMesh(proto,sh){
+  const g=new THREE.Group();
+  if(proto){const m=new THREE.Mesh(proto.geometry,proto.material);m.scale.setScalar(6.2);m.rotation.y=Math.PI/2;g.add(m)}
+  const c=new THREE.Color(sh.col||0x5cf0ff);
+  {const e=new THREE.Sprite(new THREE.SpriteMaterial({map:engTex,color:c,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));e.scale.set(2.6,2.6,1);e.position.set(0,0,-5.4);g.add(e)}
+  const N=26,pa=new Float32Array(N*3),ca=new Float32Array(N*3);for(let k=0;k<N;k++){const f=Math.pow(1-k/N,1.5);ca[k*3]=c.r*1.8*f;ca[k*3+1]=c.g*1.8*f;ca[k*3+2]=c.b*1.8*f}
+  const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(pa,3));tg.setAttribute('color',new THREE.BufferAttribute(ca,3));
+  g.userData.trail=new THREE.Line(tg,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));g.userData.trail.frustumCulled=false;g.userData.tInit=false;
+  return g;
+}
+const _cf=new THREE.Vector3(),_cu=new THREE.Vector3(),_ct=new THREE.Vector3();
+function setView(v,quiet){if(!G)return;G.view=v;PR.set.cam=v;saveP();$('P').classList.toggle('ext',v==='ext');for(const m of muzz)m.visible=false;G.camP=null;
+  if(G.pm){G.pm.visible=v==='ext';const tr=G.pm.userData.trail;if(v==='ext'&&!tr.parent)GS.add(tr);if(v!=='ext'&&tr.parent)GS.remove(tr);G.pm.userData.tInit=false}
+  if(!quiet)toast(v==='ext'?(TOUCH?'Vista exterior · toca el botón de cámara para volver':'Vista exterior · pulsa V para volver a la cabina'):'Vista desde la cabina')}
+function toggleView(){setView(G&&G.view==='ext'?'ck':'ext')}
 /* ---------- sonido ---------- */
 let ac=null,muted=false;
 function audio(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume()}
@@ -1272,6 +1295,7 @@ function newShip(isPlayer,name,pos,hp,sh){
 }
 function clearWorld(){
   if(!G)return;
+  if(G.pm){GS.remove(G.pm);if(G.pm.userData.trail.parent)GS.remove(G.pm.userData.trail);G.pm.userData.trail.geometry.dispose()}
   G.ships.forEach(s=>{s.mesh&&GS.remove(s.mesh);if(s.trail){GS.remove(s.trail);s.trail.geometry.dispose()}});
   FX.forEach(f=>{GS.remove(f.obj);if(f.obj.userData.ownGeo)f.obj.geometry.dispose();if(f.obj.material&&!f.obj.userData.shared)f.obj.material.dispose()});FX.length=0;$('dnums').innerHTML='';$('dinds').innerHTML='';$('medals').innerHTML='';$('nps').innerHTML='';
   shots.forEach(s=>GS.remove(s.mesh));shots.length=0;
@@ -1316,6 +1340,8 @@ async function startGame2(s){
   const a0=Math.random()*Math.PI*2;
   const p=newShip(true,'Tú',new THREE.Vector3(Math.cos(a0)*ARENA*.55,60,Math.sin(a0)*ARENA*.55),M.hull,M.shield);
   G.player=p;G.ships.push(p);
+  G.view=PR.set.cam==='ext'?'ext':'ck';
+  {const pr=await load(s).catch(()=>loadLod(s)).catch(()=>null);G.pm=playerMesh(pr,s);GS.add(G.pm);G.camP=null}
   G.yaw=G.tyaw=Math.atan2(p.pos.x,p.pos.z);
   const pool=SHIPS.map((x,i)=>protos[i]).filter(Boolean);
   for(let i=0;i<BOTS;i++){
@@ -1336,7 +1362,7 @@ async function startGame2(s){
   $('P').classList.toggle('tch',TOUCH);$('T').hidden=!TOUCH;
   $('pchelp').style.opacity=1;setTimeout(()=>{$('pchelp').style.opacity=0},12000);
   renderer.toneMappingExposure=1.0;
-  buildSegs();setWeaponHud();genCracks();$('tAut').classList.toggle('on',G.auto);
+  buildSegs();setWeaponHud();genCracks();setView(G.view,true);$('tAut').classList.toggle('on',G.auto);
   banner('ELIMINA A LOS VIRUS','Sé la última nave en pie · '+s.name,'',3.5);
   feed('Partida empezada · <b>16</b> naves · dificultad '+DIFF[diff].n);
   setTimeout(()=>$('fade').classList.remove('on','ld'),80);
@@ -1356,6 +1382,7 @@ $('quit').addEventListener('click',toHangar);
 $('toH').addEventListener('click',toHangar);
 $('again').addEventListener('click',()=>{$('over').hidden=true;startGame()});
 $('pbtn').addEventListener('click',()=>{if(MODE==='game')pause()});
+$('vbtn').addEventListener('click',e=>{e.stopPropagation();if(MODE==='game')toggleView()});
 
 /* ratón y teclado */
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -1378,6 +1405,7 @@ addEventListener('keydown',e=>{
   if((e.code==='KeyP'||e.code==='Escape')&&G&&!G.over&&!paused&&!locked)pause();
   if(e.code==='KeyE'&&G&&!paused)fireMissile();
   if(e.code==='KeyQ'&&G&&!paused)useAbility();
+  if(e.code==='KeyV'&&G&&!paused)toggleView();
   const dg={Digit1:.1,Digit2:.4,Digit3:.7,Digit4:1}[e.code];if(dg!=null&&G){G.thr=dg;thrPop()}
 });
 addEventListener('keyup',e=>{keys[e.code]=false});
@@ -1456,7 +1484,7 @@ function spawnShot(owner,from,dir,dmg,W){
 function playerFwd(out){return out.set(-Math.sin(G.yaw)*Math.cos(G.pitch),Math.sin(G.pitch),-Math.cos(G.yaw)*Math.cos(G.pitch))}
 function playerFire(){
   const p=G.player,W=WSTAT[G.w];if(p.energy<W.en)return;
-  p.energy-=W.en;G.shake=reduce?0:W.shake;for(const m of muzz){m.visible=true;m.userData.t=.05;const s=rand(1.2,2.2)*(G.w==='plasma'?1.8:1);m.scale.set(s,s,1);m.material.rotation=rand(0,6);m.material.color.setHex(G.w==='plasma'?0xff7af6:G.w==='scatter'?0xffc24a:G.w==='chain'?0x9fffd8:0x9ff7ff)}
+  p.energy-=W.en;G.shake=reduce?0:W.shake;if(G.view!=='ext')for(const m of muzz){m.visible=true;m.userData.t=.05;const s=rand(1.2,2.2)*(G.w==='plasma'?1.8:1);m.scale.set(s,s,1);m.material.rotation=rand(0,6);m.material.color.setHex(G.w==='plasma'?0xff7af6:G.w==='scatter'?0xffc24a:G.w==='chain'?0x9fffd8:0x9ff7ff)}
   G.spread=Math.min(1,(G.spread||0)+.35);tone(W.snd[0],W.snd[1],.09,W.snd[2],.035);
   const f=playerFwd(new THREE.Vector3()),r=new THREE.Vector3(Math.cos(G.yaw),0,-Math.sin(G.yaw));
   let aim=f.clone();
@@ -1584,6 +1612,7 @@ function kill(s,by){
   if(!s.isPlayer&&Math.random()<.7)addPickup(PICK[Math.random()<.5?0:Math.random()<.5?2:1],s.pos);
   if(!s.isPlayer&&G.player.alive&&[10,5,3,2].includes(aliveN))banner(aliveN===2?'¡ÚLTIMO RIVAL!':'QUEDAN '+(aliveN-1)+' RIVALES','','gold',2);
   if(s.trail){GS.remove(s.trail);s.trail.geometry.dispose()}
+  if(s.isPlayer&&G.pm)G.pm.visible=false;
   if(s.isPlayer)endGame(false,aliveN+1);
   else if(aliveN===1&&G.player.alive)endGame(true,1);
 }
@@ -1722,9 +1751,27 @@ function step(dt){
     if(G.t-p.lastHit>3)p.shield=Math.min(p.maxS,p.shield+14*dt);
   }
   G.shake*=Math.pow(.02,dt);
+  if(G.view==='ext'){
+    playerFwd(_cf);
+    // la nave
+    if(G.pm){G.pm.visible=p.alive;G.pm.position.copy(p.pos);G.pm.lookAt(_ct.copy(p.pos).add(_cf));G.pm.rotateZ(clamp(-G.roll*1.6,-.9,.9));
+      const tr=G.pm.userData.trail,a=tr.geometry.attributes.position.array;const e=_ct.copy(_cf).multiplyScalar(-5.6).add(p.pos);
+      if(!G.pm.userData.tInit){for(let k=0;k<a.length;k+=3){a[k]=e.x;a[k+1]=e.y;a[k+2]=e.z}G.pm.userData.tInit=true}
+      for(let k=a.length-3;k>=3;k-=3){a[k]=a[k-3];a[k+1]=a[k-2];a[k+2]=a[k-1]}a[0]=e.x;a[1]=e.y;a[2]=e.z;tr.geometry.attributes.position.needsUpdate=true}
+    // la cámara la sigue por detrás, un poco por encima, con algo de retraso
+    const back=19+p.speed*.04;_cu.set(0,1,0);
+    const want=_ct.copy(p.pos).addScaledVector(_cf,-back).addScaledVector(_cu,TOUCH?4.6:6.5);
+    for(let k=0;k<5&&insideBox(want,4);k++)want.lerp(p.pos,.35);
+    if(!G.camP)G.camP=want.clone();else G.camP.lerp(want,Math.min(1,dt*7));
+    gcam.position.copy(G.camP).add({x:(Math.random()-.5)*G.shake*.6,y:(Math.random()-.5)*G.shake*.6,z:0});
+    gcam.up.set(0,1,0);gcam.lookAt(_ct.copy(p.pos).addScaledVector(_cf,46).addScaledVector(_cu,TOUCH?-1:2));gcam.rotateZ(G.roll*.35);
+  }else{
   gcam.position.copy(p.pos);
   gcam.rotation.set(G.pitch+(Math.random()-.5)*G.shake*.03,G.yaw+(Math.random()-.5)*G.shake*.03,G.roll+(reduce?0:Math.sin(G.t*1.3)*.01));
-  gcam.fov+=((74+(p.speed>110?8:0))-gcam.fov)*Math.min(1,dt*3);gcam.updateProjectionMatrix();gcam.updateMatrixWorld();
+  }
+  gcam.fov+=(((G.view==='ext'?66:74)+(p.speed>110?8:0))-gcam.fov)*Math.min(1,dt*3);gcam.updateProjectionMatrix();gcam.updateMatrixWorld();
+  // punto de mira en pantalla (en vista exterior no está en el centro)
+  if(G.view==='ext'){_ct.copy(p.pos).addScaledVector(playerFwd(_cf),260).project(gcam);G.aimN={x:_ct.x,y:_ct.y}}else G.aimN={x:0,y:0};
   for(const s of G.ships)if(s.alive&&!s.isPlayer)botThink(s,dt);
   let pout=false;
   for(const s of G.ships){if(!s.alive)continue;const out=Math.hypot(s.pos.x-z.cx,s.pos.z-z.cz)>z.r;
@@ -1756,10 +1803,10 @@ function step(dt){
   let best=null,bd=1e9;G.lockOk=false;
   if(p.alive)for(const s of G.ships){if(s.isPlayer||!s.alive)continue;const d=s.pos.distanceTo(p.pos);if(d>420)continue;
     v3.copy(s.pos).project(gcam);if(v3.z>=1||Math.abs(v3.x)>.95||Math.abs(v3.y)>.95)continue;
-    const sc=v3.x*v3.x*gcam.aspect*gcam.aspect+v3.y*v3.y;if(sc<bd){bd=sc;best={s,x:v3.x,y:v3.y,d}}}
+    const ax0=v3.x-G.aimN.x,ay0=v3.y-G.aimN.y,sc=ax0*ax0*gcam.aspect*gcam.aspect+ay0*ay0;if(sc<bd){bd=sc;best={s,x:v3.x,y:v3.y,d}}}
   const lock=$('lock');
   if(best&&bd<.35){G.lockT=best.s;const W=cv.clientWidth,H=cv.clientHeight,px=(best.x+1)/2*W,py=(1-best.y)/2*H;
-    G.lockOk=Math.hypot(px-W/2,py-H/2)<Math.min(W,H)*(TOUCH?.16:.12);
+    const cx0=(G.aimN.x+1)/2*W,cy0=(1-G.aimN.y)/2*H;G.lockOk=Math.hypot(px-cx0,py-cy0)<Math.min(W,H)*(TOUCH?.16:.12);
     lock.hidden=false;lock.style.left=px+'px';lock.style.top=py+'px';lock.className='lockb'+(G.lockOk?'':' far');
     const sz=clamp(900/best.d,3.5,11);lock.style.width=sz+'cqw';lock.style.height=sz*.8+'cqw';
     $('lockTx').textContent=best.s.name+' · '+Math.round(best.d)+' m';$('lockHp').style.width=(best.s.hull/best.s.maxH*100)+'%'}
@@ -1818,7 +1865,8 @@ function hud(dt){
   $('tThrK').style.bottom=tp+'%';$('tThrF').style.height=tp+'%';$('tThrL').textContent=boostOn?'TURBO':thrName(G.thr);
   $('padI').hidden=!PAD.on;
   $('warp').style.opacity=p.speed>120?Math.min(1,(p.speed-120)/40):0;
-  G.spread=Math.max(0,(G.spread||0)-dt*3);(window.__xh||(window.__xh=document.querySelector('#P .xh'))).style.transform='translate(-50%,-50%) scale('+(1+G.spread*.35)+')';
+  G.spread=Math.max(0,(G.spread||0)-dt*3);{const xe=window.__xh||(window.__xh=document.querySelector('#P .xh')),hm=$('hitm'),lx=((G.aimN.x+1)/2*100)+'%',ly=((1-G.aimN.y)/2*100)+'%';xe.style.left=lx;xe.style.top=ly;hm.style.left=lx;hm.style.top=ly}
+  (window.__xh).style.transform='translate(-50%,-50%) scale('+(1+G.spread*.35)+')';
   // flecha hacia la zona si estás fuera
   const za=$('zarr');if(zd>0&&p.alive){_v.set(z.cx-p.pos.x,0,z.cz-p.pos.z);_q.copy(gcam.quaternion).invert();_v.applyQuaternion(_q);za.hidden=false;za.style.transform='rotate('+Math.atan2(_v.x,-_v.z)+'rad)';$('zarrT').textContent=zd+' m'}else za.hidden=true;
   // etiquetas sobre los enemigos cercanos
@@ -2057,7 +2105,7 @@ VIEWS.ajustes=()=>{const S=PR.set;
   const sw=(k,t,d)=>'<div class="srow"><span><b>'+t+'</b><small>'+d+'</small></span><button type="button" class="sw'+(S[k]?' on':'')+'" data-sw="'+k+'" aria-pressed="'+!!S[k]+'" aria-label="'+t+'"></button></div>';
   const rg=(k,t,d,min,max)=>{const p=(S[k]-min)/(max-min)*100;return '<div class="srow"><span><b>'+t+'</b><small>'+d+'</small></span><span class="rngW"><input type="range" class="rng" id="set-'+k+'" data-rg="'+k+'" data-min="'+min+'" data-max="'+max+'" min="'+min+'" max="'+max+'" step="0.05" value="'+S[k]+'" style="--p:'+p+'%" aria-label="'+t+'"><span id="v-'+k+'">'+Math.round(p)+'</span></span></div>'};
   const T={snd:sw('snd','Sonido','Efectos de disparos y explosiones')+rg('vol','Volumen','Fuerza del sonido',0,1),
-    ctl:rg('sens','Sensibilidad del ratón','Cuánto gira la nave al mover el ratón',.4,2)+rg('tsens','Sensibilidad táctil','Cuánto gira al deslizar el dedo',.4,2)+sw('inv','Invertir eje vertical','Hacia arriba = bajar el morro')+sw('auto','Disparo automático en el móvil','Dispara solo cuando apuntas a un enemigo'),
+    ctl:rg('sens','Sensibilidad del ratón','Cuánto gira la nave al mover el ratón',.4,2)+rg('tsens','Sensibilidad táctil','Cuánto gira al deslizar el dedo',.4,2)+sw('inv','Invertir eje vertical','Hacia arriba = bajar el morro')+'<div class="srow"><span><b>Vista al empezar</b><small>También se cambia en partida con la tecla V</small></span><div class="chs">'+[['ck','Cabina'],['ext','Exterior']].map(([q,n])=>'<button type="button" data-cam="'+q+'"'+((PR.set.cam||'ck')===q?' class="on"':'')+'>'+n+'</button>').join('')+'</div></div>'+sw('auto','Disparo automático en el móvil','Dispara solo cuando apuntas a un enemigo'),
     gfx:'<div class="srow"><span><b>Calidad gráfica</b><small>Baja va mejor en móviles sencillos</small></span><div class="chs">'+['alta','media','baja'].map(q=>'<button type="button" data-q="'+q+'"'+(S.q===q?' class="on"':'')+'>'+q+'</button>').join('')+'</div></div>',
     cta:'<div class="srow" style="box-shadow:inset calc(.25*var(--u)) 0 0 var(--red)"><span><b>Borrar progreso</b><small>'+(confirmReset?'¿Seguro? Se pierden bits, pase y misiones de esta versión':'Vuelve a empezar la versión 3D desde cero')+'</small></span>'+(confirmReset?'<span style="display:flex;gap:calc(.6*var(--u))"><button type="button" class="btnS ghost" id="rsN">No</button><button type="button" class="btnS red" id="rsY">Sí, borrar</button></span>':'<button type="button" class="btnS ghost" id="rs">Borrar</button>')+'</div>'};
   const tb=[['snd','Sonido','i-star'],['ctl','Controles','i-cross'],['pad','Joystick y mando','i-bolt'],['gfx','Gráficos','i-bolt'],['cta','Cuenta','i-users']];
@@ -2070,6 +2118,7 @@ BIND.ajustes=B=>{
   B.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{setTab=b.dataset.st;confirmReset=false;render()}));
   B.querySelectorAll('[data-sw]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.sw;PR.set[k]=PR.set[k]?0:1;saveP();render()}));
   B.querySelectorAll('[data-rg]').forEach(r=>r.addEventListener('input',()=>{PR.set[r.dataset.rg]=+r.value;saveP();const p=(r.value-r.dataset.min)/(r.dataset.max-r.dataset.min)*100;r.style.setProperty('--p',p+'%');$('v-'+r.dataset.rg).textContent=Math.round(p)}));
+  B.querySelectorAll('[data-cam]').forEach(b=>b.addEventListener('click',()=>{PR.set.cam=b.dataset.cam;saveP();render()}));
   B.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>{PR.set.q=b.dataset.q;saveP();applyQuality();render()}));
   const rs=$('rs');rs&&rs.addEventListener('click',()=>{confirmReset=true;render()});
   const n=$('rsN');n&&n.addEventListener('click',()=>{confirmReset=false;render()});
@@ -2144,16 +2193,16 @@ const PAD_ACT=[
   {k:'yaw',t:'Girar izquierda / derecha',ax:1},{k:'pitch',t:'Subir / bajar el morro',ax:1},{k:'thr',t:'Acelerador (velocidad)',ax:1},
   {k:'strafe',t:'Moverse de lado',ax:1},{k:'climb',t:'Subir / bajar en vertical',ax:1},
   {k:'fire',t:'Disparar'},{k:'sec',t:'Arma secundaria'},{k:'abil',t:'Habilidad'},{k:'boost',t:'Turbo'},
-  {k:'spdUp',t:'Más velocidad'},{k:'spdDn',t:'Menos velocidad'},{k:'pause',t:'Pausa / menú'},{k:'auto',t:'Disparo automático'}];
+  {k:'spdUp',t:'Más velocidad'},{k:'spdDn',t:'Menos velocidad'},{k:'pause',t:'Pausa / menú'},{k:'auto',t:'Disparo automático'},{k:'cam',t:'Cambiar vista (cabina / exterior)'}];
 const padNice=id=>String(id).replace(/\(.*?\)/g,'').replace(/\s+/g,' ').trim().slice(0,40)||'Mando';
 function padDefault(gp){
   if(gp.mapping==='standard')return {dead:.15,yaw:{a:2},pitch:{a:3,inv:1},strafe:{a:0},climb:{a:1,inv:1},thr:{a:null},
-    fire:{b:7},sec:{b:6},abil:{b:4},boost:{b:5},spdUp:{b:12},spdDn:{b:13},pause:{b:9},auto:{b:3}};
+    fire:{b:7},sec:{b:6},abil:{b:4},boost:{b:5},spdUp:{b:12},spdDn:{b:13},pause:{b:9},auto:{b:3},cam:{b:8}};
   const n=gp.axes.length;
   return {dead:.08,yaw:{a:0},pitch:{a:1},thr:{a:n>2?2:null},strafe:{a:n>5?5:n>3?3:null},climb:{a:null},
-    fire:{b:0},sec:{b:1},abil:{b:2},boost:{b:3},spdUp:{b:4},spdDn:{b:5},pause:{b:9},auto:{b:8}};
+    fire:{b:0},sec:{b:1},abil:{b:2},boost:{b:3},spdUp:{b:4},spdDn:{b:5},pause:{b:9},auto:{b:8},cam:{b:6}};
 }
-function padMap(gp){PR.set.pads=PR.set.pads||{};if(!PR.set.pads[gp.id]){PR.set.pads[gp.id]=padDefault(gp);saveP()}return PR.set.pads[gp.id]}
+function padMap(gp){PR.set.pads=PR.set.pads||{};if(!PR.set.pads[gp.id]){PR.set.pads[gp.id]=padDefault(gp);saveP()}const m=PR.set.pads[gp.id];if(!m.cam){m.cam=padDefault(gp).cam;saveP()}return m}
 let padCap=null;
 function padPoll(){
   let gps=[];try{gps=navigator.getGamepads?navigator.getGamepads():[]}catch(e){}
@@ -2190,6 +2239,7 @@ function padPress(k){
   if(paused){if(k==='fire')resume();return}
   if(k==='sec')fireMissile();
   if(k==='abil')useAbility();
+  if(k==='cam')toggleView();
   if(k==='auto'){G.auto=!G.auto;$('tAut').classList.toggle('on',G.auto);toast(G.auto?'Disparo automático activado':'Disparo automático apagado')}
 }
 addEventListener('gamepadconnected',()=>padPoll());
