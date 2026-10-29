@@ -222,7 +222,7 @@ button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 .tmsl b{position:absolute;right:calc(-.2*var(--u));top:calc(-.2*var(--u));width:calc(1.9*var(--u));height:calc(1.9*var(--u));border-radius:50%;background:var(--amber);color:#1a0a00;font:700 calc(1*var(--u)) var(--ui);display:grid;place-items:center}
 .ttbo{right:calc(18.4*var(--u));bottom:calc(11.8*var(--u));width:calc(5.6*var(--u));height:calc(5.6*var(--u));color:var(--mint)}
 .tabl{right:calc(8.6*var(--u));bottom:calc(17.6*var(--u));width:calc(6.2*var(--u));height:calc(6.2*var(--u));box-shadow:inset 0 0 0 calc(.16*var(--u)) rgba(255,61,242,.8),0 0 calc(1.4*var(--u)) rgba(255,61,242,.4)}
-.taut{left:calc(20*var(--u));bottom:calc(12*var(--u));width:calc(4.4*var(--u));height:calc(4.4*var(--u));font:700 calc(.8*var(--u)) var(--ui);letter-spacing:.1em}
+.taut{left:calc(4.6*var(--u));bottom:calc(19.4*var(--u));width:calc(4.4*var(--u));height:calc(4.4*var(--u));font:700 calc(.8*var(--u)) var(--ui);letter-spacing:.1em}
 .taut.on{background:rgba(125,255,196,.3);box-shadow:inset 0 0 0 calc(.16*var(--u)) var(--mint),0 0 calc(1.2*var(--u)) rgba(125,255,196,.5);color:var(--mint)}
 .tch .wpn,.tch .pchelp{display:none}
 .tch .vit{bottom:calc(1.6*var(--u));width:calc(24*var(--u))}
@@ -323,6 +323,28 @@ button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 .fade .ldg b{font:800 italic calc(1.6*var(--u)) var(--hx,var(--ui));letter-spacing:.14em;color:#fff}
 .fade .ldg small{font:600 calc(.9*var(--u)) var(--ui);letter-spacing:.1em;color:var(--dim)}
 .fade:not(.ld) .ldg{display:none}
+
+/* palanca de gases */
+.thrG{position:absolute;left:calc(9.4*var(--u));bottom:calc(1.4*var(--u));width:calc(4.6*var(--u));height:calc(11*var(--u));display:flex;flex-direction:column;align-items:center;gap:calc(.3*var(--u));padding:calc(.4*var(--u)) calc(.3*var(--u));border-radius:calc(.8*var(--u));background:linear-gradient(180deg,rgba(10,40,70,.5),rgba(4,14,28,.75));box-shadow:inset 0 0 0 1px rgba(92,240,255,.35)}
+.thrG .tt{font:800 calc(.6*var(--u)) var(--ui);letter-spacing:.2em;color:var(--cyan)}
+.thrG b{font:800 calc(.7*var(--u)) var(--ui);letter-spacing:.08em;color:#e8fbff}
+.thrG.boost b{color:var(--mint);text-shadow:0 0 calc(.5*var(--u)) var(--mint)}
+.trk{position:relative;flex:1;width:calc(1.2*var(--u));border-radius:99px;background:rgba(255,255,255,.08);margin-left:calc(-1.6*var(--u))}
+.trk .tz{position:absolute;left:0;right:0;top:0;height:12%;border-radius:99px 99px 0 0;background:rgba(125,255,196,.25)}
+.trk #thrF{position:absolute;left:0;right:0;bottom:0;border-radius:99px;background:linear-gradient(0deg,var(--cyan),#c8fcff);box-shadow:0 0 calc(.8*var(--u)) var(--cyan)}
+.thrG.boost #thrF{background:linear-gradient(0deg,var(--mint),#e0fff0);box-shadow:0 0 calc(1*var(--u)) var(--mint)}
+.trk .knb{position:absolute;left:calc(-.5*var(--u));right:calc(-.5*var(--u));height:calc(1.2*var(--u));border-radius:calc(.3*var(--u));background:linear-gradient(180deg,#fff,#9fb3c8);box-shadow:0 calc(.2*var(--u)) calc(.4*var(--u)) rgba(0,0,0,.5)}
+.trk .m{position:absolute;left:calc(1.7*var(--u));font:700 calc(.55*var(--u)) var(--ui);letter-spacing:.06em;color:var(--dim);transform:translateY(50%)}
+.m4{bottom:100%}.m3{bottom:70%}.m2{bottom:40%}.m1{bottom:10%}
+.thrPop{position:absolute;left:50%;top:62%;transform:translateX(-50%);font:800 italic calc(1.4*var(--u)) var(--hx,var(--ui));letter-spacing:.12em;color:#fff;text-shadow:0 0 calc(.8*var(--u)) var(--cyan);opacity:0;pointer-events:none}
+.thrPop.show{animation:tpop 1.1s forwards}
+@keyframes tpop{0%{opacity:0;transform:translate(-50%,calc(.5*var(--u)))}15%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0}}
+.padI{position:absolute;left:calc(14.6*var(--u));top:calc(5.6*var(--u));display:flex;align-items:center;gap:calc(.4*var(--u));font:800 calc(.75*var(--u)) var(--ui);letter-spacing:.14em;color:var(--mint);background:rgba(3,5,12,.7);padding:calc(.2*var(--u)) calc(.6*var(--u));border-radius:99px;box-shadow:inset 0 0 0 1px rgba(125,255,196,.5)}
+.tthr{position:absolute;left:calc(19.6*var(--u));bottom:calc(3.4*var(--u));width:calc(4*var(--u));height:calc(11.5*var(--u));border-radius:calc(2*var(--u));background:rgba(10,16,30,.55);box-shadow:inset 0 0 0 calc(.16*var(--u)) rgba(92,240,255,.45);touch-action:none;display:none}
+.tthr #tThrF{position:absolute;left:calc(.7*var(--u));right:calc(.7*var(--u));bottom:calc(1.2*var(--u));border-radius:99px;background:linear-gradient(0deg,rgba(92,240,255,.25),rgba(92,240,255,.6));max-height:calc(100% - calc(2.4*var(--u)))}
+.tthr b{position:absolute;left:calc(.3*var(--u));right:calc(.3*var(--u));height:calc(2.4*var(--u));margin-bottom:calc(-1.2*var(--u));border-radius:calc(1*var(--u));background:radial-gradient(circle at 40% 35%,#fff,#8fdcff);box-shadow:0 0 calc(1.2*var(--u)) rgba(92,240,255,.7);transform:translateY(calc(-1.2*var(--u)))}
+.tthr em{position:absolute;left:50%;bottom:calc(-1.6*var(--u));transform:translateX(-50%);font-style:normal;font:700 calc(.72*var(--u)) var(--ui);letter-spacing:.08em;color:rgba(238,248,255,.75);white-space:nowrap}
+.tch .tthr{display:block}.tch .thrG{display:none}
 
 /* ================= PANTALLAS DEL MENÚ (estilo premium) ================= */
 :root{--rc0:#8fa6bf;--rc1:#3aa8ff;--rc2:#b45cff;--rc3:#ffb02e;--rc4:#ff3d6e}
@@ -548,6 +570,39 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
 .f2 li::before{content:"";width:calc(.7*var(--u));height:calc(.7*var(--u));transform:rotate(45deg);background:var(--mint);box-shadow:0 0 calc(.5*var(--u)) var(--mint)}
 #bubV.camo{background:radial-gradient(ellipse at center,transparent 50%,rgba(166,107,255,.45));box-shadow:inset 0 0 calc(6*var(--u)) rgba(166,107,255,.4)}
 
+/* joystick */
+.padE{display:grid;grid-template-columns:auto 1fr;gap:calc(2*var(--u));align-items:center;max-width:calc(60*var(--u));margin:auto}
+.padE .big2{width:calc(10*var(--u));height:calc(10*var(--u));display:grid;place-items:center;font-size:calc(5*var(--u));color:#021018;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:linear-gradient(180deg,#c8fcff,#1fb3d4);animation:pulse 1.6s infinite}
+.padE b{font:800 italic calc(2.2*var(--u)) var(--hx);text-transform:uppercase}
+.padE p{margin:calc(.6*var(--u)) 0 0;font:500 calc(1.15*var(--u))/1.45 var(--ui);color:#cfe3f3}
+.padE p b{font:700 calc(1.15*var(--u)) var(--ui);text-transform:none;color:var(--cyan);font-style:normal}
+.padE .sm{font-size:calc(.95*var(--u));color:var(--dim)}
+.padV{display:grid;grid-template-columns:calc(23*var(--u)) 1fr;gap:calc(1.4*var(--u));flex:1;min-height:0}
+.padL{display:flex;flex-direction:column;gap:calc(.7*var(--u))}
+.padN{display:grid;grid-template-columns:auto 1fr;gap:calc(.2*var(--u)) calc(.7*var(--u));align-items:center;padding:calc(.8*var(--u)) calc(1*var(--u));border-radius:calc(.8*var(--u));background:rgba(125,255,196,.08);box-shadow:inset 0 0 0 1px rgba(125,255,196,.45)}
+.padN b{font:800 calc(1.15*var(--u)) var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.padN small{grid-column:2;font:700 calc(.75*var(--u)) var(--ui);letter-spacing:.14em;color:var(--mint);text-transform:uppercase}
+.dotOn{grid-row:1/3;width:calc(1*var(--u));height:calc(1*var(--u));border-radius:50%;background:var(--mint);box-shadow:0 0 calc(.8*var(--u)) var(--mint);animation:pulse 1.4s infinite}
+.axs{display:grid;grid-template-columns:1fr 1fr;gap:calc(.3*var(--u)) calc(.8*var(--u))}
+.ax{display:grid;grid-template-columns:calc(1.8*var(--u)) 1fr;gap:calc(.4*var(--u));align-items:center}
+.ax small{font:800 calc(.7*var(--u)) var(--ui);color:var(--dim)}
+.ax span{position:relative;height:calc(.7*var(--u));border-radius:99px;background:rgba(255,255,255,.08)}
+.ax span::after{content:"";position:absolute;left:50%;top:calc(-.15*var(--u));bottom:calc(-.15*var(--u));width:1px;background:rgba(255,255,255,.35)}
+.ax i{position:absolute;top:0;bottom:0;left:50%;width:0;border-radius:99px;background:var(--cyan);box-shadow:0 0 calc(.5*var(--u)) var(--cyan)}
+.bts{display:grid;grid-template-columns:repeat(8,1fr);gap:calc(.3*var(--u))}
+.bts i{font-style:normal;height:calc(1.8*var(--u));border-radius:calc(.4*var(--u));display:grid;place-items:center;font:800 calc(.7*var(--u)) var(--ui);color:var(--dim);background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.bts i.on{color:#021018;background:var(--mint);box-shadow:0 0 calc(.8*var(--u)) var(--mint)}
+.padR{display:flex;flex-direction:column;gap:calc(.6*var(--u));min-width:0}
+.prs{display:grid;grid-template-columns:1fr 1fr;gap:calc(.4*var(--u)) calc(.8*var(--u))}
+.pr{display:grid;grid-template-columns:1fr auto auto auto;gap:calc(.5*var(--u));align-items:center;height:calc(2.9*var(--u));padding:0 calc(.5*var(--u)) 0 calc(.9*var(--u));background:linear-gradient(90deg,rgba(22,34,58,.75),rgba(8,14,30,.45));box-shadow:inset calc(.2*var(--u)) 0 0 var(--cyan)}
+.pr span{font:600 calc(.95*var(--u)) var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr b{font:800 calc(.85*var(--u)) var(--ui);color:var(--cyan);white-space:nowrap}
+.pr.cap{box-shadow:inset calc(.2*var(--u)) 0 0 var(--gold),0 0 calc(1.2*var(--u)) rgba(255,215,106,.4);animation:pulse 1s infinite}
+.pr.cap b{color:var(--gold)}
+.mini2{height:calc(2*var(--u));padding:0 calc(.7*var(--u));border-radius:calc(.4*var(--u));border:0;cursor:pointer;font:800 calc(.75*var(--u)) var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+.mini2:hover{background:var(--cyan);color:#021018}
+.padL .rng{width:calc(8*var(--u))}.padL .srow{grid-template-columns:1fr auto}
+
 #T{z-index:1}.pbtn{z-index:5}
 .stage>*{--u:1cqw}
 @container (max-width:820px){
@@ -762,7 +817,10 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
       <div class="wb" style="width:calc(8.4*var(--u))"><svg class="i" style="color:var(--cyan)"><use href="#i-cross"/></svg><span id="wpnN">LÁSER DOBLE</span><kbd>CLIC</kbd></div><div class="wb"><svg class="i" style="color:var(--amber)" id="secIc"><use href="#i-missile"/></svg><span id="secN">MISIL</span><span class="pips" id="pips"></span><kbd>CLIC DER.</kbd></div>
       <div class="wb" id="abW"><svg class="i" style="color:var(--mag)" id="abIc"><use href="#i-shield"/></svg><span id="abN">ESCUDO</span><span id="abTx">LISTO</span><kbd>Q</kbd><i class="cd" id="abCd"></i></div>
     </div>
-    <div class="pchelp" id="pchelp" style="left:calc(2.4*var(--u));bottom:auto;top:calc(14.6*var(--u))"><span><b>Ratón</b> girar · <b>Clic</b> láser · <b>Clic der.</b> arma secundaria</span><span><b>W/S</b> acelerar · <b>A/D</b> de lado · <b>Shift</b> turbo · <b>Q</b> habilidad · <b>Esc</b> pausa</span></div>
+    <div class="thrG" id="thrG"><span class="tt">GASES</span><div class="trk"><i class="tz"></i><i id="thrF"></i><i class="knb" id="thrK"></i><span class="m m4">MÁX</span><span class="m m3">RÁP</span><span class="m m2">CRU</span><span class="m m1">LEN</span></div><b id="thrN">CRUCERO</b></div>
+    <div class="thrPop" id="thrPop"></div>
+    <div class="padI" id="padI" hidden><svg class="i"><use href="#i-cross"/></svg>MANDO</div>
+    <div class="pchelp" id="pchelp" style="left:calc(2.4*var(--u));bottom:auto;top:calc(14.6*var(--u))"><span><b>Ratón</b> girar · <b>Clic</b> láser · <b>Clic der.</b> arma secundaria</span><span><b>W/S</b>, <b>rueda</b> o <b>1-4</b> velocidad · <b>A/D</b> de lado · <b>R/F</b> subir/bajar · <b>Shift</b> turbo · <b>Q</b> habilidad · <b>Esc</b> pausa</span></div>
     <div id="T" hidden>
       <div class="tc joy" id="tJoy"><span class="knob" id="tKnob"></span><em>MOVER</em></div>
       <div class="tc tfire" id="tFire"><svg class="i"><use href="#i-cross"/></svg><em>DISPARAR</em></div>
@@ -770,6 +828,7 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
       <div class="tc ctlr ttbo" id="tTbo"><svg class="i"><use href="#i-bolt"/></svg><em>TURBO</em></div>
       <div class="tc tabl" id="tAbl"><svg class="i" style="font-size:calc(2.4*var(--u))" id="tAbIc"><use href="#i-shield"/></svg><em id="tAbL">ESCUDO</em></div>
       <div class="tc ctlr taut" id="tAut">AUTO</div>
+      <div class="tthr" id="tThr"><i id="tThrF"></i><b id="tThrK"></b><em id="tThrL">CRUCERO</em></div>
     </div>
   </div>
 
@@ -1008,6 +1067,7 @@ new ResizeObserver(resize).observe(cv);resize();
 let last=performance.now(),t=0;
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
+  try{padPoll()}catch(e){}
   $('vign').hidden=MODE!=='hangar';
   if(MODE==='game'){gameFrame(dt);requestAnimationFrame(frame);return}
   if(!drag){idle+=dt;vel+=((reduce?0:.32)-vel)*Math.min(1,dt*(idle>1.5?1.2:.4));yaw+=vel*dt}
@@ -1250,7 +1310,7 @@ async function startGame2(s){
   clearWorld();
   const D=DIFF[diff], M=shipMods(s);
   G={t:0,ships:[],player:null,mods:M,ship:s,zone:{phase:0,state:'wait',timer:ZONES[0].wait,cx:0,cz:0,r:ARENA,fromR:ARENA,fromX:0,fromZ:0,toR:ZONES[0].r,toX:0,toZ:0},
-     yaw:0,pitch:0,tyaw:0,tpitch:0,roll:0,throttle:55,boost:100,bits:0,over:false,place:0,shake:0,lastShot:0,hitT:0,dmgT:0,lockT:null,lockOk:false,
+     yaw:0,pitch:0,tyaw:0,tpitch:0,roll:0,thr:.42,boost:100,bits:0,over:false,place:0,shake:0,lastShot:0,hitT:0,dmgT:0,lockT:null,lockOk:false,
      ab:{cd:0,act:0,type:PR.lo.a},auto:!!PR.set.auto,w:PR.lo.w,sec:PR.lo.s,ammo:AMMO[PR.lo.s],ammoMax:AMMO[PR.lo.s],picks:0,camo:0,joy:{x:0,y:0},tFire:false,tTbo:false};
   pickNext(G.zone);
   const a0=Math.random()*Math.PI*2;
@@ -1318,8 +1378,13 @@ addEventListener('keydown',e=>{
   if((e.code==='KeyP'||e.code==='Escape')&&G&&!G.over&&!paused&&!locked)pause();
   if(e.code==='KeyE'&&G&&!paused)fireMissile();
   if(e.code==='KeyQ'&&G&&!paused)useAbility();
+  const dg={Digit1:.1,Digit2:.4,Digit3:.7,Digit4:1}[e.code];if(dg!=null&&G){G.thr=dg;thrPop()}
 });
 addEventListener('keyup',e=>{keys[e.code]=false});
+cv.addEventListener('wheel',e=>{if(MODE!=='game'||!G||paused)return;e.preventDefault();G.thr=clamp(G.thr+(e.deltaY<0?.08:-.08),0,1);thrPop()},{passive:false});
+const THR_N=['LENTO','CRUCERO','RÁPIDO','MÁXIMO'];
+const thrName=t=>t<.25?THR_N[0]:t<.55?THR_N[1]:t<.85?THR_N[2]:THR_N[3];
+function thrPop(){const el=$('thrPop');if(!el)return;el.textContent=thrName(G.thr)+' · '+Math.round(G.thr*100)+'%';el.classList.remove('show');void el.offsetWidth;el.classList.add('show')}
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouseDown=false;if(MODE==='game'&&G&&!G.over&&!paused)pause()});
 
 /* controles táctiles */
@@ -1331,6 +1396,11 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouseDown=false;i
   btn('tTbo',()=>{if(G)G.tTbo=true},()=>{if(G)G.tTbo=false});
   btn('tMsl',()=>fireMissile());
   btn('tAbl',()=>useAbility());
+  const ts=$('tThr');let tsId=null;
+  const setT=e=>{const r=ts.getBoundingClientRect();if(G){G.thr=clamp(1-(e.clientY-r.top-r.width*.3)/(r.height-r.width*.6),0,1)}};
+  ts.addEventListener('pointerdown',e=>{e.stopPropagation();tsId=e.pointerId;try{ts.setPointerCapture(e.pointerId)}catch(_){}setT(e)});
+  ts.addEventListener('pointermove',e=>{if(e.pointerId===tsId)setT(e)});
+  const tsEnd=e=>{if(e.pointerId===tsId)tsId=null};ts.addEventListener('pointerup',tsEnd);ts.addEventListener('pointercancel',tsEnd);
   btn('tAut',()=>{if(!G)return;G.auto=!G.auto;$('tAut').classList.toggle('on',G.auto);toast(G.auto?'Disparo automático activado':'Disparo automático apagado')});
   const jr=()=>joy.getBoundingClientRect();
   function setJoy(cx,cy){const r=jr(),ox=r.left+r.width/2,oy=r.top+r.height/2,R=r.width*.42;let dx=cx-ox,dy=cy-oy;const l=Math.hypot(dx,dy);if(l>R){dx*=R/l;dy*=R/l}
@@ -1620,30 +1690,33 @@ function step(dt){
   if(p.alive){
     const sens=.0022*PR.set.sens,inv=PR.set.inv?-1:1;
     if(locked){G.tyaw-=dX*sens;G.tpitch-=dY*sens*inv}
+    const slow=1.25-G.thr*.45;
+    if(PAD.on){G.tyaw-=PAD.yaw*2.4*M.turn*slow*PR.set.sens*dt;G.tpitch-=PAD.pitch*1.8*M.turn*slow*PR.set.sens*inv*dt*-1}
     else if(!TOUCH){const dz=v=>Math.abs(v)<.1?0:(v-Math.sign(v)*.1)/.9;G.tyaw-=dz(mx)*1.6*M.turn*dt;G.tpitch-=dz(my)*1.1*M.turn*dt}
     dX=0;dY=0;
     // ayuda de puntería en el móvil: acerca la mira al enemigo fijado
     if(TOUCH&&G.lockT&&G.lockT.alive){const t=G.lockT,d=tmp.copy(t.pos).sub(p.pos);const ty=Math.atan2(-d.x,-d.z),tp=Math.atan2(d.y,Math.hypot(d.x,d.z));
       let dy=ty-G.tyaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));if(Math.abs(dy)<.25){G.tyaw+=dy*Math.min(1,dt*1.6);G.tpitch+=(tp-G.tpitch)*Math.min(1,dt*1.6)}}
     G.tpitch=clamp(G.tpitch,-1.2,1.2);
-    const maxR=2.8*M.turn*dt;
+    const maxR=2.8*M.turn*dt*slow;
     let dyaw=G.tyaw-G.yaw;dyaw=clamp(dyaw,-maxR,maxR);G.yaw+=dyaw;
     G.pitch+=clamp(G.tpitch-G.pitch,-maxR,maxR);
     G.tyaw=G.yaw+clamp(G.tyaw-G.yaw,-.9,.9);G.tpitch=G.pitch+clamp(G.tpitch-G.pitch,-.6,.6);
-    const strafe=TOUCH?G.joy.x:(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+    const strafe=clamp((TOUCH?G.joy.x:(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0))+(PAD.on?PAD.strafe:0),-1,1);
+    const climb=clamp((TOUCH?-G.joy.y:(keys.KeyR?1:0)-(keys.KeyF?1:0))+(PAD.on?-PAD.climb:0),-1,1);
     G.roll+=(clamp(-dyaw/Math.max(dt,.001)*.12,-.5,.5)-strafe*.25-G.roll)*Math.min(1,dt*5);
-    const thrUp=TOUCH?-G.joy.y:(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
-    G.throttle=clamp(G.throttle+thrUp*55*dt,20,95);
-    const boosting=(TOUCH?G.tTbo:(keys.ShiftLeft||keys.ShiftRight))&&G.boost>1;
+    const thrUp=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+(PAD.on?(PAD.spdUp?1:0)-(PAD.spdDn?1:0):0);
+    if(PAD.on&&PAD.thr!=null)G.thr=PAD.thr;else G.thr=clamp(G.thr+thrUp*.6*dt,0,1);
+    const boosting=(G.tTbo||keys.ShiftLeft||keys.ShiftRight||(PAD.on&&PAD.boost))&&G.boost>1;
     if(boosting)G.boost=Math.max(0,G.boost-30*dt);else G.boost=Math.min(100,G.boost+12*dt);
-    const target=(boosting?170:G.throttle)*M.spd;
+    const target=(boosting?170:22+G.thr*78)*M.spd;
     p.speed+=(target-p.speed)*Math.min(1,dt*(boosting?3:2));
     playerFwd(fwd);rgt.set(Math.cos(G.yaw),0,-Math.sin(G.yaw));
-    p.vel.copy(fwd).multiplyScalar(p.speed).addScaledVector(rgt,strafe*28);
+    p.vel.copy(fwd).multiplyScalar(p.speed).addScaledVector(rgt,strafe*28);p.vel.y+=climb*26;
     p.pos.addScaledVector(p.vel,dt);p.pos.y=clamp(p.pos.y,FLOOR,CEIL);
     const rr=Math.hypot(p.pos.x,p.pos.z);if(rr>ARENA-5){p.pos.x*=(ARENA-5)/rr;p.pos.z*=(ARENA-5)/rr}
     if(resolveCollision(p)){p.speed*=.4;damage(p,15*dt*4,null)}
-    const wantFire=mouseDown||keys.Space||G.tFire||(G.auto&&G.lockOk);
+    const wantFire=mouseDown||keys.Space||G.tFire||(PAD.on&&PAD.fire)||(G.auto&&G.lockOk);
     if(wantFire&&G.t-G.lastShot>WSTAT[G.w].rate){G.lastShot=G.t;playerFire()}
     p.energy=Math.min(100,p.energy+22*dt);
     if(G.t-p.lastHit>3)p.shield=Math.min(p.maxS,p.shield+14*dt);
@@ -1740,6 +1813,10 @@ function hud(dt){
   $('ledM').firstChild.className=G.boost<15?'w':'';$('ledW').firstChild.className=p.energy<15?'r':p.energy<40?'w':'';$('ledS').firstChild.className=p.shield<=0?'r':p.shield<p.maxS*.4?'w':'';
   $('cAlt').textContent=alt;$('cRiv').textContent=G.ships.filter(s=>s.alive&&!s.isPlayer).length;
   const zd=Math.max(0,Math.round(Math.hypot(p.pos.x-z.cx,p.pos.z-z.cz)-z.r));$('cZone').textContent=zd?zd+' m':'DENTRO';
+  const tp=G.thr*100,boostOn=p.speed>110;
+  $('thrF').style.height=tp+'%';$('thrK').style.bottom='calc('+tp+'% - calc(.6*var(--u)))';$('thrN').textContent=boostOn?'TURBO':thrName(G.thr);$('thrG').classList.toggle('boost',boostOn);
+  $('tThrK').style.bottom=tp+'%';$('tThrF').style.height=tp+'%';$('tThrL').textContent=boostOn?'TURBO':thrName(G.thr);
+  $('padI').hidden=!PAD.on;
   $('warp').style.opacity=p.speed>120?Math.min(1,(p.speed-120)/40):0;
   G.spread=Math.max(0,(G.spread||0)-dt*3);(window.__xh||(window.__xh=document.querySelector('#P .xh'))).style.transform='translate(-50%,-50%) scale('+(1+G.spread*.35)+')';
   // flecha hacia la zona si estás fuera
@@ -1983,10 +2060,13 @@ VIEWS.ajustes=()=>{const S=PR.set;
     ctl:rg('sens','Sensibilidad del ratón','Cuánto gira la nave al mover el ratón',.4,2)+rg('tsens','Sensibilidad táctil','Cuánto gira al deslizar el dedo',.4,2)+sw('inv','Invertir eje vertical','Hacia arriba = bajar el morro')+sw('auto','Disparo automático en el móvil','Dispara solo cuando apuntas a un enemigo'),
     gfx:'<div class="srow"><span><b>Calidad gráfica</b><small>Baja va mejor en móviles sencillos</small></span><div class="chs">'+['alta','media','baja'].map(q=>'<button type="button" data-q="'+q+'"'+(S.q===q?' class="on"':'')+'>'+q+'</button>').join('')+'</div></div>',
     cta:'<div class="srow" style="box-shadow:inset calc(.25*var(--u)) 0 0 var(--red)"><span><b>Borrar progreso</b><small>'+(confirmReset?'¿Seguro? Se pierden bits, pase y misiones de esta versión':'Vuelve a empezar la versión 3D desde cero')+'</small></span>'+(confirmReset?'<span style="display:flex;gap:calc(.6*var(--u))"><button type="button" class="btnS ghost" id="rsN">No</button><button type="button" class="btnS red" id="rsY">Sí, borrar</button></span>':'<button type="button" class="btnS ghost" id="rs">Borrar</button>')+'</div>'};
-  const tb=[['snd','Sonido','i-star'],['ctl','Controles','i-cross'],['gfx','Gráficos','i-bolt'],['cta','Cuenta','i-users']];
+  const tb=[['snd','Sonido','i-star'],['ctl','Controles','i-cross'],['pad','Joystick y mando','i-bolt'],['gfx','Gráficos','i-bolt'],['cta','Cuenta','i-users']];
+  T.pad=padView();
+  if(setTab==='pad')return '<div class="stv"><div class="stT">'+tb.map(([k,n,i])=>'<button type="button" data-st="'+k+'"'+(setTab===k?' class="on"':'')+'>'+ic(i)+n+'</button>').join('')+'</div><div class="stL">'+T.pad+'</div></div>';
   return '<div class="stv"><div class="stT">'+tb.map(([k,n,i])=>'<button type="button" data-st="'+k+'"'+(setTab===k?' class="on"':'')+'>'+ic(i)+n+'</button>').join('')+'</div><div class="stL"><span class="lab2">'+tb.find(x=>x[0]===setTab)[1]+'</span>'+T[setTab]+'</div></div>';
 };
 BIND.ajustes=B=>{
+  if(setTab==='pad')padBind(B);
   B.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{setTab=b.dataset.st;confirmReset=false;render()}));
   B.querySelectorAll('[data-sw]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.sw;PR.set[k]=PR.set[k]?0:1;saveP();render()}));
   B.querySelectorAll('[data-rg]').forEach(r=>r.addEventListener('input',()=>{PR.set[r.dataset.rg]=+r.value;saveP();const p=(r.value-r.dataset.min)/(r.dataset.max-r.dataset.min)*100;r.style.setProperty('--p',p+'%');$('v-'+r.dataset.rg).textContent=Math.round(p)}));
@@ -2055,9 +2135,100 @@ function metaEnd(r){
 }
 refreshLobby();applyQuality();
 
+
+/* =====================================================================
+   JOYSTICK Y MANDOS (Thrustmaster T.Flight HOTAS X, Logitech, Xbox, PlayStation…)
+   ===================================================================== */
+const PAD={on:false,id:'',name:'',yaw:0,pitch:0,strafe:0,climb:0,thr:null,fire:false,boost:false,spdUp:false,spdDn:false,raw:null,prev:{},map:null};
+const PAD_ACT=[
+  {k:'yaw',t:'Girar izquierda / derecha',ax:1},{k:'pitch',t:'Subir / bajar el morro',ax:1},{k:'thr',t:'Acelerador (velocidad)',ax:1},
+  {k:'strafe',t:'Moverse de lado',ax:1},{k:'climb',t:'Subir / bajar en vertical',ax:1},
+  {k:'fire',t:'Disparar'},{k:'sec',t:'Arma secundaria'},{k:'abil',t:'Habilidad'},{k:'boost',t:'Turbo'},
+  {k:'spdUp',t:'Más velocidad'},{k:'spdDn',t:'Menos velocidad'},{k:'pause',t:'Pausa / menú'},{k:'auto',t:'Disparo automático'}];
+const padNice=id=>String(id).replace(/\(.*?\)/g,'').replace(/\s+/g,' ').trim().slice(0,40)||'Mando';
+function padDefault(gp){
+  if(gp.mapping==='standard')return {dead:.15,yaw:{a:2},pitch:{a:3,inv:1},strafe:{a:0},climb:{a:1,inv:1},thr:{a:null},
+    fire:{b:7},sec:{b:6},abil:{b:4},boost:{b:5},spdUp:{b:12},spdDn:{b:13},pause:{b:9},auto:{b:3}};
+  const n=gp.axes.length;
+  return {dead:.08,yaw:{a:0},pitch:{a:1},thr:{a:n>2?2:null},strafe:{a:n>5?5:n>3?3:null},climb:{a:null},
+    fire:{b:0},sec:{b:1},abil:{b:2},boost:{b:3},spdUp:{b:4},spdDn:{b:5},pause:{b:9},auto:{b:8}};
+}
+function padMap(gp){PR.set.pads=PR.set.pads||{};if(!PR.set.pads[gp.id]){PR.set.pads[gp.id]=padDefault(gp);saveP()}return PR.set.pads[gp.id]}
+let padCap=null;
+function padPoll(){
+  let gps=[];try{gps=navigator.getGamepads?navigator.getGamepads():[]}catch(e){}
+  let gp=null;for(const g of gps)if(g&&g.connected){gp=g;break}
+  if(!gp){if(PAD.on){PAD.on=false;PAD.raw=null;toast('Mando desconectado');padLive()}return}
+  if(!PAD.on||PAD.id!==gp.id){PAD.on=true;PAD.id=gp.id;PAD.name=padNice(gp.id);PAD.map=padMap(gp);PAD.prev={};toast('Mando conectado: '+PAD.name);if(view==='ajustes')render()}
+  PAD.raw=gp;const M=PAD.map,dz=M.dead==null?.1:M.dead;
+  // asignar un control en la pantalla de configuración
+  if(padCap){const c=padCap;
+    if(c.ax){for(let i=0;i<gp.axes.length;i++){if(Math.abs((gp.axes[i]||0)-(c.base[i]||0))>.55){M[c.k]={a:i,inv:0};padCap=null;saveP();toast('Asignado: eje '+(i+1));render();return}}}
+    else{for(let i=0;i<gp.buttons.length;i++){const b=gp.buttons[i];if(b&&b.pressed&&!c.bb[i]){M[c.k]={b:i};padCap=null;saveP();PAD.prev[c.k]=true;toast('Asignado: botón '+(i+1));render();return}}}
+    padLive();return}
+  const ax=k=>{const m=M[k];if(!m||m.a==null)return 0;let v=gp.axes[m.a]||0;if(m.inv)v=-v;return Math.abs(v)<dz?0:(v-Math.sign(v)*dz)/(1-dz)};
+  PAD.yaw=ax('yaw');PAD.pitch=ax('pitch');PAD.strafe=ax('strafe');PAD.climb=ax('climb');
+  const tm=M.thr;if(tm&&tm.a!=null&&gp.axes[tm.a]!==undefined){let v=gp.axes[tm.a];if(tm.inv)v=-v;PAD.thr=clamp((1-v)/2,0,1)}else PAD.thr=null;
+  const bt=k=>{const m=M[k];if(!m||m.b==null)return false;const b=gp.buttons[m.b];return !!(b&&(b.pressed||b.value>.5))};
+  const now={};for(const a of PAD_ACT)if(!a.ax)now[a.k]=bt(a.k);
+  PAD.fire=now.fire;PAD.boost=now.boost;PAD.spdUp=now.spdUp;PAD.spdDn=now.spdDn;
+  for(const k in now)if(now[k]&&!PAD.prev[k])padPress(k);
+  // en el hangar: mover la palanca para cambiar de nave
+  const hy=PAD.yaw||ax('strafe');if(MODE==='hangar'&&!view){if(Math.abs(hy)>.75&&!PAD.prev._hy){pick((sel+(hy>0?1:SHIPS.length-1))%SHIPS.length)}now._hy=Math.abs(hy)>.5}
+  PAD.prev=now;padLive();
+}
+function padPress(k){
+  if(MODE==='hangar'){
+    if(!$('over').hidden)return;
+    if(view){if(k==='pause')openView(null);return}
+    if(k==='fire')startGame();
+    if(k==='pause')openView('ajustes');
+    return}
+  if(!$('over').hidden){if(k==='fire')$('again').click();if(k==='pause')$('toH').click();return}
+  if(!G||G.over)return;
+  if(k==='pause'){paused?resume():pause();return}
+  if(paused){if(k==='fire')resume();return}
+  if(k==='sec')fireMissile();
+  if(k==='abil')useAbility();
+  if(k==='auto'){G.auto=!G.auto;$('tAut').classList.toggle('on',G.auto);toast(G.auto?'Disparo automático activado':'Disparo automático apagado')}
+}
+addEventListener('gamepadconnected',()=>padPoll());
+addEventListener('gamepaddisconnected',()=>padPoll());
+
+/* ---------- pantalla "Mando" en Ajustes ---------- */
+function padView(){
+  if(!PAD.on)return '<div class="padE"><div class="big2">'+ic('i-cross')+'</div><div><b>Conecta tu joystick o mando</b><p>Enchúfalo por USB (o Bluetooth) y <b>pulsa cualquier botón</b>: el navegador solo lo detecta después de pulsar algo.</p><p class="sm">Funciona con el Thrustmaster T.Flight HOTAS X, Logitech Extreme 3D Pro, mandos de Xbox, PlayStation y la mayoría de joysticks USB. Mejor con Chrome o Edge.</p></div></div>';
+  const M=PAD.map,gp=PAD.raw;
+  const rows=PAD_ACT.map(a=>{const m=M[a.k]||{};const cur=a.ax?(m.a!=null?'Eje '+(m.a+1)+(m.inv?' · invertido':''):'—'):(m.b!=null?'Botón '+(m.b+1):'—');
+    const cap=padCap&&padCap.k===a.k;
+    return '<div class="pr'+(cap?' cap':'')+'"><span>'+a.t+'</span><b id="pm-'+a.k+'">'+(cap?(a.ax?'Mueve la palanca…':'Pulsa un botón…'):cur)+'</b>'+
+      (a.ax&&m.a!=null?'<button type="button" class="mini2" data-inv="'+a.k+'" title="Invertir">⇅</button>':'<span></span>')+
+      '<button type="button" class="mini2" data-cap="'+a.k+'">'+(cap?'Cancelar':'Asignar')+'</button></div>'}).join('');
+  const axes=gp?gp.axes.slice(0,10).map((v,i)=>'<div class="ax"><small>E'+(i+1)+'</small><span><i id="pa-'+i+'"></i></span></div>').join(''):'';
+  const btns=gp?gp.buttons.slice(0,16).map((b,i)=>'<i id="pb-'+i+'">'+(i+1)+'</i>').join(''):'';
+  return '<div class="padV"><div class="padL"><div class="padN"><span class="dotOn"></span><b>'+esc(PAD.name)+'</b><small>'+(gp&&gp.mapping==='standard'?'Mando de consola':'Joystick')+'</small></div>'+
+    '<span class="lab2">Prueba en directo</span><div class="axs">'+axes+'</div><div class="bts">'+btns+'</div>'+
+    '<div class="srow" style="height:auto;padding:calc(.6*var(--u)) calc(1*var(--u))"><span><b>Zona muerta</b><small>Evita que la nave se mueva sola</small></span><span class="rngW"><input type="range" class="rng" id="pdz" min="0" max=".3" step=".01" value="'+(M.dead||0)+'" style="--p:'+((M.dead||0)/.3*100)+'%" aria-label="Zona muerta"></span></div>'+
+    '<button type="button" class="btnS ghost" id="pRst">Restablecer controles</button></div>'+
+    '<div class="padR"><span class="lab2">Controles · pulsa Asignar y mueve o pulsa lo que quieras usar</span><div class="prs">'+rows+'</div></div></div>';
+}
+function padBind(B){
+  B.querySelectorAll('[data-cap]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.cap,a=PAD_ACT.find(x=>x.k===k);
+    if(padCap&&padCap.k===k){padCap=null;render();return}
+    const gp=PAD.raw;if(!gp)return;padCap={k,ax:!!a.ax,base:gp.axes.slice(),bb:gp.buttons.map(x=>x.pressed)};render()}));
+  B.querySelectorAll('[data-inv]').forEach(b=>b.addEventListener('click',()=>{const m=PAD.map[b.dataset.inv];m.inv=m.inv?0:1;saveP();render()}));
+  const dz=$('pdz');dz&&dz.addEventListener('input',()=>{PAD.map.dead=+dz.value;dz.style.setProperty('--p',(dz.value/.3*100)+'%');saveP()});
+  const r=$('pRst');r&&r.addEventListener('click',()=>{PR.set.pads[PAD.id]=padDefault(PAD.raw);PAD.map=PR.set.pads[PAD.id];saveP();toast('Controles restablecidos');render()});
+}
+function padLive(){
+  if(view!=='ajustes'||setTab!=='pad'||!PAD.raw)return;const gp=PAD.raw;
+  gp.axes.slice(0,10).forEach((v,i)=>{const e=$('pa-'+i);if(e){e.style.left=Math.min(50,50+v*50)+'%';e.style.width=Math.abs(v*50)+'%'}});
+  gp.buttons.slice(0,16).forEach((b,i)=>{const e=$('pb-'+i);if(e)e.classList.toggle('on',!!(b&&b.pressed))});
+}
+
 pick(0);preload();
 setTimeout(()=>{$('hint').style.opacity=0},7000);
 requestAnimationFrame(frame);
-window.__h={pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},dbg:()=>({G,damage,boom,kill,PR})};window.__R=renderer;
+window.__h={pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},dbg:()=>({G,damage,boom,kill,PR,PAD})};window.__R=renderer;
 })();
 </script>
