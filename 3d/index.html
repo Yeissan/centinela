@@ -436,6 +436,22 @@ button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 .rsBtns .play{width:calc(22*var(--u));height:calc(4.4*var(--u));font-size:calc(1.8*var(--u))}
 @media (prefers-reduced-motion:reduce){.rsSplash b,.rsPlace img,.rsUp{animation:none}}
 
+/* rampa de lanzamiento */
+.lnch{position:absolute;inset:0;z-index:25;pointer-events:none}
+.lnch::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,4,10,.75),transparent 18%,transparent 80%,rgba(2,4,10,.8));}
+.lTop{position:absolute;left:calc(2.4*var(--u));top:calc(2*var(--u));display:flex;align-items:baseline;gap:calc(1.2*var(--u))}
+.lTag{font-family:var(--hx);font-style:italic;font-weight:800;font-size:calc(2.2*var(--u));color:#fff;text-transform:uppercase;text-shadow:0 0 calc(1*var(--u)) rgba(92,240,255,.6)}
+#Ls{font:700 calc(1*var(--u)) var(--ui);letter-spacing:.2em;color:var(--cyan)}
+.lMid{position:absolute;left:0;right:0;top:30%;display:flex;flex-direction:column;align-items:center;gap:calc(.4*var(--u))}
+.lMid small{font:800 calc(1.2*var(--u)) var(--ui);letter-spacing:.34em;color:#cfe9f7;text-shadow:0 0 calc(.8*var(--u)) #000}
+.lnch .lc{position:static!important;left:auto!important;top:auto!important;display:block;white-space:nowrap;text-align:center;transform-origin:50% 50%;font-family:var(--hx);font-style:italic;font-weight:800;font-size:calc(11*var(--u));line-height:1;color:#fff;text-shadow:0 0 calc(2*var(--u)) var(--cyan),0 0 calc(5*var(--u)) rgba(92,240,255,.5);opacity:0}
+.lnch .lc.on{opacity:1;animation:lcPop .9s cubic-bezier(.2,1.6,.4,1) both}
+.lnch .lc.go{font-size:calc(6*var(--u));color:#fff;text-shadow:0 0 calc(2*var(--u)) var(--mint),0 0 calc(5*var(--u)) rgba(125,255,196,.6);animation:lcPop .6s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes lcPop{0%{transform:scale(2.2);opacity:0}25%{opacity:1}100%{transform:none;opacity:1}}
+.lSkip{position:absolute;left:0;right:0;bottom:calc(2.6*var(--u));text-align:center;font:700 calc(.95*var(--u)) var(--ui);letter-spacing:.2em;text-transform:uppercase;color:rgba(238,248,255,.55)}
+.lw{position:absolute;inset:0;background:#e9fdff;opacity:0;pointer-events:none;z-index:26}
+@media (prefers-reduced-motion:reduce){.lc.on,.lnch .lc.go{animation:none}}
+
 /* ================= PANTALLAS DEL MENÚ (estilo premium) ================= */
 :root{--rc0:#8fa6bf;--rc1:#3aa8ff;--rc2:#b45cff;--rc3:#ffb02e;--rc4:#ff3d6e}
 .hx{font-family:var(--hx);font-style:italic;font-weight:800;text-transform:uppercase;letter-spacing:.02em;line-height:.95}
@@ -972,6 +988,12 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
       <div class="rsBtns"><button type="button" class="btn2" id="toH">Hangar</button><button type="button" class="play" id="again"><svg class="i"><use href="#i-play"/></svg>OTRA VEZ</button></div>
     </div>
   </div>
+  <div class="lnch" id="L" hidden>
+    <div class="lTop"><span class="lTag">LANZAMIENTO</span><span id="Ls"></span></div>
+    <div class="lMid"><small id="Lt">PREPARANDO LANZAMIENTO</small><b class="lc" id="Lc"></b></div>
+    <div class="lSkip">Toca o pulsa una tecla para saltar</div>
+  </div>
+  <div class="lw" id="Lw"></div>
   <div class="fade" id="fade"><div class="ldg"><i></i><b>PREPARANDO PARTIDA</b><small>Cargando naves y mapa…</small></div></div>
 
 </div>
@@ -1201,6 +1223,7 @@ function frame(now){
   try{padPoll()}catch(e){}
   $('vign').hidden=MODE!=='hangar';
   if(MODE==='game'){gameFrame(dt);requestAnimationFrame(frame);return}
+  if(MODE==='launch'){launchFrame(dt);requestAnimationFrame(frame);return}
   if(!drag){idle+=dt;vel+=((reduce?0:.32)-vel)*Math.min(1,dt*(idle>1.5?1.2:.4));yaw+=vel*dt}
   yawG.rotation.y=yaw;
   shipHolder.position.y=1.3+(reduce?0:Math.sin(t*1.4)*.07);
@@ -1439,12 +1462,15 @@ async function startGame2(s){
      yaw:0,pitch:0,tyaw:0,tpitch:0,roll:0,thr:.42,boost:100,bits:0,over:false,place:0,shake:0,lastShot:0,hitT:0,dmgT:0,lockT:null,lockOk:false,
      ab:{cd:0,act:0,type:PR.lo.a},auto:!!PR.set.auto,w:PR.lo.w,sec:PR.lo.s,ammo:AMMO[PR.lo.s],ammoMax:AMMO[PR.lo.s],picks:0,camo:0,joy:{x:0,y:0},tFire:false,tTbo:false};
   pickNext(G.zone);
-  const a0=Math.random()*Math.PI*2;
-  const p=newShip(true,'Tú',new THREE.Vector3(Math.cos(a0)*ARENA*.55,60,Math.sin(a0)*ARENA*.55),M.hull,M.shield);
+  // salida despejada: busca un sitio con 160 m libres por delante (para no chocar al salir del portal)
+  let a0=Math.random()*Math.PI*2,y0=60;{const tv=new THREE.Vector3();let ok=false;
+    for(let tr=0;tr<40&&!ok;tr++){const a=a0+tr*.61,y=Math.min(CEIL-15,60+Math.floor(tr/8)*35),sx=Math.cos(a)*ARENA*.55,sz=Math.sin(a)*ARENA*.55,d=Math.hypot(sx,sz);ok=true;
+      for(let k=-30;k<=170;k+=10){tv.set(sx-sx/d*k,y,sz-sz/d*k);if(insideBox(tv,10)){ok=false;break}}if(ok){a0=a;y0=y}}}
+  const p=newShip(true,'Tú',new THREE.Vector3(Math.cos(a0)*ARENA*.55,y0,Math.sin(a0)*ARENA*.55),M.hull,M.shield);
   for(let k=0;k<20&&insideBox(p.pos,8);k++)p.pos.y+=10;
   G.player=p;G.ships.push(p);G.pstun=0;G.storm=0;
   G.view=PR.set.cam==='ext'?'ext':'ck';
-  {const pr=await load(s).catch(()=>loadLod(s)).catch(()=>null);G.pm=playerMesh(pr,s);GS.add(G.pm);G.camP=null}
+  {const pr=await load(s).catch(()=>loadLod(s)).catch(()=>null);G._pr=pr;G.pm=playerMesh(pr,s);GS.add(G.pm);G.camP=null}
   G.yaw=G.tyaw=Math.atan2(p.pos.x,p.pos.z);flyInit();
   const pool=SHIPS.map((x,i)=>protos[i]).filter(Boolean);
   for(let i=0;i<BOTS;i++){
@@ -1461,13 +1487,13 @@ async function startGame2(s){
   for(let i=0;i<40;i++)spawnPickup();
   $('kf').innerHTML='';
   MODE='game';paused=false;
-  $('H').hidden=true;$('P').hidden=false;$('over').hidden=true;$('pause').hidden=true;
+  $('H').hidden=true;$('P').hidden=true;$('over').hidden=true;$('pause').hidden=true;
   $('P').classList.toggle('tch',TOUCH);$('P').classList.toggle('fly',!!G.q);$('T').hidden=!TOUCH;
   {const fm=flyMode();$('pchF').innerHTML=fm==='simple'?'<b>Ratón</b> girar':fm==='ayuda'?'<b>Ratón</b> apunta · la nave vira e inclina sola':'<b>Ratón</b> inclinar y tirar de la nave';$('pchAD').textContent='A/D';$('pchADt').textContent=fm==='simple'?'de lado':fm==='ayuda'?'inclinar · doble toque = tonel':'inclinar · doble toque = tonel · Z/C timón'}
   $('pchelp').style.opacity=1;setTimeout(()=>{$('pchelp').style.opacity=0},12000);
   renderer.toneMappingExposure=1.0;
   buildSegs();setWeaponHud();genCracks();setView(G.view,true);$('tAut').classList.toggle('on',G.auto);
-  portalIntro();
+  startLaunch(G._pr,s);
   feed('Mapa <b>'+MAP.name+'</b> · <b>16</b> naves · dificultad '+DIFF[diff].n);
   setTimeout(()=>$('fade').classList.remove('on','ld'),80);
   if(!TOUCH){lockWanted=true;requestLock()}
@@ -2160,11 +2186,11 @@ function portalClear(){for(const P of PORTALS){GS.remove(P.g);P.g.traverse(o=>{i
 /* el destello y el sonido al cruzar */
 function portalBurst(pos,col,big){const f=spr(FXT.flash,col);f.position.copy(pos);addFx(f,big?.4:.3,(o,k)=>{const q=(big?16:9)*(1+k*1.4);o.scale.set(q,q,1);o.material.opacity=1-k});lightAt(pos,col,big?40:18)}
 /* empieza la entrada del jugador y la de los bots */
-function portalIntro(){
+function portalIntro(fast){
   const p=G.player,f=playerFwd(new THREE.Vector3());
-  G.intro=1.7;G.introPos=p.pos.clone();G.portal=openPortal(p.pos.clone().addScaledVector(f,24),f,0x5cf0ff,13,.75,true);
+  G.intro=fast?1.7-.76:1.7;G.introPos=p.pos.clone();G.portal=openPortal(p.pos.clone().addScaledVector(f,fast?10:24),f,0x5cf0ff,13,fast?.15:.75,true);if(fast){G.portal.t=.7;G.portal.g.scale.setScalar(1)}
   p.speed=0;
-  tone(110,620,1.1,'sawtooth',.025);tone(220,1240,1.1,'sine',.02);
+  if(!fast){tone(110,620,1.1,'sawtooth',.025);tone(220,1240,1.1,'sine',.02)}
   for(const b of G.ships){if(b.isPlayer)continue;b.spawnT=rand(.5,2.4);b.spawned=false;b.mesh.visible=false;if(b.trail)b.trail.visible=false;
     b.portalAt=b.pos.clone();b.pos.addScaledVector(b.dir,-10);b._pt=b.spawnT-.75}
 }
@@ -2179,6 +2205,105 @@ function portalTick(dt){
     if(b._pt!=null&&G.t>=b._pt){b._pt=null;openPortal(b.portalAt.clone(),b.dir.clone(),0xff3d6a,8,.55,false)}
     if(G.t>=b.spawnT){b.spawned=true;b.mesh.visible=true;if(b.trail){b.trail.visible=true;const a=b.trail.geometry.attributes.position.array;for(let k=0;k<a.length;k+=3){a[k]=b.pos.x;a[k+1]=b.pos.y;a[k+2]=b.pos.z}}portalBurst(b.portalAt,0xff5a88,false)}}
 }
+
+
+/* =====================================================================
+   RAMPA DE LANZAMIENTO: cuenta atrás y despegue antes de entrar al mapa
+   ===================================================================== */
+let LS=null,LCOMP=null,LB=null,LT=0,LSHIP=null,LFX=[];
+const L_LEN=700,L_GO=4.4,L_END=6.4;
+function lHazardTex(){const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');g.fillStyle='#0b0f18';g.fillRect(0,0,256,64);
+  for(let x=-64;x<256;x+=32){g.fillStyle='#ffb62e';g.beginPath();g.moveTo(x,64);g.lineTo(x+16,64);g.lineTo(x+48,0);g.lineTo(x+32,0);g.closePath();g.fill()}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
+function lDeckTex(){const S=512,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.fillStyle='#0a0f1a';g.fillRect(0,0,S,S);
+  g.strokeStyle='rgba(92,240,255,.18)';g.lineWidth=2;for(let i=0;i<=S;i+=64){g.beginPath();g.moveTo(i,0);g.lineTo(i,S);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(S,i);g.stroke()}
+  g.fillStyle='rgba(255,255,255,.05)';for(let i=0;i<600;i++)g.fillRect(Math.random()*S,Math.random()*S,2,2);
+  g.fillStyle='rgba(92,240,255,.5)';g.font='700 40px "Barlow Condensed",sans-serif';g.fillText('RAMPA 07',30,300);
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,14);t.encoding=THREE.sRGBEncoding;return t}
+function buildLaunch(){
+  LS=new THREE.Scene();LS.background=new THREE.Color(0x02050c);LS.fog=new THREE.FogExp2(0x02050c,.0045);LS.environment=envT;
+  LS.add(new THREE.HemisphereLight(0x9fe8ff,0x0a1020,.8));const sun=new THREE.DirectionalLight(0xffffff,.9);sun.position.set(-1,2,1);LS.add(sun);
+  const metal=new THREE.MeshStandardMaterial({color:0x141c2c,metalness:.85,roughness:.35,envMapIntensity:.4}),dark=new THREE.MeshStandardMaterial({color:0x080c14,metalness:.6,roughness:.6});
+  const parts=new Map(),add=(m,g,mt)=>{if(!parts.has(m))parts.set(m,[]);parts.get(m).push({g,m:mt})},M4=(x,y,z,ry)=>{const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.y=ry||0;o.updateMatrix();return o.matrix.clone()};
+  // cubierta, rieles y bandas de peligro
+  const deck=new THREE.Mesh(new THREE.PlaneGeometry(60,L_LEN+120),new THREE.MeshStandardMaterial({map:lDeckTex(),metalness:.5,roughness:.5,envMapIntensity:.3}));deck.rotation.x=-Math.PI/2;deck.position.z=-L_LEN/2+40;LS.add(deck);
+  const hz=lHazardTex();hz.repeat.set(30,1);const hzM=new THREE.MeshBasicMaterial({map:hz,toneMapped:false});
+  for(const x of[-27,27]){const s=new THREE.Mesh(new THREE.PlaneGeometry(4,L_LEN+120),hzM);s.rotation.x=-Math.PI/2;s.rotation.z=Math.PI/2*0;s.position.set(x,.05,-L_LEN/2+40);LS.add(s)}
+  const railM=new THREE.MeshBasicMaterial({color:new THREE.Color(0x5cf0ff).multiplyScalar(1.6),toneMapped:false});
+  for(const x of[-5,5]){add(metal,new THREE.BoxGeometry(2.4,2,L_LEN+60),M4(x,1,-L_LEN/2+20));add(railM,new THREE.BoxGeometry(.6,.3,L_LEN+60),M4(x,2.1,-L_LEN/2+20))}
+  // paredes del túnel y arcos que se iluminan
+  for(const x of[-30,30]){add(dark,new THREE.BoxGeometry(2,46,L_LEN+120),M4(x,23,-L_LEN/2+40))}
+  add(dark,new THREE.BoxGeometry(62,2,L_LEN+120),M4(0,46,-L_LEN/2+40));
+  for(const [m,arr] of parts){const out=mergeG(arr,true);LS.add(new THREE.Mesh(out,m))}
+  LB={arches:[],clamps:[],warn:[],exit:null};
+  for(let i=0;i<16;i++){const z=-30-i*42;const g=new THREE.Group();g.position.z=z;LS.add(g);
+    const col=new THREE.MeshBasicMaterial({color:new THREE.Color(0x1a3550),toneMapped:false});
+    for(const [w,h,x,y] of [[2,44,-28,22],[2,44,28,22],[58,2,0,44]]){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,1.4),col);b.position.set(x,y,0);g.add(b)}
+    LB.arches.push({g,col,z})}
+  // pinzas que sujetan la nave
+  const clampM=new THREE.MeshStandardMaterial({color:0x2a3346,metalness:.8,roughness:.4,envMapIntensity:.5}),clampL=new THREE.MeshBasicMaterial({color:new THREE.Color(0xffb62e).multiplyScalar(1.1),toneMapped:false});
+  for(const [x,z] of [[-6,3],[6,3],[-6,-5],[6,-5]]){const g=new THREE.Group();g.position.set(x,4.2,z);const b=new THREE.Mesh(new THREE.BoxGeometry(2.2,3,2.6),clampM);g.add(b);const l=new THREE.Mesh(new THREE.BoxGeometry(2.3,.4,2.7),clampL);l.position.y=1.3;g.add(l);LS.add(g);LB.clamps.push({g,x})}
+  // luces de aviso giratorias
+  for(const [x,z] of [[-26,-10],[26,-10],[-26,-60],[26,-60]]){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:sparkTex,color:new THREE.Color(0xff3b5c).multiplyScalar(2.5),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));s.position.set(x,30,z);s.scale.set(14,14,1);LS.add(s);LB.warn.push(s)}
+  // salida: el portal de datos al final de la rampa
+  const ex=new THREE.Mesh(new THREE.CircleGeometry(22,48),new THREE.MeshBasicMaterial({map:portalSwirl(),color:0xbff8ff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));ex.position.set(0,22,-L_LEN);LS.add(ex);
+  const exR=new THREE.Mesh(new THREE.TorusGeometry(22,1.2,8,64),new THREE.MeshBasicMaterial({color:new THREE.Color(0x5cf0ff).multiplyScalar(2.6),toneMapped:false}));exR.position.copy(ex.position);LS.add(exR);LB.exit={ex,exR};
+  // estelas de velocidad
+  const n=160,P=new Float32Array(n*6);for(let i=0;i<n;i++){const x=rand(-26,26),y=rand(2,44),z=rand(-L_LEN,40);P[i*6]=x;P[i*6+1]=y;P[i*6+2]=z;P[i*6+3]=x;P[i*6+4]=y;P[i*6+5]=z+.1}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(P,3));LB.streak=new THREE.LineSegments(sg,new THREE.LineBasicMaterial({color:new THREE.Color(0x9ff7ff).multiplyScalar(2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));LB.streak.frustumCulled=false;LB.sP=P;LS.add(LB.streak);
+  LCOMP=new THREE.EffectComposer(renderer);LCOMP.addPass(new THREE.RenderPass(LS,gcam));const bl=new THREE.UnrealBloomPass(new THREE.Vector2(512,288),.8,.4,.8);LCOMP.addPass(bl);LB.bloom=bl;
+}
+/* empieza el lanzamiento con la nave elegida */
+function startLaunch(proto,ship){
+  if(!LS)buildLaunch();
+  if(LSHIP){LS.remove(LSHIP);LSHIP=null}
+  LSHIP=playerMesh(proto,ship);LSHIP.position.set(0,6,0);LSHIP.rotation.y=Math.PI;LS.add(LSHIP);
+  for(const c of LB.clamps){c.g.position.x=c.x;c.g.position.y=4.2}
+  for(const a of LB.arches)a.col.color.set(0x1a3550);
+  LT=0;LB.beeps=0;LB.gone=false;LB.streak.material.opacity=0;
+  const w=cv.clientWidth,h=cv.clientHeight;LCOMP.setSize(w,h);gcam.fov=62;gcam.aspect=w/h;gcam.updateProjectionMatrix();
+  $('L').hidden=false;$('Lc').textContent='';$('Lc').className='lc';$('Lt').textContent='PREPARANDO LANZAMIENTO';$('Ls').textContent=ship.name.toUpperCase()+' · RAMPA 07 · DESTINO: '+MAP.name.toUpperCase();
+  MODE='launch';
+}
+const lEase=k=>k*k*(3-2*k);
+function launchFrame(dt){
+  LT+=dt;const t=LT,S=LSHIP;
+  // la nave: quieta, tiembla al encender motores y sale disparada
+  let z=0;if(t>L_GO){const k=t-L_GO;z=-.5*340*k*k-40*k}
+  S.position.set(0,6+(t>L_GO-1&&t<L_GO?Math.sin(t*60)*.08:0),z);
+  const eng=S.children.find(c=>c.isSprite);if(eng){const q=t<1?2:t<L_GO?3+Math.sin(t*30)*.3+(t>L_GO-1?2:0):7;eng.scale.set(q,q,1)}
+  // pinzas: se abren en el "1"
+  for(const c of LB.clamps){const k=Math.min(1,Math.max(0,(t-(L_GO-.9))/.4));c.g.position.x=c.x+Math.sign(c.x)*lEase(k)*4;c.g.position.y=4.2-lEase(k)*2}
+  // arcos: se encienden uno a uno en la cuenta atrás y destellan al pasar
+  LB.arches.forEach((a,i)=>{const on=t>1.2+i*(L_GO-1.4)/16;const pass=z<a.z+10&&z>a.z-30;a.col.color.setHex(pass?0xffffff:on?0x5cf0ff:0x1a3550).multiplyScalar(pass?2:on?1.15:1)});
+  for(const s of LB.warn){s.material.opacity=.4+.6*Math.abs(Math.sin(t*5));s.material.color.setHex(t>L_GO?0x7dffc4:0xff3b5c).multiplyScalar(2.5)}
+  LB.exit.ex.rotation.z-=dt*3;LB.exit.exR.rotation.z+=dt*2;
+  // cuenta atrás
+  const cd=Math.ceil(L_GO-t);
+  if(t>1.2&&t<L_GO){const n=Math.min(3,cd);if(n!==LB.beeps){LB.beeps=n;$('Lc').textContent=n;$('Lc').className='lc pop';void $('Lc').offsetWidth;$('Lc').className='lc pop on';tone(880,880,.18,'square',.05);$('Lt').textContent='LANZAMIENTO EN'}}
+  if(t>=L_GO&&!LB.gone){LB.gone=true;$('Lc').textContent='¡LANZAMIENTO!';$('Lc').className='lc go on';$('Lt').textContent='';tone(1320,1320,.3,'square',.05);noise(1.4,.3);tone(80,400,1.5,'sawtooth',.06)}
+  // estelas de velocidad
+  if(t>L_GO){const sp=Math.min(1,(t-L_GO)/.6);LB.streak.material.opacity=sp*.9;const P=LB.sP;for(let i=0;i<P.length;i+=6){P[i+5]=P[i+2]+12+sp*60}LB.streak.geometry.attributes.position.needsUpdate=true}
+  // cámaras: lateral de cine, detrás en la cuenta y persecución al despegar
+  if(t<1.4){const a=-.9+t*.35;gcam.position.set(Math.sin(a)*26,9+t*2,Math.cos(a)*26-2);gcam.up.set(0,1,0);gcam.lookAt(0,6,-3)}
+  else if(t<L_GO){const k=lEase(Math.min(1,(t-1.4)/1.2));gcam.position.set(-8+k*8,8+k*2,22-k*6);gcam.up.set(0,1,0);gcam.lookAt(0,6,-30)}
+  else{const k=t-L_GO,sh=reduce?0:Math.min(1,k)*.6;gcam.position.set((Math.random()-.5)*sh,10+(Math.random()-.5)*sh,z+16+Math.min(30,k*30));gcam.lookAt(0,7,z-60)}
+  gcam.fov=t>L_GO?Math.min(90,62+(t-L_GO)*22):62;gcam.updateProjectionMatrix();
+  // al llegar a la salida: destello y al mapa
+  const fadeK=Math.max(0,(t-(L_END-.5))/.5);$('Lw').style.opacity=fadeK;
+  LCOMP.render();
+  if(t>=L_END)endLaunch();
+}
+function endLaunch(){
+  if(MODE!=='launch')return;
+  $('L').hidden=true;$('Lw').style.opacity=0;gcam.fov=74;gcam.up.set(0,1,0);
+  MODE='game';$('P').hidden=false;
+  portalIntro(true);
+  const w=$('Lw');w.style.transition='none';w.style.opacity=1;requestAnimationFrame(()=>{w.style.transition='opacity .6s';w.style.opacity=0});
+}
+/* saltar el lanzamiento con un toque o una tecla */
+addEventListener('pointerdown',e=>{if(MODE==='launch'&&LT>.4&&LT<L_END-.6)LT=L_END-.6},{capture:true});
+addEventListener('keydown',e=>{if(MODE==='launch'&&LT>.4&&LT<L_END-.6&&e.code!=='Escape')LT=L_END-.6},{capture:true});
 
 
 /* =====================================================================
@@ -3129,6 +3254,7 @@ function padPress(k){
     if(k==='fire')startGame();
     if(k==='pause')openView('ajustes');
     return}
+  if(MODE==='launch'){if(k==='fire'||k==='pause')LT=Math.max(LT,L_END-.6);return}
   if(!$('over').hidden){if(k==='fire')$('again').click();if(k==='pause')$('toH').click();return}
   if(!G||G.over)return;
   if(k==='pause'){paused?resume():pause();return}
@@ -3249,7 +3375,7 @@ function makeCentinela(ctx,out){
 /* ---------- reproductor: dance en la partida, Centinela en los menús ---------- */
 if(PR.set.mus==null)PR.set.mus=.5;
 const MUS={started:false,tracks:{}};
-function musWant(){return MODE==='game'?'game':'menu'}
+function musWant(){return MODE==='game'||MODE==='launch'?'game':'menu'}
 function musVol(){return (PR.set.mus||0)*(muted?0:1)}
 function musTrack(k){if(MUS.tracks[k])return MUS.tracks[k];const g=ac.createGain();g.gain.value=0;g.connect(ac.destination);
   const s=k==='game'?makeSong(ac,g):makeCentinela(ac,g);const T={g,s,bars:k==='game'?SONG.bars:s.bars,lvl:k==='game'?.5:2.6,nextBar:0,nextT:ac.currentTime+.15,on:false};MUS.tracks[k]=T;return T}
@@ -3284,6 +3410,6 @@ mapCard();
 pick(0);preload();
 setTimeout(()=>{$('hint').style.opacity=0},7000);
 requestAnimationFrame(frame);
-window.__h={pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},prof:()=>{const gl=renderer.getContext();gl.finish();let a=performance.now();step(1/30);let b=performance.now();gcomp.render();gl.finish();let c=performance.now();drawMini();let d=performance.now();renderer.render(GS,gcam);gl.finish();let e=performance.now();gbloom.enabled=false;gcomp.render();gl.finish();let f=performance.now();gbloom.enabled=true;return [Math.round(b-a),Math.round(c-b),Math.round(d-c),Math.round(e-d),Math.round(f-e),GS.children.length]},dbg:()=>({G,damage,boom,kill,PR,PAD,HZ,HZS,MAPS,buildMap,hzReset,get mapSel(){return mapSel},set mapSel(v){mapSel=v}})};window.__R=renderer;
+window.__h={setLT:v=>{LT=v},get MODE(){return MODE},pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},prof:()=>{const gl=renderer.getContext();gl.finish();let a=performance.now();step(1/30);let b=performance.now();gcomp.render();gl.finish();let c=performance.now();drawMini();let d=performance.now();renderer.render(GS,gcam);gl.finish();let e=performance.now();gbloom.enabled=false;gcomp.render();gl.finish();let f=performance.now();gbloom.enabled=true;return [Math.round(b-a),Math.round(c-b),Math.round(d-c),Math.round(e-d),Math.round(f-e),GS.children.length]},dbg:()=>({G,damage,boom,kill,PR,PAD,HZ,HZS,MAPS,buildMap,hzReset,get mapSel(){return mapSel},set mapSel(v){mapSel=v}})};window.__R=renderer;
 })();
 </script>
