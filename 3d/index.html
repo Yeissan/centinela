@@ -2835,7 +2835,7 @@ let confirmReset=false, setTab='snd';
 VIEWS.ajustes=()=>{const S=PR.set;
   const sw=(k,t,d)=>'<div class="srow"><span><b>'+t+'</b><small>'+d+'</small></span><button type="button" class="sw'+(S[k]?' on':'')+'" data-sw="'+k+'" aria-pressed="'+!!S[k]+'" aria-label="'+t+'"></button></div>';
   const rg=(k,t,d,min,max)=>{const p=(S[k]-min)/(max-min)*100;return '<div class="srow"><span><b>'+t+'</b><small>'+d+'</small></span><span class="rngW"><input type="range" class="rng" id="set-'+k+'" data-rg="'+k+'" data-min="'+min+'" data-max="'+max+'" min="'+min+'" max="'+max+'" step="0.05" value="'+S[k]+'" style="--p:'+p+'%" aria-label="'+t+'"><span id="v-'+k+'">'+Math.round(p)+'</span></span></div>'};
-  const T={snd:sw('snd','Sonido','Efectos de disparos y explosiones')+rg('vol','Volumen','Fuerza del sonido',0,1),
+  const T={snd:sw('snd','Sonido','Efectos de disparos y explosiones')+rg('vol','Volumen','Fuerza del sonido',0,1)+rg('mus','Música','Tema dance de fondo · 0 = sin música',0,1),
     ctl:rg('sens','Sensibilidad del ratón','Cuánto gira la nave al mover el ratón',.4,2)+rg('tsens','Sensibilidad táctil','Cuánto gira al deslizar el dedo',.4,2)+'<div class="srow"><span><b>Pilotaje</b><small>'+({simple:'Gira y sube o baja el morro, como antes',ayuda:'Como un avión de combate: apuntas y la nave se inclina y vira sola',manual:'Como un simulador: inclinas y tiras tú de la nave'}[PR.set.fly||'ayuda'])+'</small></span><div class="chs">'+[['simple','Sencillo'],['ayuda','Avión con ayuda'],['manual','Avión manual']].map(([q,n])=>'<button type="button" data-fly="'+q+'"'+((PR.set.fly||'ayuda')===q?' class="on"':'')+'>'+n+'</button>').join('')+'</div></div>'+sw('inv','Invertir eje vertical','Hacia arriba = bajar el morro')+'<div class="srow"><span><b>Vista al empezar</b><small>También se cambia en partida con la tecla V</small></span><div class="chs">'+[['ck','Cabina'],['ext','Exterior']].map(([q,n])=>'<button type="button" data-cam="'+q+'"'+((PR.set.cam||'ck')===q?' class="on"':'')+'>'+n+'</button>').join('')+'</div></div>'+sw('auto','Disparo automático en el móvil','Dispara solo cuando apuntas a un enemigo'),
     gfx:'<div class="srow"><span><b>Calidad gráfica</b><small>Baja va mejor en móviles sencillos</small></span><div class="chs">'+['alta','media','baja'].map(q=>'<button type="button" data-q="'+q+'"'+(S.q===q?' class="on"':'')+'>'+q+'</button>').join('')+'</div></div>',
     cta:'<div class="srow" style="box-shadow:inset calc(.25*var(--u)) 0 0 var(--red)"><span><b>Borrar progreso</b><small>'+(confirmReset?'¿Seguro? Se pierden bits, pase y misiones de esta versión':'Vuelve a empezar la versión 3D desde cero')+'</small></span>'+(confirmReset?'<span style="display:flex;gap:calc(.6*var(--u))"><button type="button" class="btnS ghost" id="rsN">No</button><button type="button" class="btnS red" id="rsY">Sí, borrar</button></span>':'<button type="button" class="btnS ghost" id="rs">Borrar</button>')+'</div>'};
@@ -3008,6 +3008,78 @@ function padLive(){
   gp.axes.slice(0,10).forEach((v,i)=>{const e=$('pa-'+i);if(e){e.style.left=Math.min(50,50+v*50)+'%';e.style.width=Math.abs(v*50)+'%'}});
   gp.buttons.slice(0,16).forEach((b,i)=>{const e=$('pb-'+i);if(e)e.classList.toggle('on',!!(b&&b.pressed))});
 }
+
+
+/* =====================================================================
+   MÚSICA DE FONDO: tema dance de los 90 original, generado en directo
+   (no usa archivos: el juego toca cada nota)
+   ===================================================================== */
+const SONG={bpm:136,bars:32};
+function makeSong(ctx,out){
+  const spb=60/SONG.bpm,bar=spb*4,s8=spb/2,s16=spb/4;
+  const nb=ctx.createBuffer(1,ctx.sampleRate*1,ctx.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  const N=n=>440*Math.pow(2,(n-69)/12);
+  // bus principal con un poco de compresión
+  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;comp.attack.value=.005;comp.release.value=.2;comp.connect(out);
+  // "bombeo" del dance: los sintes bajan un poco con cada bombo
+  const duck=ctx.createGain();duck.connect(comp);
+  // eco para la melodía
+  const dl=ctx.createDelay(1);dl.delayTime.value=s8*3;const fb=ctx.createGain();fb.gain.value=.32;const dlf=ctx.createBiquadFilter();dlf.type='lowpass';dlf.frequency.value=3200;
+  dl.connect(dlf);dlf.connect(fb);fb.connect(dl);const dlo=ctx.createGain();dlo.gain.value=.35;dlf.connect(dlo);dlo.connect(duck);
+  const env=(g,t,a,peak,d,sus,r,end)=>{g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.linearRampToValueAtTime(peak*sus,t+a+d);g.gain.setValueAtTime(peak*sus,end);g.gain.linearRampToValueAtTime(0,end+r)};
+  function kick(t,v){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(42,t+.12);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.32);o.connect(g);g.connect(comp);o.start(t);o.stop(t+.34);
+    const c=ctx.createBufferSource(),cg=ctx.createGain(),cf=ctx.createBiquadFilter();c.buffer=nb;cf.type='highpass';cf.frequency.value=2500;cg.gain.setValueAtTime(v*.25,t);cg.gain.exponentialRampToValueAtTime(.001,t+.02);c.connect(cf);cf.connect(cg);cg.connect(comp);c.start(t);c.stop(t+.03);
+    duck.gain.setValueAtTime(.45,t);duck.gain.linearRampToValueAtTime(1,t+spb*.7)}
+  function noiseHit(t,v,type,f,q,dur){const c=ctx.createBufferSource(),g=ctx.createGain(),fl=ctx.createBiquadFilter();c.buffer=nb;fl.type=type;fl.frequency.value=f;fl.Q.value=q;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);c.connect(fl);fl.connect(g);g.connect(comp);c.start(t,Math.random()*.5);c.stop(t+dur+.02)}
+  const clap=(t,v)=>{for(const d of[0,.012,.024])noiseHit(t+d,v*(d?.6:1),'bandpass',1400,1.2,.16)};
+  const hatO=(t,v)=>noiseHit(t,v,'highpass',7500,.7,.11),hatC=(t,v)=>noiseHit(t,v,'highpass',9000,.7,.035);
+  function bass(t,n,dur,v){const o=ctx.createOscillator(),o2=ctx.createOscillator(),f=ctx.createBiquadFilter(),g=ctx.createGain();o.type='sawtooth';o2.type='square';o.frequency.value=N(n);o2.frequency.value=N(n-12);
+    f.type='lowpass';f.Q.value=6;f.frequency.setValueAtTime(1600,t);f.frequency.exponentialRampToValueAtTime(260,t+dur);o.connect(f);o2.connect(f);f.connect(g);g.connect(duck);env(g,t,.004,v,.06,.6,.03,t+dur);o.start(t);o2.start(t);o.stop(t+dur+.05);o2.stop(t+dur+.05)}
+  function saw(t,notes,dur,v,cut){const f=ctx.createBiquadFilter(),g=ctx.createGain();f.type='lowpass';f.frequency.value=cut;f.Q.value=1.5;f.connect(g);g.connect(duck);env(g,t,.01,v,.08,.55,.08,t+dur);
+    for(const n of notes)for(const dt of[-11,0,11]){const o=ctx.createOscillator();o.type='sawtooth';o.frequency.value=N(n);o.detune.value=dt;o.connect(f);o.start(t);o.stop(t+dur+.1)}}
+  function pad(t,notes,dur,v,cut){const f=ctx.createBiquadFilter(),g=ctx.createGain();f.type='lowpass';f.frequency.value=cut;f.connect(g);g.connect(duck);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+dur*.3);g.gain.setValueAtTime(v,t+dur*.8);g.gain.linearRampToValueAtTime(0,t+dur);
+    for(const n of notes)for(const dt of[-7,7]){const o=ctx.createOscillator();o.type='sawtooth';o.frequency.value=N(n);o.detune.value=dt;o.connect(f);o.start(t);o.stop(t+dur+.05)}}
+  function lead(t,n,dur,v){const o=ctx.createOscillator(),o2=ctx.createOscillator(),lfo=ctx.createOscillator(),lg=ctx.createGain(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+    o.type='square';o2.type='sawtooth';o.frequency.value=N(n);o2.frequency.value=N(n+12);o2.detune.value=6;lfo.frequency.value=5.5;lg.gain.value=4;lfo.connect(lg);lg.connect(o.detune);lg.connect(o2.detune);
+    const g2=ctx.createGain();g2.gain.value=.35;o2.connect(g2);f.type='lowpass';f.frequency.value=3800;o.connect(f);g2.connect(f);f.connect(g);g.connect(duck);g.connect(dl);env(g,t,.008,v,.1,.7,.06,t+dur);
+    for(const x of[o,o2,lfo]){x.start(t);x.stop(t+dur+.1)}}
+  function riser(t,dur,v){const c=ctx.createBufferSource(),g=ctx.createGain(),fl=ctx.createBiquadFilter();c.buffer=nb;c.loop=true;fl.type='bandpass';fl.Q.value=3;fl.frequency.setValueAtTime(400,t);fl.frequency.exponentialRampToValueAtTime(9000,t+dur);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+dur);c.connect(fl);fl.connect(g);g.connect(comp);c.start(t);c.stop(t+dur)}
+  // acordes: La menor · Fa · Do · Sol (raíz para el bajo)
+  const CH=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]],ROOT=[45,41,48,43];
+  // melodía original (pasos de corchea; null = silencio)
+  const MA=[[76,null,76,74,72,null,74,76],[77,null,76,74,72,null,69,null],[79,null,76,null,72,74,76,null],[74,null,71,null,67,null,74,71]];
+  const MB=[[81,null,79,76,null,72,74,76],[77,null,77,76,74,76,72,null],[76,null,79,null,81,null,79,76],[74,71,null,67,71,null,74,null]];
+  function scheduleBar(b,t){
+    const sec=b<8?0:b<16?1:b<24?2:3,ci=b%4,bi=b%8;
+    const drums=sec!==2, full=sec===1||sec===3;
+    for(let q=0;q<4;q++){const tq=t+q*spb;
+      if(drums&&!(sec===0&&b<2&&q>0))kick(tq,.95);
+      if(drums&&(q===1||q===3)&&!(sec===0&&b<4))clap(tq,.42);
+      if(drums&&b>=2)hatO(tq+s8,.22);
+      if(full)for(let k=0;k<4;k++)if(k!==2)hatC(tq+k*s16,.07);
+      // bajo dance: en el contratiempo, saltando de octava
+      if(sec!==2||bi>=6)bass(tq+s8,ROOT[ci]+(q%2?12:0),s8*.9,.38)}
+    if(sec===0){pad(t,CH[ci].map(n=>n+12),bar,.07,600+b*260)}
+    if(full){for(const p of[0,1.5,2.5,3.5])saw(t+p*spb,CH[ci].map(n=>n+12),s8*.85,.085,3400);pad(t,CH[ci],bar,.05,1400)}
+    if(sec===2){pad(t,CH[ci].map(n=>n+12),bar,.1,900+bi*350);if(bi>=4)for(let k=0;k<4;k++)saw(t+k*spb,CH[ci].map(n=>n+12),s8*.6,.05,1800+bi*400);if(bi===6)riser(t,bar*2,.22)}
+    const mel=sec===1?(Math.floor(bi/4)?MB:MA):sec===3?(Math.floor(bi/4)?MA:MB):sec===2&&bi<4?MA:null;
+    if(mel){const ph=mel[ci],oct=sec===3&&bi>=4?12:0,v=sec===2?.06:.11;for(let k=0;k<8;k++){const n=ph[k];if(n==null)continue;let len=1;while(k+len<8&&ph[k+len]==null&&len<2)len++;lead(t+k*s8,n+oct,s8*len*.92,v)}}
+  }
+  return {scheduleBar,bar};
+}
+/* ---------- reproductor del juego ---------- */
+if(PR.set.mus==null)PR.set.mus=.5;
+const MUS={on:false,gain:null,song:null,nextBar:0,nextT:0,timer:null};
+function musVol(){return (PR.set.mus||0)*(muted?0:1)*(MODE==='game'?(paused?.5:1):.6)}
+function musStart(){try{audio()}catch(e){}if(!ac||MUS.on||musVol()<=0)return;
+  MUS.gain=ac.createGain();MUS.gain.gain.value=0;MUS.gain.connect(ac.destination);MUS.gain.gain.linearRampToValueAtTime(musVol()*.5,ac.currentTime+2.5);
+  MUS.song=makeSong(ac,MUS.gain);MUS.nextBar=0;MUS.nextT=ac.currentTime+.15;MUS.on=true;
+  MUS.timer=setInterval(()=>{if(!MUS.on||ac.state!=='running')return;if(MUS.nextT<ac.currentTime)MUS.nextT=ac.currentTime+.05;while(MUS.nextT<ac.currentTime+1.2){MUS.song.scheduleBar(MUS.nextBar%SONG.bars,MUS.nextT);MUS.nextT+=MUS.song.bar;MUS.nextBar++}},250)}
+function musStop(){if(!MUS.on)return;MUS.on=false;clearInterval(MUS.timer);const g=MUS.gain;try{g.gain.cancelScheduledValues(ac.currentTime);g.gain.setValueAtTime(g.gain.value,ac.currentTime);g.gain.linearRampToValueAtTime(0,ac.currentTime+.6)}catch(e){}setTimeout(()=>{try{g.disconnect()}catch(e){}},2500)}
+function musUpdate(){if(!ac)return;if(!MUS.on){if(musVol()>0&&MUS.started)musStart();return}if(musVol()<=0){musStop();return}MUS.gain.gain.setTargetAtTime(musVol()*.5,ac.currentTime,.3)}
+/* la música empieza con el primer toque o tecla (los navegadores no dejan sonar antes) */
+const musKick=()=>{MUS.started=true;musStart()};addEventListener('pointerdown',musKick,{capture:true});addEventListener('keydown',musKick,{capture:true});
+setInterval(musUpdate,400);
 
 
 /* ---------- elegir mapa en el lobby ---------- */
