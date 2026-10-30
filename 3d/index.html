@@ -1401,7 +1401,7 @@ function clearWorld(){
   missiles.forEach(m=>GS.remove(m.mesh));missiles.length=0;
   mines.forEach(m=>GS.remove(m.mesh));mines.length=0;beams.forEach(b=>GS.remove(b.l));beams.length=0;
   pickups.forEach(p=>GS.remove(p.mesh));pickups.length=0;
-  hzClear();
+  hzClear();portalClear();
   booms.forEach(b=>{GS.remove(b.p);GS.remove(b.ring);b.p.geometry.dispose();b.p.material.dispose();b.ring.geometry.dispose();b.ring.material.dispose()});booms.length=0;
 }
 function pickNext(z){const ph=ZONES[z.phase];if(!ph)return;const maxOff=Math.max(0,z.r-ph.r)*.8,a=Math.random()*Math.PI*2,d=Math.random()*maxOff;z.toR=ph.r;z.toX=z.cx+Math.cos(a)*d;z.toZ=z.cz+Math.sin(a)*d}
@@ -1467,7 +1467,7 @@ async function startGame2(s){
   $('pchelp').style.opacity=1;setTimeout(()=>{$('pchelp').style.opacity=0},12000);
   renderer.toneMappingExposure=1.0;
   buildSegs();setWeaponHud();genCracks();setView(G.view,true);$('tAut').classList.toggle('on',G.auto);
-  banner('ELIMINA A LOS VIRUS',MAP.name+' · cuidado con las defensas del mapa','',3.5);
+  portalIntro();
   feed('Mapa <b>'+MAP.name+'</b> · <b>16</b> naves · dificultad '+DIFF[diff].n);
   setTimeout(()=>$('fade').classList.remove('on','ld'),80);
   if(!TOUCH){lockWanted=true;requestLock()}
@@ -1784,6 +1784,7 @@ function resolveCollision(s){
 /* ---------- bots ---------- */
 function botThink(b,dt){
   const D=DIFF[diff],z=G.zone;
+  if(b.spawnT!=null&&!b.spawned)return;
   if(b.stun>0){b.stun-=dt;b.pos.addScaledVector(b.vel,dt*.3);b.mesh.position.copy(b.pos);b.mesh.rotateZ(dt*5);return}
   if(G.camo>0&&b.target===G.player)b.target=null;
   b.retarget-=dt;
@@ -1838,7 +1839,7 @@ function drawMini(){
   if(G.storm){mmc.fillStyle='rgba(30,16,60,.85)';mmc.fillRect(0,0,W,W);for(let i=0;i<260;i++){mmc.fillStyle='rgba(180,160,255,'+Math.random()*.5+')';mmc.fillRect(Math.random()*W,Math.random()*W,3,3)}mmc.fillStyle='#d8c8ff';mmc.font='800 26px "Barlow Condensed",sans-serif';mmc.textAlign='center';mmc.fillText('SIN SEÑAL',c,c+9);return}
   hzMini(loc,sc);
   for(const k of pickups){const [x,y]=loc(k.mesh.position.x,k.mesh.position.z);mmc.fillStyle='#'+k.type.c.toString(16).padStart(6,'0');mmc.globalAlpha=.7;mmc.fillRect(x-3,y-3,6,6);mmc.globalAlpha=1}
-  for(const s of G.ships){if(s.isPlayer||!s.alive)continue;const [x,y]=loc(s.pos.x,s.pos.z);mmc.fillStyle=s===G.lockT?'#ffb62e':'#ff2a4d';mmc.beginPath();mmc.arc(x,y,6,0,7);mmc.fill()}
+  for(const s of G.ships){if(s.isPlayer||!s.alive||(s.spawnT!=null&&!s.spawned))continue;const [x,y]=loc(s.pos.x,s.pos.z);mmc.fillStyle=s===G.lockT?'#ffb62e':'#ff2a4d';mmc.beginPath();mmc.arc(x,y,6,0,7);mmc.fill()}
   mmc.fillStyle='rgba(92,240,255,.14)';mmc.beginPath();mmc.moveTo(c,c);mmc.lineTo(c-70,c-120);mmc.lineTo(c+70,c-120);mmc.closePath();mmc.fill();
   mmc.fillStyle='#5cf0ff';mmc.beginPath();mmc.moveTo(c,c-12);mmc.lineTo(c+9,c+9);mmc.lineTo(c,c+4);mmc.lineTo(c-9,c+9);mmc.closePath();mmc.fill();
 }
@@ -1847,7 +1848,7 @@ function drawMini(){
 const fwd=new THREE.Vector3(),rgt=new THREE.Vector3(),v3=new THREE.Vector3();
 const fmtT=s=>{s=Math.max(0,Math.ceil(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 function step(dt){
-  G.t+=dt;const p=G.player,z=G.zone,M=G.mods;
+  G.t+=dt;const p=G.player,z=G.zone,M=G.mods;portalTick(dt);
   z.timer-=dt;
   if(z.phase<ZONES.length){const ph=ZONES[z.phase];
     if(z.state==='wait'&&z.timer<=0){z.state='shrink';z.timer=ph.shrink;z.fromR=z.r;z.fromX=z.cx;z.fromZ=z.cz;banner('LA ZONA SE CIERRA','Vuelve dentro del círculo','mag',2.5);tone(300,150,.5,'sine',.05)}
@@ -1856,7 +1857,7 @@ function step(dt){
   const zdps=ZONES[Math.min(z.phase,ZONES.length-1)].dps;
   G.ab.cd=Math.max(0,G.ab.cd-dt);G.ab.act=Math.max(0,G.ab.act-dt);G.camo=Math.max(0,G.camo-dt);
   if(p.alive){
-    const sens=.0022*PR.set.sens,inv=PR.set.inv?-1:1,stn=G.pstun>0;if(stn){G.pstun-=dt;dX=0;dY=0;G.tyaw+=Math.sin(G.t*23)*dt*1.5;G.shake=Math.max(G.shake,reduce?0:.5)}
+    const sens=.0022*PR.set.sens,inv=PR.set.inv?-1:1,stn=G.pstun>0||G.intro>0;if(G.pstun>0){G.pstun-=dt;dX=0;dY=0;G.tyaw+=Math.sin(G.t*23)*dt*1.5;G.shake=Math.max(G.shake,reduce?0:.5)}else if(stn){dX=0;dY=0}
     const slow=1.25-G.thr*.45;let strafe,climb;
     if(G.q){const fr=flyStep(dt,p,M,stn,slow,inv,sens);strafe=fr[0];climb=fr[1];dX=0;dY=0}else{
     if(locked&&!stn){G.tyaw-=dX*sens;G.tpitch-=dY*sens*inv}
@@ -1880,13 +1881,13 @@ function step(dt){
     const boosting=(G.tTbo||keys.ShiftLeft||keys.ShiftRight||(PAD.on&&PAD.boost))&&G.boost>1;
     if(boosting)G.boost=Math.max(0,G.boost-30*dt);else G.boost=Math.min(100,G.boost+12*dt);
     const target=(boosting?170:22+G.thr*78)*M.spd;
-    p.speed+=(target-p.speed)*Math.min(1,dt*(boosting?3:2));
+    p.speed+=(target-p.speed)*Math.min(1,dt*(boosting?3:2));if(G.intro>0)p.speed=G.introSpeed||0;
     playerFwd(fwd);if(G.q){rgt.set(1,0,0).applyQuaternion(G.q);_pu.set(0,1,0).applyQuaternion(G.q)}else{rgt.set(Math.cos(G.yaw),0,-Math.sin(G.yaw));_pu.set(0,1,0)}
     p.vel.copy(fwd).multiplyScalar(p.speed).addScaledVector(rgt,strafe*28).addScaledVector(_pu,climb*26);
     p.pos.addScaledVector(p.vel,dt);p.pos.y=clamp(p.pos.y,FLOOR,CEIL);
     const rr=Math.hypot(p.pos.x,p.pos.z);if(rr>ARENA-5){p.pos.x*=(ARENA-5)/rr;p.pos.z*=(ARENA-5)/rr}
     if(resolveCollision(p)){p.speed*=.4;damage(p,15*dt*4,null)}
-    const wantFire=mouseDown||keys.Space||G.tFire||(PAD.on&&PAD.fire)||(G.auto&&G.lockOk);
+    const wantFire=!(G.intro>0)&&(mouseDown||keys.Space||G.tFire||(PAD.on&&PAD.fire)||(G.auto&&G.lockOk));
     if(wantFire&&G.t-G.lastShot>WSTAT[G.w].rate){G.lastShot=G.t;playerFire()}
     p.energy=Math.min(100,p.energy+22*dt);
     if(G.t-p.lastHit>3)p.shield=Math.min(p.maxS,p.shield+14*dt);
@@ -1946,7 +1947,7 @@ function step(dt){
   for(let i=beams.length-1;i>=0;i--){const b=beams[i];b.t+=dt;b.l.material.opacity=Math.max(0,1-b.t/.2);if(b.t>.2){GS.remove(b.l);b.l.geometry.dispose();b.l.material.dispose();beams.splice(i,1)}}
   // fijar objetivo
   let best=null,bd=1e9;G.lockOk=false;
-  if(p.alive&&!G.storm)for(const s of G.ships){if(s.isPlayer||!s.alive)continue;const d=s.pos.distanceTo(p.pos);if(d>420)continue;
+  if(p.alive&&!G.storm)for(const s of G.ships){if(s.isPlayer||!s.alive||(s.spawnT!=null&&!s.spawned))continue;const d=s.pos.distanceTo(p.pos);if(d>420)continue;
     v3.copy(s.pos).project(gcam);if(v3.z>=1||Math.abs(v3.x)>.95||Math.abs(v3.y)>.95)continue;
     const ax0=v3.x-G.aimN.x,ay0=v3.y-G.aimN.y,sc=ax0*ax0*gcam.aspect*gcam.aspect+ay0*ay0;if(sc<bd){bd=sc;best={s,x:v3.x,y:v3.y,d}}}
   const lock=$('lock');
@@ -1961,7 +1962,7 @@ function step(dt){
   pGeo.attributes.position.needsUpdate=true;
 }
 function worldFx(dt){
-  if(FXT)fxStep(dt);
+  if(FXT)fxStep(dt);portalStep(dt);
   if(GS&&G)drawPools();
   for(const f of MAP_ANIM)f(dt);
   for(let i=booms.length-1;i>=0;i--){const b=booms[i];b.t+=dt;const arr=b.p.geometry.attributes.position.array;
@@ -2015,7 +2016,7 @@ function hud(dt){
   // flecha hacia la zona si estás fuera
   const za=$('zarr');if(zd>0&&p.alive){_v.set(z.cx-p.pos.x,0,z.cz-p.pos.z);_q.copy(gcam.quaternion).invert();_v.applyQuaternion(_q);za.hidden=false;za.style.transform='rotate('+Math.atan2(_v.x,-_v.z)+'rad)';$('zarrT').textContent=zd+' m'}else za.hidden=true;
   // etiquetas sobre los enemigos cercanos
-  const nps=$('nps');const near=G.ships.filter(s=>!s.isPlayer&&s.alive&&s!==G.lockT&&s.pos.distanceTo(p.pos)<260).sort((a,b)=>a.pos.distanceTo(p.pos)-b.pos.distanceTo(p.pos)).slice(0,5);
+  const nps=$('nps');const near=G.ships.filter(s=>!s.isPlayer&&s.alive&&!(s.spawnT!=null&&!s.spawned)&&s!==G.lockT&&s.pos.distanceTo(p.pos)<260).sort((a,b)=>a.pos.distanceTo(p.pos)-b.pos.distanceTo(p.pos)).slice(0,5);
   while(nps.children.length<5){const d=document.createElement('div');d.className='np';d.innerHTML='<b></b><span class="bb"><i><u style="background:#5cf0ff"></u></i><i><u style="background:#ff2a4d"></u></i></span>';nps.appendChild(d)}
   [...nps.children].forEach((el,i)=>{const s=near[i];const o=s&&scr(tmp2.copy(s.pos).add({x:0,y:6,z:0}),{});if(!o){el.style.display='none';return}
     el.style.display='';el.style.left=o.x+'px';el.style.top=o.y+'px';el.firstChild.textContent=s.name;const u=el.querySelectorAll('u');u[0].style.width=(s.shield/s.maxS*100)+'%';u[1].style.width=(s.hull/s.maxH*100)+'%'});
@@ -2106,7 +2107,7 @@ function flyStep(dt,p,M,stn,slow,inv,sens){
   }
   // tonel en marcha: gira la vuelta completa y sigue recto
   if(Math.abs(G.barrel)>.01){const st=Math.sign(G.barrel)*Math.min(Math.abs(G.barrel),7.5*dt);G.barrel-=st;roll=st/dt;pitch=0;yaw=0;G.aimV.copy(fw)}
-  if(stn){roll+=Math.sin(G.t*19)*2;pitch+=Math.sin(G.t*13)*.6}
+  if(G.pstun>0){roll+=Math.sin(G.t*19)*2;pitch+=Math.sin(G.t*13)*.6}
   // inercia suave pero firme
   const k=Math.min(1,dt*(Math.abs(G.barrel)>.01?30:9));G.av.x+=(pitch-G.av.x)*k;G.av.y+=(yaw-G.av.y)*k;G.av.z+=(roll-G.av.z)*k;
   _fq.setFromAxisAngle(AX.x,G.av.x*dt);q.multiply(_fq);
@@ -2124,6 +2125,59 @@ function flyHud(){const el=$('maim');if(!el)return;
   _fv.copy(G.player.pos).addScaledVector(G.aimV,260).project(gcam);
   if(_fv.z>=1){el.hidden=true;return}
   el.hidden=false;el.style.left=((_fv.x+1)/2*100)+'%';el.style.top=((1-_fv.y)/2*100)+'%';
+}
+
+
+/* =====================================================================
+   ENTRADA POR PORTAL DE DATOS: tu nave y los bots llegan al mapa saliendo de un portal
+   ===================================================================== */
+const PORTALS=[];let portalTex=null;
+function portalSwirl(){if(portalTex)return portalTex;const S=256,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+  const gr=g.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);gr.addColorStop(0,'rgba(255,255,255,.95)');gr.addColorStop(.25,'rgba(160,250,255,.8)');gr.addColorStop(.7,'rgba(60,200,255,.35)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,S,S);
+  g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=3;for(let a=0;a<6;a++){g.beginPath();for(let r=4;r<S/2;r+=2){const th=a/6*Math.PI*2+r*.05;g.lineTo(S/2+Math.cos(th)*r,S/2+Math.sin(th)*r)}g.stroke()}
+  portalTex=new THREE.CanvasTexture(c);return portalTex}
+/* abre un portal: se abre en .7 s, aguanta "hold" segundos y se cierra con un destello */
+function openPortal(pos,dir,col,R,hold,parts){
+  const g=new THREE.Group();g.position.copy(pos);g.lookAt(_v.copy(pos).add(dir));g.scale.setScalar(.001);GS.add(g);
+  const c=new THREE.Color(col);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(R,R*.05,8,64),new THREE.MeshBasicMaterial({color:c.clone().multiplyScalar(2.6),toneMapped:false}));g.add(ring);
+  const ring2=new THREE.Mesh(new THREE.TorusGeometry(R*1.12,R*.016,6,64),new THREE.MeshBasicMaterial({color:c.clone().lerp(new THREE.Color(1,1,1),.6).multiplyScalar(2),toneMapped:false}));g.add(ring2);
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(R,48),new THREE.MeshBasicMaterial({map:portalSwirl(),color:c.clone().lerp(new THREE.Color(1,1,1),.4),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));g.add(disc);
+  let pts=null,PP=null,A=null;
+  if(parts){const n=TOUCH?120:220;PP=new Float32Array(n*3);A=[];for(let i=0;i<n;i++)A.push({a:Math.random()*6.28,r:R*1.2+Math.random()*R*1.6,s:.6+Math.random()});
+    const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(PP,3));pts=new THREE.Points(pg,new THREE.PointsMaterial({color:c.clone().lerp(new THREE.Color(1,1,1),.5).multiplyScalar(2),size:R*.07,map:sparkTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));pts.frustumCulled=false;g.add(pts)}
+  const P={g,ring,ring2,disc,pts,PP,A,R,t:0,hold,col,done:false};PORTALS.push(P);return P}
+const easeO=k=>1-Math.pow(1-k,3);
+function portalStep(dt){
+  for(let i=PORTALS.length-1;i>=0;i--){const P=PORTALS[i];P.t+=dt;const t=P.t,close=.7+P.hold;
+    const s=t<.7?easeO(t/.7):t<close?1:1-easeO(Math.min(1,(t-close)/.35));P.g.scale.setScalar(Math.max(.001,s));
+    P.ring.rotation.z+=dt*2;P.ring2.rotation.z-=dt*3;P.disc.rotation.z-=dt*4;P.disc.material.opacity=.6*s;
+    if(P.pts){const n=P.A.length;for(let k=0;k<n;k++){const a=P.A[k];a.a+=dt*a.s*2;a.r-=dt*a.s*P.R*.9;if(a.r<1)a.r=P.R*1.2+Math.random()*P.R*1.6;P.PP[k*3]=Math.cos(a.a)*a.r;P.PP[k*3+1]=Math.sin(a.a)*a.r;P.PP[k*3+2]=0}P.pts.geometry.attributes.position.needsUpdate=true}
+    if(t>=close&&!P.flashed){P.flashed=true;const f=spr(FXT.flash,P.col);f.position.copy(P.g.position);addFx(f,.3,(o,k)=>{const q=P.R*2.4*(1+k);o.scale.set(q,q,1);o.material.opacity=1-k})}
+    if(t>close+.4){GS.remove(P.g);P.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()});PORTALS.splice(i,1)}}
+}
+function portalClear(){for(const P of PORTALS){GS.remove(P.g);P.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()})}PORTALS.length=0}
+/* el destello y el sonido al cruzar */
+function portalBurst(pos,col,big){const f=spr(FXT.flash,col);f.position.copy(pos);addFx(f,big?.4:.3,(o,k)=>{const q=(big?16:9)*(1+k*1.4);o.scale.set(q,q,1);o.material.opacity=1-k});lightAt(pos,col,big?40:18)}
+/* empieza la entrada del jugador y la de los bots */
+function portalIntro(){
+  const p=G.player,f=playerFwd(new THREE.Vector3());
+  G.intro=1.7;G.introPos=p.pos.clone();G.portal=openPortal(p.pos.clone().addScaledVector(f,24),f,0x5cf0ff,13,.75,true);
+  p.speed=0;
+  tone(110,620,1.1,'sawtooth',.025);tone(220,1240,1.1,'sine',.02);
+  for(const b of G.ships){if(b.isPlayer)continue;b.spawnT=rand(.5,2.4);b.spawned=false;b.mesh.visible=false;if(b.trail)b.trail.visible=false;
+    b.portalAt=b.pos.clone();b.pos.addScaledVector(b.dir,-10);b._pt=b.spawnT-.75}
+}
+/* cada paso durante la entrada */
+function portalTick(dt){
+  if(G.intro>0){const p=G.player,f=playerFwd(_v),it=1.7-G.intro;G.intro-=dt;
+    // quieta mirando cómo se abre el portal, y después cruza a toda velocidad
+    G.introSpeed=it<.75?0:it<1.05?170:Math.max(60,170-(it-1.05)*170);
+    if(it>=.86&&!G.introPass){G.introPass=true;portalBurst(p.pos.clone().addScaledVector(f,6),0x9ff7ff,true);noise(.45,.18);tone(1200,240,.4,'sawtooth',.03);G.shake=Math.max(G.shake,reduce?0:.8)}
+    if(G.intro<=0){banner('ELIMINA A LOS VIRUS',MAP.name+' · cuidado con las defensas del mapa','',3.5)}}
+  for(const b of G.ships){if(b.isPlayer||b.spawned||!b.alive)continue;
+    if(b._pt!=null&&G.t>=b._pt){b._pt=null;openPortal(b.portalAt.clone(),b.dir.clone(),0xff3d6a,8,.55,false)}
+    if(G.t>=b.spawnT){b.spawned=true;b.mesh.visible=true;if(b.trail){b.trail.visible=true;const a=b.trail.geometry.attributes.position.array;for(let k=0;k<a.length;k+=3){a[k]=b.pos.x;a[k+1]=b.pos.y;a[k+2]=b.pos.z}}portalBurst(b.portalAt,0xff5a88,false)}}
 }
 
 
@@ -2562,7 +2616,7 @@ function turretStep(h,dt){
   h.rg.material=hk?(h._rgC||(h._rgC=new THREE.MeshBasicMaterial({color:new THREE.Color(0x5cf0ff).multiplyScalar(1.4),transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}))):(miss?HZM.ringO:HZM.ring);
   // elegir objetivo: la nave más cercana dentro del círculo
   h.losT-=dt;let best=h.tgt&&h.tgt.alive&&h.tgt.pos.distanceTo(h.center)<h.R&&!(hk&&h.tgt.isPlayer)?h.tgt:null;
-  if(!best||h.losT<=0){let bd=h.R;best=null;for(const s of G.ships){if(!s.alive||(hk&&s.isPlayer)||(s.isPlayer&&G.camo>0))continue;const d=s.pos.distanceTo(h.center);if(d<bd){bd=d;best=s}}}
+  if(!best||h.losT<=0){let bd=h.R;best=null;for(const s of G.ships){if(!s.alive||(hk&&s.isPlayer)||(s.isPlayer&&G.camo>0)||(s.spawnT!=null&&!s.spawned))continue;const d=s.pos.distanceTo(h.center);if(d<bd){bd=d;best=s}}}
   if(best&&h.losT<=0){h.losT=.3;h.los=hzLOS(h.center,best.pos)}
   if(best&&!h.los)best=null;
   if(best!==h.tgt){h.tgt=best;h.aim=0}
