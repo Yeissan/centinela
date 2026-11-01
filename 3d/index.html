@@ -1927,12 +1927,12 @@ function damage(s,amt,by){
   if(G.mode==='duel'){amt*=DUEL_K;if(DU&&duelDamage(s,amt,by))return}
   if(s.isPlayer&&G.ab.act>0){return}
   s.lastHit=G.t;if(by&&by!=='zone')s.lastAttacker=by;
-  const sh0=s.shield,fs=Math.min(s.shield,amt);s.shield-=fs;s.hull-=amt-fs;
+  const shF=G.mode==='duel'?.5:1,sh0=s.shield,fs=Math.min(s.shield,amt*shF);s.shield-=fs;s.hull-=amt-fs/shF;
   if(s.isPlayer){G.dmgT=1;G.shake=Math.max(G.shake,reduce?0:.7);tone(160,80,.15,'triangle',.06);
     if(by&&by.pos)dirInd(by.pos);
     if(sh0>0&&s.shield<=0){banner('ESCUDO ROTO','Busca escudos azules o aléjate','red',1.4);tone(900,120,.35,'sawtooth',.05)}}
   else{
-    if(by&&by.isPlayer){G.dmgDone=(G.dmgDone||0)+amt;G.hitT=1;tone(1400,1200,.04,'sine',.05);dmgNum(s.pos,amt,fs>=amt,s.hull<=0)}
+    if(by&&by.isPlayer){G.dmgDone=(G.dmgDone||0)+amt;G.hitT=1;tone(1400,1200,.04,'sine',.05);dmgNum(s.pos,amt,fs/shF>=amt-.01,s.hull<=0)}
     hitFx(s.pos.clone().add(new THREE.Vector3(rand(-1.5,1.5),rand(-1,1),rand(-1.5,1.5))),fs>0?0x5cf0ff:0xffb04a,fs>0,s);
   }
   if(s.hull<=0)kill(s,by);
