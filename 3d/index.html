@@ -454,7 +454,7 @@ button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 
 /* selector de arma (rueda del ratón) */
 .wsel{position:absolute;left:50%;bottom:calc(15*var(--u));transform:translateX(-50%);display:flex;gap:calc(.5*var(--u));padding:calc(.45*var(--u));border-radius:99px;background:rgba(3,8,18,.7);box-shadow:inset 0 0 0 1px rgba(92,240,255,.25);z-index:6;pointer-events:none;transition:opacity .3s}
-.wsel.fade{opacity:0}
+.wsel.wsOut{opacity:0}
 .wsel span{display:flex;align-items:center;gap:calc(.4*var(--u));font:800 calc(.9*var(--u)) var(--ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(238,248,255,.5);padding:calc(.4*var(--u)) calc(.9*var(--u));border-radius:99px;white-space:nowrap}
 .wsel span i{width:calc(.6*var(--u));height:calc(.6*var(--u));border-radius:50%;background:var(--c);opacity:.5}
 .wsel span.on{color:#05070c;background:linear-gradient(180deg,#fff,var(--c));box-shadow:0 0 calc(1.2*var(--u)) color-mix(in srgb,var(--c) 60%,transparent);transform:scale(1.08)}
@@ -1744,7 +1744,7 @@ cv.addEventListener('wheel',e=>{if(MODE!=='game'||!G||paused)return;e.preventDef
 function cycleWeapon(d){if(!G||G.over)return;const L=ITEMS.w.filter(it=>unlocked('w',it));if(L.length<2){wselShow(L);toast('Desbloquea más armas en el pase para cambiar');return}
   let i=L.findIndex(it=>it.id===G.w);i=(i+d+L.length)%L.length;G.w=L[i].id;setWeaponHud();wselShow(L);tone(700+i*120,900+i*120,.07,'triangle',.04)}
 let wselT=null;
-function wselShow(L){const el=$('wsel');el.innerHTML=L.map(it=>'<span class="'+(it.id===G.w?'on':'')+'" style="--c:'+it.c+'"><i></i>'+it.n+'</span>').join('');el.hidden=false;el.classList.remove('fade');clearTimeout(wselT);wselT=setTimeout(()=>{el.classList.add('fade');wselT=setTimeout(()=>{el.hidden=true},300)},1300)}
+function wselShow(L){const el=$('wsel');el.innerHTML=L.map(it=>'<span class="'+(it.id===G.w?'on':'')+'" style="--c:'+it.c+'"><i></i>'+it.n+'</span>').join('');el.hidden=false;el.classList.remove('wsOut');clearTimeout(wselT);wselT=setTimeout(()=>{el.classList.add('wsOut');wselT=setTimeout(()=>{el.hidden=true},300)},1300)}
 const THR_N=['LENTO','CRUCERO','RÁPIDO','MÁXIMO'];
 const thrName=t=>t<.25?THR_N[0]:t<.55?THR_N[1]:t<.85?THR_N[2]:THR_N[3];
 function thrPop(){const el=$('thrPop');if(!el)return;el.textContent=thrName(G.thr)+' · '+Math.round(G.thr*100)+'%';el.classList.remove('show');void el.offsetWidth;el.classList.add('show')}
