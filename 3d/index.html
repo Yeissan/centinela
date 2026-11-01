@@ -918,6 +918,10 @@ button.shc:hover .im img{transform:scale(1.06) rotate(-3deg)}
 .btnS.elBtn{background:linear-gradient(180deg,#fff1b8,#ffcc4a);color:#1a0d00;gap:calc(.4*var(--u))}
 .elOn{align-self:flex-start;padding:calc(.4*var(--u)) calc(.8*var(--u));border-radius:99px;background:linear-gradient(180deg,#fff1b8,#ffcc4a);color:#1a0d00;font:800 calc(.85*var(--u)) var(--ui);letter-spacing:.16em}
 .instB{border:0;cursor:pointer;color:#021018!important;background:linear-gradient(180deg,#c8fcff,#5cf0ff)!important;box-shadow:0 0 calc(1*var(--u)) rgba(92,240,255,.5)!important;font-weight:800}.instB .ic{color:#021018!important}.instB[hidden]{display:none}
+.nmEd{display:inline-grid;place-items:center;width:calc(1.7*var(--u));height:calc(1.7*var(--u));margin-left:calc(.4*var(--u));padding:0;border:0;border-radius:calc(.45*var(--u));cursor:pointer;color:var(--cyan);background:rgba(92,240,255,.12);vertical-align:middle}
+.nmEd svg{width:calc(1*var(--u));height:calc(1*var(--u))}
+.prof .nm{display:inline-block;vertical-align:middle;max-width:calc(11*var(--u));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nmIn{width:calc(12*var(--u));font:700 calc(1.4*var(--u)) var(--ui);color:#fff;background:rgba(255,255,255,.08);border:0;border-radius:calc(.5*var(--u));padding:calc(.2*var(--u)) calc(.5*var(--u));box-shadow:inset 0 0 0 1px var(--cyan);outline:none}
 
 #T{z-index:1}.pbtn{z-index:5}
 .stage>*{--u:1cqw}
@@ -3926,7 +3930,14 @@ function pveMini(loc,sc){const C=G.core;if(!C)return;const [x,y]=loc(C.pos.x,C.p
 const SRV3=(()=>{try{return localStorage.getItem('c3d_srv')||''}catch(e){return ''}})()||'wss://centinela-servidor-production.up.railway.app/ws';
 let DU=null,DUws=null,DUlref=null;
 const _du=new THREE.Vector3(),_du2=new THREE.Vector3();
-function duelName(){let n='';try{n=localStorage.getItem('c3d_nombre')||''}catch(e){}if(!n){const el=document.querySelector('#profCard .nm');n=el?el.textContent.trim():'Piloto'}return n.slice(0,16)}
+/* nombre de piloto: se guarda en este navegador y se puede cambiar tocando el lápiz del perfil */
+function duelName(){let n='';try{n=localStorage.getItem('c3d_nombre')||''}catch(e){}if(!n){n='Piloto'+(1000+Math.floor(Math.random()*9000));try{localStorage.setItem('c3d_nombre',n)}catch(e){}}return n.slice(0,16)}
+function setPilotName(n){n=String(n||'').replace(/[<>]/g,'').trim().slice(0,16);if(!n)return false;try{localStorage.setItem('c3d_nombre',n)}catch(e){}const el=document.querySelector('#profCard .nm');if(el)el.textContent=n;const i=$('mmName');if(i&&i.value!==n)i.value=n;return true}
+{const nm=document.querySelector('#profCard .nm');if(nm){nm.textContent=duelName();const b=document.createElement('button');b.type='button';b.className='nmEd';b.setAttribute('aria-label','Cambiar tu nombre');
+  b.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';nm.after(b);
+  b.addEventListener('click',e=>{e.stopPropagation();const inp=document.createElement('input');inp.className='nmIn';inp.maxLength=16;inp.value=duelName();nm.hidden=true;b.hidden=true;nm.after(inp);inp.focus();inp.select();
+    const done=ok=>{if(ok&&setPilotName(inp.value))toast('Nombre cambiado: '+duelName());inp.remove();nm.hidden=false;b.hidden=false};
+    inp.addEventListener('click',ev=>ev.stopPropagation());inp.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.key==='Enter')done(true);if(ev.key==='Escape')done(false)});inp.addEventListener('blur',()=>done(true))})}}
 function netSend(o){if(DUws&&DUws.readyState===1){try{DUws.send(JSON.stringify(o))}catch(e){}}}
 function duelOnline(){return !!(DU&&DU.online)}
 /* ---------- pantalla de búsqueda ---------- */
@@ -3957,7 +3968,7 @@ function duelOpen(){
   ws.onerror=()=>{};
 }
 function mmClose(){mmO.hidden=true;clearInterval(mmTimer)}
-$('mmName').addEventListener('input',e=>{try{localStorage.setItem('c3d_nombre',e.target.value.trim().slice(0,16))}catch(x){}});
+$('mmName').addEventListener('input',e=>{const v=e.target.value.trim().slice(0,16);if(v){try{localStorage.setItem('c3d_nombre',v)}catch(x){}const el=document.querySelector('#profCard .nm');if(el)el.textContent=v}});
 $('mmName').addEventListener('keydown',e=>e.stopPropagation());
 $('mmX').addEventListener('click',()=>{netSend({t:'x3'});try{DUws&&DUws.close()}catch(e){}DUws=null;DU=null;mmClose()});
 $('mmBot').addEventListener('click',()=>{netSend({t:'x3'});try{DUws&&DUws.close()}catch(e){}DUws=null;
@@ -4011,12 +4022,12 @@ function duelMsg(m){if(!DU)return;if(!G||DU.g!==G){if(m.t!=='s3')(DU.q||(DU.q=[]
     banner(won?'¡RONDA GANADA!':'RONDA PERDIDA',(m.why==='tiempo'?'Se acabó el tiempo · ':'')+'Tú '+DU.wins[you]+' – '+DU.wins[1-you]+' '+DU.opp.n,won?'gold':'red',2.6);
     tone(won?600:300,won?1200:120,.4,'sine',.06);
   }else if(m.t==='f3'){if(G.opp&&G.opp.alive&&m.k==='m')botMissile(G.opp,G.player)}
-  else if(m.t==='s3'){const o=G.opp;if(!o||!o.remote)return;o.buf.push({t:performance.now(),p:m.p,d:m.d,r:m.r,f:m.f,v:m.v});if(o.buf.length>24)o.buf.shift()}
+  else if(m.t==='s3'){const o=G.opp;if(!o||!o.remote)return;o.buf.push({t:performance.now(),p:m.p,d:m.d,r:m.r,f:m.f,lk:m.lk,v:m.v});if(o.buf.length>24)o.buf.shift()}
   else if(m.t==='end3'){
     DU.over=true;const win=m.win===you;DU.why=m.why;DU.wins=m.wins;
     if(m.why==='abandono'&&win)banner('TU RIVAL SE HA IDO','Ganas el duelo','gold',2.6);
     try{DUws&&DUws.close()}catch(e){}DUws=null;
-    setTimeout(()=>{if(G&&!G.over)endGame(win,win?1:2)},m.why==='abandono'?1200:200);
+    setTimeout(()=>{if(G&&!G.over){if(MODE==='launch'&&typeof endLaunch==='function')endLaunch();paused=false;$('pause').hidden=true;endGame(win,win?1:2)}},m.why==='abandono'?1200:200);
   }
 }
 /* árbitro de la partida contra la máquina (hace lo mismo que el servidor) */
@@ -4035,7 +4046,7 @@ function duelStep(dt){if(!DU)return;
   if(DU.pend){const m=DU.pend;DU.pend=null;duelMsg(m)}
   const p=G.player;
   if(DU.online&&p.alive&&MODE==='game'){DU.sT=(DU.sT||0)-dt;if(DU.sT<=0){DU.sT=1/15;const f=playerFwd(_du);const r1=v=>Math.round(v*10)/10,r3=v=>Math.round(v*1000)/1000;
-    netSend({t:'s3',p:[r1(p.pos.x),r1(p.pos.y),r1(p.pos.z)],d:[r3(f.x),r3(f.y),r3(f.z)],r:r3(G.roll||0),f:G.firing?1:0,w:G.w,v:Math.round(p.speed||0)})}}
+    netSend({t:'s3',p:[r1(p.pos.x),r1(p.pos.y),r1(p.pos.z)],d:[r3(f.x),r3(f.y),r3(f.z)],r:r3(G.roll||0),f:G.firing?1:0,lk:G.lockT&&G.lockOk&&G.lockT===G.opp?1:0,w:G.w,v:Math.round(p.speed||0)})}}
   const o=G.opp;
   if(o&&o.remote&&o.alive&&DU.state==='fight'&&MODE==='game'){const L=o.buf[o.buf.length-1];if(!L||performance.now()-L.t>1500)hzWarnSet('Tu rival está en pausa o se le ha cortado la conexión','#ffb62e',2)}
   if(o&&o.remote&&o.alive&&o.buf.length){const now=performance.now()-110,B=o.buf;let a=B[0],b=null;
@@ -4045,7 +4056,10 @@ function duelStep(dt){if(!DU)return;
     o.vel.copy(o.dir).multiplyScalar(B[B.length-1].v||0);
     o.mesh.position.copy(o.pos);o.mesh.lookAt(_du.copy(o.pos).add(o.dir));o.mesh.rotateZ(-clamp(o.bank||0,-1.4,1.4));
     if(o.trail){const t=o.trail.geometry.attributes.position.array;for(let k=t.length-3;k>=3;k-=3){t[k]=t[k-3];t[k+1]=t[k-2];t[k+2]=t[k-1]}const e=_du2.copy(o.dir).multiplyScalar(-5.5).add(o.pos);t[0]=e.x;t[1]=e.y;t[2]=e.z;o.trail.geometry.attributes.position.needsUpdate=true}
-    const L=B[B.length-1];if(L.f&&G.t-o.lastF>.13&&DU.state==='fight'){o.lastF=G.t;spawnShot(o,o.pos.clone().addScaledVector(o.dir,5),o.dir.clone(),0)}}
+    const L=B[B.length-1];if(L.f&&G.t-o.lastF>.11&&DU.state==='fight'){o.lastF=G.t;const from=o.pos.clone().addScaledVector(o.dir,5);let a=o.dir.clone();
+      // si te tiene fijado, sus disparos vienen hacia ti (como en su pantalla)
+      if(L.lk&&G.player.alive){a=G.player.pos.clone().addScaledVector(G.player.vel,from.distanceTo(G.player.pos)/420).sub(from).normalize();a.x+=rand(-.02,.02);a.y+=rand(-.02,.02);a.z+=rand(-.02,.02);a.normalize()}
+      spawnShot(o,from,a,0);if(from.distanceTo(G.player.pos)<260)tone(500,300,.05,'square',.012)}}
 }
 function duelHud(){$('gZoneTx').textContent='Duelo'+(DU.round?' · ronda '+DU.round:'');$('mmTx').textContent='DUELO 1 CONTRA 1';const h=$('pveH');h.hidden=false;h.classList.add('du');const you=DU.you;
   $('pveW').textContent='TÚ '+DU.wins[you]+' – '+DU.wins[1-you];
@@ -4275,6 +4289,6 @@ if(location.hash==='#instalar')setTimeout(()=>toast(_instEv?'Pulsa el botón Ins
 pick(0);preload();
 setTimeout(()=>{$('hint').style.opacity=0},7000);
 requestAnimationFrame(frame);
-window.__h={setLT:v=>{LT=v},get MODE(){return MODE},pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},prof:()=>{const gl=renderer.getContext();gl.finish();let a=performance.now();step(1/30);let b=performance.now();gcomp.render();gl.finish();let c=performance.now();drawMini();let d=performance.now();renderer.render(GS,gcam);gl.finish();let e=performance.now();gbloom.enabled=false;gcomp.render();gl.finish();let f=performance.now();gbloom.enabled=true;return [Math.round(b-a),Math.round(c-b),Math.round(d-c),Math.round(e-d),Math.round(f-e),GS.children.length]},dbg:()=>({G,damage,boom,kill,PR,PAD,HZ,HZT,HZS,MAPS,buildMap,hzReset,get mapSel(){return mapSel},set mapSel(v){mapSel=v}})};window.__R=renderer;
+window.__h={setLT:v=>{LT=v},get MODE(){return MODE},pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},prof:()=>{const gl=renderer.getContext();gl.finish();let a=performance.now();step(1/30);let b=performance.now();gcomp.render();gl.finish();let c=performance.now();drawMini();let d=performance.now();renderer.render(GS,gcam);gl.finish();let e=performance.now();gbloom.enabled=false;gcomp.render();gl.finish();let f=performance.now();gbloom.enabled=true;return [Math.round(b-a),Math.round(c-b),Math.round(d-c),Math.round(e-d),Math.round(f-e),GS.children.length]},dbg:()=>({G,shots,damage,boom,kill,PR,PAD,HZ,HZT,HZS,MAPS,buildMap,hzReset,get mapSel(){return mapSel},set mapSel(v){mapSel=v}})};window.__R=renderer;
 })();
 </script>
