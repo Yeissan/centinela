@@ -1708,7 +1708,7 @@ function toHangar(){
 }
 function requestLock(){try{const r=cv.requestPointerLock&&cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cv;if(!locked&&MODE==='game'&&G&&!G.over&&!paused&&lockWanted)pause()});
-function pause(){if(!G||G.over)return;paused=true;$('pause').hidden=false;mouseDown=false}
+function pause(){if(!G||G.over)return;paused=true;$('pause').hidden=false;mouseDown=false;if(typeof duelPauseNote==='function')duelPauseNote()}
 function resume(){paused=false;$('pause').hidden=true;if(!TOUCH){lockWanted=true;requestLock()}}
 $('resume').addEventListener('click',resume);
 $('quit').addEventListener('click',toHangar);
@@ -1756,7 +1756,7 @@ function wselShow(L){const el=$('wsel');el.innerHTML=L.map(it=>'<span class="'+(
 const THR_N=['LENTO','CRUCERO','RÁPIDO','MÁXIMO'];
 const thrName=t=>t<.25?THR_N[0]:t<.55?THR_N[1]:t<.85?THR_N[2]:THR_N[3];
 function thrPop(){const el=$('thrPop');if(!el)return;el.textContent=thrName(G.thr)+' · '+Math.round(G.thr*100)+'%';el.classList.remove('show');void el.offsetWidth;el.classList.add('show')}
-addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouseDown=false;if(MODE==='game'&&G&&!G.over&&!paused)pause()});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouseDown=false;if(MODE==='game'&&G&&!G.over&&!paused&&G.mode!=='duel')pause()});
 
 /* controles táctiles */
 (function touch(){
@@ -2280,8 +2280,9 @@ function autoQ(dt){
 }
 function gameFrame(dt){
   autoQ(dt);
-  if(!paused&&G){step(dt);hud(dt)}
-  worldFx(paused?0:dt);
+  const live=G&&(!paused||G.mode==='duel');
+  if(live){step(dt);hud(dt)}
+  worldFx(live?dt:0);
   gcomp.render();
 }
 
@@ -4036,6 +4037,7 @@ function duelStep(dt){if(!DU)return;
   if(DU.online&&p.alive&&MODE==='game'){DU.sT=(DU.sT||0)-dt;if(DU.sT<=0){DU.sT=1/15;const f=playerFwd(_du);const r1=v=>Math.round(v*10)/10,r3=v=>Math.round(v*1000)/1000;
     netSend({t:'s3',p:[r1(p.pos.x),r1(p.pos.y),r1(p.pos.z)],d:[r3(f.x),r3(f.y),r3(f.z)],r:r3(G.roll||0),f:G.firing?1:0,w:G.w,v:Math.round(p.speed||0)})}}
   const o=G.opp;
+  if(o&&o.remote&&o.alive&&DU.state==='fight'&&MODE==='game'){const L=o.buf[o.buf.length-1];if(!L||performance.now()-L.t>1500)hzWarnSet('Tu rival está en pausa o se le ha cortado la conexión','#ffb62e',2)}
   if(o&&o.remote&&o.alive&&o.buf.length){const now=performance.now()-110,B=o.buf;let a=B[0],b=null;
     for(let k=B.length-1;k>=0;k--){if(B[k].t<=now){a=B[k];b=B[k+1]||null;break}}
     if(b){const k=clamp((now-a.t)/Math.max(1,b.t-a.t),0,1);o.pos.set(a.p[0]+(b.p[0]-a.p[0])*k,a.p[1]+(b.p[1]-a.p[1])*k,a.p[2]+(b.p[2]-a.p[2])*k);o.dir.set(a.d[0]+(b.d[0]-a.d[0])*k,a.d[1]+(b.d[1]-a.d[1])*k,a.d[2]+(b.d[2]-a.d[2])*k).normalize();o.bank=a.r+(b.r-a.r)*k}
@@ -4050,6 +4052,9 @@ function duelHud(){$('gZoneTx').textContent='Duelo'+(DU.round?' · ronda '+DU.ro
   $('pveL').textContent=(DU.round?'Ronda '+DU.round+' · ':'')+'al mejor de 3'+(DU.online?' · en línea':' · contra la máquina');
   const bb=$('bossB'),o=G.opp;if(o&&o.alive){bb.hidden=false;bb.classList.add('du');$('bossN').textContent=o.name;$('bossF').style.width=((o.hull+o.shield)/(o.maxH+o.maxS)*100)+'%'}else bb.hidden=true}
 function duelQuit(){if(DU&&DU.online&&!DU.over)netSend({t:'x3'});try{DUws&&DUws.close()}catch(e){}DUws=null;DUlref=null}
+
+/* en el duelo la partida no se para: avisarlo en la pantalla de pausa */
+function duelPauseNote(){const p=$('pause');if(!p)return;let n=p.querySelector('.duN');if(!n){n=document.createElement('p');n.className='duN';n.style.cssText='margin:calc(.4*var(--u)) 0 0;color:#ffcf7a;font:700 calc(1*var(--u)) var(--ui);letter-spacing:.06em';n.textContent='En el duelo la partida sigue: tu rival puede atacarte mientras estás en pausa.';const b=p.querySelector('h2,h3,b');(b&&b.parentNode||p).appendChild(n)}n.hidden=!(G&&G.mode==='duel')}
 
 
 /* ---------- elegir mapa en el lobby ---------- */
