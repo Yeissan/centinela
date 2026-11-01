@@ -1867,7 +1867,7 @@ function fireMissile(){
     G.ammo--;if(G.mode==='duel'&&duelOnline())netSend({t:'f3',k:'m'});tone(200,60,.4,'sawtooth',.06);
     if(!window.__mslMat)window.__mslMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0xffb62e).multiplyScalar(2),toneMapped:false});const m=new THREE.Mesh(missileGeo,window.__mslMat);
     m.position.copy(p.pos).addScaledVector(f,4).y-=2;GS.add(m);
-    const tg=G.mlock>=1&&G.mlockT&&G.mlockT.alive?G.mlockT:null;missiles.push({mesh:m,pos:m.position.clone(),dir:f.clone(),target:tg,owner:p,life:5});
+    const tg=G.mlock>=1&&G.mlockT&&G.mlockT.alive?G.mlockT:null;missiles.push({mesh:m,pos:m.position.clone(),dir:f.clone(),target:tg,owner:p,life:tg?25:5,sp:210});
     if(tg)feed('Misil fijado contra <i>'+tg.name+'</i>',true);else toast('Misil sin fijar: va recto · mantén la mira para fijar');G.mlock=0;
   } else if(G.sec==='mines'){
     G.ammo--;const m=new THREE.Mesh(mineGeo,mineMat);m.position.copy(p.pos).addScaledVector(f,-9);GS.add(m);
@@ -2182,13 +2182,16 @@ function step(dt){
     if(!gone)for(const o of G.ships){if(o===s.owner||!o.alive||(o.isPlayer&&s.owner.credit))continue;if(o.pos.distanceToSquared(s.pos)<(o.isPlayer?14:o.boss?320:s.splash?40:26)){damage(o,s.dmg,s.owner.credit||s.owner);if(s.splash){boom(s.pos,0xff3df2,.6);for(const o2 of G.ships){if(o2===o||o2===s.owner||!o2.alive)continue;if(o2.pos.distanceTo(s.pos)<s.splash*2)damage(o2,s.dmg*.45,s.owner)}}gone=true;break}}
     if(gone){GS.remove(s.mesh);shots.splice(i,1)}}
   for(let i=missiles.length-1;i>=0;i--){const m=missiles[i];m.life-=dt;
-    if(m.target&&m.target.alive){desired.copy(m.target.pos).sub(m.pos).normalize();m.dir.lerp(desired,Math.min(1,dt*3.2)).normalize();
-      if(!m.target.isFlare&&!m.fl&&m.pos.distanceTo(m.target.pos)<140){m.fl=true;if(Math.random()<.3){const fl=dropFlares(m.target,5);m.target=fl[0];feed('<i>'+m.owner.name+'</i>: el rival soltó bengalas',m.owner.isPlayer)}}}
-    m.pos.addScaledVector(m.dir,230*dt);m.mesh.position.copy(m.pos);m.mesh.lookAt(tmp.copy(m.pos).add(m.dir));
+    // misil fijado: persigue hasta darle, chocar contra algo o caer en unas bengalas
+    if(m.target&&m.target.camoT>0)m.target=null;
+    if(m.target&&m.target.alive){const t=m.target,dist=m.pos.distanceTo(t.pos);desired.copy(t.pos);if(t.vel&&!t.isFlare)desired.addScaledVector(t.vel,Math.min(1.2,dist/m.sp));desired.sub(m.pos).normalize();m.dir.lerp(desired,Math.min(1,dt*(dist<80?6:4.2))).normalize();
+      if(!t.isFlare&&!t.remote&&!m.fl&&dist<140){m.fl=true;if(Math.random()<.3){const fl=dropFlares(t,5);m.target=fl[0];feed('<i>'+m.owner.name+'</i>: el rival soltó bengalas',m.owner.isPlayer)}}}
+    else if(m.target&&!m.target.alive){m.target=null;m.life=Math.min(m.life,1.5)}
+    m.sp=Math.min(300,(m.sp||230)+dt*45);m.pos.addScaledVector(m.dir,m.sp*dt);m.mesh.position.copy(m.pos);m.mesh.lookAt(tmp.copy(m.pos).add(m.dir));
     const hit=!!(m.target&&m.target.alive&&m.pos.distanceTo(m.target.pos)<6);
     if(hit){if(!m.target.isFlare)damage(m.target,55*M.dmg,m.owner);boom(m.pos,0xffb62e,.8);noise(.3,.15)}
     let hh=false;if(!hit)for(const h of HZT){if(h.alive&&h.st!==2&&(h.center||h.pos).distanceTo(m.pos)<14){h.hit(55*M.dmg,m.owner);hh=true;break}}
-    if(hit||hh||m.life<=0||insideBox(m.pos,0)){if(!hit)boom(m.pos,0xffb62e,.5);GS.remove(m.mesh);missiles.splice(i,1)}}
+    if(hit||hh||m.life<=0||insideBox(m.pos,0)||m.pos.y<FLOOR){if(!hit)boom(m.pos,0xffb62e,.5);GS.remove(m.mesh);missiles.splice(i,1)}}
   for(let i=pickups.length-1;i>=0;i--){const k=pickups[i];k.mesh.rotation.y+=dt*1.5;k.mesh.rotation.x+=dt*.7;
     if(p.alive&&k.mesh.position.distanceTo(p.pos)<10){const t=k.type.k;
       if(t==='shield')p.shield=Math.min(p.maxS,p.shield+40);if(t==='energy'){p.energy=100;G.boost=100}if(t==='missile')G.ammo=Math.min(G.ammoMax,G.ammo+1);if(t==='bits'){G.bits+=40;G.bitsP=(G.bitsP||0)+40}if(t==='up'){if(G.wl<3){G.wl++;banner('¡ARMA MEJORADA!','Nivel '+G.wl+' de 3','',1.4);tone(500,1500,.4,'sine',.06);setWeaponHud()}else{G.bits+=60;feed('Arma al máximo · <b>+60 bits</b>',true)}}
@@ -3052,8 +3055,10 @@ function hzMissile(h,t){const o=new THREE.Group();const m=new THREE.Mesh(missile
   HM.push({o,f,pos:o.position,dir,t,owner:h,credit:h.hack>0?G.player:null,life:6,smoke:0});tone(300,160,.3,'sawtooth',.03)}
 function hmStep(dt){
   for(let i=HM.length-1;i>=0;i--){const m=HM[i];m.life-=dt;
-    if(m.t.alive){_hv.copy(m.t.pos).sub(m.pos).normalize();m.dir.lerp(_hv,Math.min(1,dt*1.25)).normalize()}
-    m.pos.addScaledVector(m.dir,98*dt);m.o.lookAt(_hw.copy(m.pos).add(m.dir));
+    if(m.t.alive){_hv.copy(m.t.pos);if(m.fast&&m.t.vel&&!m.t.isFlare)_hv.addScaledVector(m.t.vel,Math.min(1.2,m.pos.distanceTo(m.t.pos)/260));_hv.sub(m.pos).normalize();m.dir.lerp(_hv,Math.min(1,dt*(m.fast?4.2:1.25))).normalize()}
+    else if(m.fast)m.life=Math.min(m.life,1.5);
+    if(m.fast&&(insideBox(m.pos,0)||m.pos.y<FLOOR))m.life=0;
+    m.pos.addScaledVector(m.dir,(m.fast?Math.min(300,(m.sp=(m.sp||210)+dt*45)):98)*dt);m.o.lookAt(_hw.copy(m.pos).add(m.dir));
     m.smoke-=dt;if(m.smoke<=0){m.smoke=.06;const sm=spr(FXT.smoke,0x6a5a55,false);sm.position.copy(m.pos);addFx(sm,1,(o,k)=>{const s=2+k*7;o.scale.set(s,s,1);o.material.opacity=.5*(1-k)})}
     const d=m.t.alive?m.pos.distanceTo(m.t.pos):1e9;
     if(m.t.isPlayer&&m.t.alive&&!(m.credit&&m.t.isPlayer)){hzWarnSet(TOUCH?'¡Misil! Suelta bengalas':'¡Misil! Suelta bengalas (C)','#ff3b5c',5);m.beep=(m.beep||0)-dt;if(m.beep<=0){m.beep=clamp(d/300,.08,.5);tone(1200,1150,.05,'square',.025)}}
@@ -3738,7 +3743,8 @@ function useFlares(){
   if(!G||G.over||paused||!G.player.alive||!G.q&&false)return;arsInit();
   if(G.flares<=0){toast('Sin bengalas · se recargan cada 20 s');return}
   G.flares--;if(G.flareCd<=0)G.flareCd=20;const fl=dropFlares(G.player,6);tone(900,300,.25,'sawtooth',.04);noise(.3,.08);
-  let n=0;for(const m of HM){if(m.t===G.player&&Math.random()<.92){m.t=fl[Math.floor(Math.random()*fl.length)];n++}}
+  if(G.mode==='duel'&&typeof duelOnline==='function'&&duelOnline())netSend({t:'f3',k:'fl'});
+  let n=0;for(const m of HM){if(m.t===G.player&&(m.fast||Math.random()<.92)){m.t=fl[Math.floor(Math.random()*fl.length)];n++}}
   if(n)feed('<b>Misil esquivado</b> con bengalas',true);
 }
 /* ---------- misiles que lanzan los bots ---------- */
@@ -4024,7 +4030,9 @@ function duelMsg(m){if(!DU)return;if(!G||DU.g!==G){if(m.t!=='s3')(DU.q||(DU.q=[]
     const won=m.i!==you;
     banner(won?'¡RONDA GANADA!':'RONDA PERDIDA',(m.why==='tiempo'?'Se acabó el tiempo · ':'')+'Tú '+DU.wins[you]+' – '+DU.wins[1-you]+' '+DU.opp.n,won?'gold':'red',2.6);
     tone(won?600:300,won?1200:120,.4,'sine',.06);
-  }else if(m.t==='f3'){if(G.opp&&G.opp.alive&&m.k==='m')botMissile(G.opp,G.player)}
+  }else if(m.t==='f3'){const o=G.opp;if(!o||!o.alive)return;
+    if(m.k==='m'){botMissile(o,G.player);const h=HM[HM.length-1];if(h){h.fast=true;h.life=25;h.sp=210}}
+    else if(m.k==='fl'){const fl=dropFlares(o,6);let n=0;for(const ms of missiles){if(ms.target===o){ms.target=fl[n%fl.length];n++}}if(n)feed('<i>'+o.name+'</i> soltó bengalas y esquivó tu misil',true)}}
   else if(m.t==='a3'){const o=G.opp;if(!o||!o.alive)return;
     if(m.k==='bubble'){o.bub=5;if(!o.bubS){o.bubS=spr(FXT.ring,0x7ff8ff);o.bubS.scale.set(16,16,1);o.mesh.add(o.bubS)}o.bubS.visible=true;feed('<i>'+o.name+'</i> activa su escudo burbuja',false)}
     else if(m.k==='camo'){o.camoT=6;feed('<i>'+o.name+'</i> se camufla',false)}
@@ -4297,6 +4305,6 @@ if(location.hash==='#instalar')setTimeout(()=>toast(_instEv?'Pulsa el botón Ins
 pick(0);preload();
 setTimeout(()=>{$('hint').style.opacity=0},7000);
 requestAnimationFrame(frame);
-window.__h={setLT:v=>{LT=v},get MODE(){return MODE},pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},prof:()=>{const gl=renderer.getContext();gl.finish();let a=performance.now();step(1/30);let b=performance.now();gcomp.render();gl.finish();let c=performance.now();drawMini();let d=performance.now();renderer.render(GS,gcam);gl.finish();let e=performance.now();gbloom.enabled=false;gcomp.render();gl.finish();let f=performance.now();gbloom.enabled=true;return [Math.round(b-a),Math.round(c-b),Math.round(d-c),Math.round(e-d),Math.round(f-e),GS.children.length]},dbg:()=>({G,shots,damage,boom,kill,PR,PAD,HZ,HZT,HZS,MAPS,buildMap,hzReset,get mapSel(){return mapSel},set mapSel(v){mapSel=v}})};window.__R=renderer;
+window.__h={setLT:v=>{LT=v},get MODE(){return MODE},pick,startGame,setLo:(a)=>{PR.lo={w:a[0],s:a[1],a:a[2]}},fire2:()=>fireMissile(),abil:()=>useAbility(),get G(){return G},step:(n)=>{for(let i=0;i<n&&G&&!G.over;i++){step(1/30);hud(1/30)}},set diff(v){diff=v},prof:()=>{const gl=renderer.getContext();gl.finish();let a=performance.now();step(1/30);let b=performance.now();gcomp.render();gl.finish();let c=performance.now();drawMini();let d=performance.now();renderer.render(GS,gcam);gl.finish();let e=performance.now();gbloom.enabled=false;gcomp.render();gl.finish();let f=performance.now();gbloom.enabled=true;return [Math.round(b-a),Math.round(c-b),Math.round(d-c),Math.round(e-d),Math.round(f-e),GS.children.length]},dbg:()=>({G,shots,missiles,damage,boom,kill,PR,PAD,HZ,HZT,HZS,MAPS,buildMap,hzReset,get mapSel(){return mapSel},set mapSel(v){mapSel=v}})};window.__R=renderer;
 })();
 </script>
