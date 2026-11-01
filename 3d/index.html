@@ -1884,9 +1884,10 @@ function useAbility(){
   const ty=G.ab.type;
   if(G.ab.cd>0){toast(ABN[ty].charAt(0)+ABN[ty].slice(1).toLowerCase()+' listo en '+Math.ceil(G.ab.cd)+' s');return}
   G.ab.cd=ABCD[ty];
+  const net=G.mode==='duel'&&typeof duelOnline==='function'&&duelOnline();if(net)netSend({t:'a3',k:ty});
   if(ty==='bubble'){G.ab.act=5;tone(300,900,.4,'sine',.06);banner('ESCUDO BURBUJA','5 segundos sin daño','',1.6)}
-  else if(ty==='camo'){G.camo=6;tone(900,200,.5,'sine',.05);banner('CAMUFLAJE','Los bots no te ven durante 6 s','',1.6);for(const s of G.ships)if(s.target===G.player)s.target=null}
-  else{const p=G.player;p.hull=Math.min(p.maxH,p.hull+45);tone(400,1200,.5,'sine',.06);banner('REPARACIÓN','+45 de casco','',1.6)}
+  else if(ty==='camo'){G.camo=6;tone(900,200,.5,'sine',.05);banner('CAMUFLAJE',G.mode==='duel'?'Tu rival no te ve durante 6 s':'Los bots no te ven durante 6 s','',1.6);for(const s of G.ships)if(s.target===G.player)s.target=null}
+  else{const p=G.player;if(!net)p.hull=Math.min(p.maxH,p.hull+45);tone(400,1200,.5,'sine',.06);banner('REPARACIÓN','+45 de casco','',1.6)}
 }
 
 function boom(pos,col,size){
@@ -2200,7 +2201,7 @@ function step(dt){
   for(let i=beams.length-1;i>=0;i--){const b=beams[i];b.t+=dt;b.l.material.opacity=Math.max(0,1-b.t/.2);if(b.t>.2){GS.remove(b.l);b.l.geometry.dispose();b.l.material.dispose();beams.splice(i,1)}}
   // fijar objetivo
   let best=null,bd=1e9;G.lockOk=false;
-  if(p.alive&&!G.storm)for(const s of G.ships){if(s.isPlayer||!s.alive||(s.spawnT!=null&&!s.spawned))continue;const d=s.pos.distanceTo(p.pos);if(d>420)continue;
+  if(p.alive&&!G.storm)for(const s of G.ships){if(s.isPlayer||!s.alive||(s.spawnT!=null&&!s.spawned)||s.camoT>0)continue;const d=s.pos.distanceTo(p.pos);if(d>420)continue;
     v3.copy(s.pos).project(gcam);if(v3.z>=1||Math.abs(v3.x)>.95||Math.abs(v3.y)>.95)continue;
     const ax0=v3.x-G.aimN.x,ay0=v3.y-G.aimN.y,sc=ax0*ax0*gcam.aspect*gcam.aspect+ay0*ay0;if(sc<bd){bd=sc;best={s,x:v3.x,y:v3.y,d}}}
   const lock=$('lock');
@@ -2269,7 +2270,7 @@ function hud(dt){
   // flecha hacia la zona si estás fuera
   const za=$('zarr');if(zd>0&&p.alive){_v.set(z.cx-p.pos.x,0,z.cz-p.pos.z);_q.copy(gcam.quaternion).invert();_v.applyQuaternion(_q);za.hidden=false;za.style.transform='rotate('+Math.atan2(_v.x,-_v.z)+'rad)';$('zarrT').textContent=zd+' m'}else za.hidden=true;
   // etiquetas sobre los enemigos cercanos
-  const nps=$('nps');const near=G.ships.filter(s=>!s.isPlayer&&s.alive&&!(s.spawnT!=null&&!s.spawned)&&s!==G.lockT&&s.pos.distanceTo(p.pos)<260).sort((a,b)=>a.pos.distanceTo(p.pos)-b.pos.distanceTo(p.pos)).slice(0,5);
+  const nps=$('nps');const near=G.ships.filter(s=>!s.isPlayer&&s.alive&&!(s.camoT>0)&&!(s.spawnT!=null&&!s.spawned)&&s!==G.lockT&&s.pos.distanceTo(p.pos)<260).sort((a,b)=>a.pos.distanceTo(p.pos)-b.pos.distanceTo(p.pos)).slice(0,5);
   while(nps.children.length<5){const d=document.createElement('div');d.className='np';d.innerHTML='<b></b><span class="bb"><i><u style="background:#5cf0ff"></u></i><i><u style="background:#ff2a4d"></u></i></span>';nps.appendChild(d)}
   [...nps.children].forEach((el,i)=>{const s=near[i];const o=s&&scr(tmp2.copy(s.pos).add({x:0,y:6,z:0}),{});if(!o){el.style.display='none';return}
     el.style.display='';el.style.left=o.x+'px';el.style.top=o.y+'px';el.firstChild.textContent=s.name;const u=el.querySelectorAll('u');u[0].style.width=(s.shield/s.maxS*100)+'%';u[1].style.width=(s.hull/s.maxH*100)+'%'});
@@ -4002,7 +4003,7 @@ function duelMsg(m){if(!DU)return;if(!G||DU.g!==G){if(m.t!=='s3')(DU.q||(DU.q=[]
     if(MODE==='launch'){m._late=true;DU.pend=m;return}
     DU.round=m.round;DU.wins=m.wins;DU.state='fight';DU.t0=G.t;
     const p=G.player,a=m.a+(you?Math.PI:0),st=m.st||[[DU.me.mh,DU.me.ms],[DU.opp.mh,DU.opp.ms]];
-    p.alive=true;p.hull=st[you][0];p.shield=st[you][1];p.energy=100;G.ammo=G.ammoMax;G.heat=0;G.over_h=false;
+    p.alive=true;p.hull=st[you][0];p.shield=st[you][1];G.ab.cd=0;G.ab.act=0;G.camo=0;p.energy=100;G.ammo=G.ammoMax;G.heat=0;G.over_h=false;
     p.pos.copy(duelSpot(a));p.vel.set(0,0,0);G.yaw=G.tyaw=Math.atan2(p.pos.x,p.pos.z);G.pitch=G.tpitch=0;flyInit();
     if(G.pm)G.pm.visible=G.view==='ext';G.camP=null;
     duelOpp(duelSpot(a+Math.PI),st[1-you][0],st[1-you][1]);
@@ -4022,6 +4023,10 @@ function duelMsg(m){if(!DU)return;if(!G||DU.g!==G){if(m.t!=='s3')(DU.q||(DU.q=[]
     banner(won?'¡RONDA GANADA!':'RONDA PERDIDA',(m.why==='tiempo'?'Se acabó el tiempo · ':'')+'Tú '+DU.wins[you]+' – '+DU.wins[1-you]+' '+DU.opp.n,won?'gold':'red',2.6);
     tone(won?600:300,won?1200:120,.4,'sine',.06);
   }else if(m.t==='f3'){if(G.opp&&G.opp.alive&&m.k==='m')botMissile(G.opp,G.player)}
+  else if(m.t==='a3'){const o=G.opp;if(!o||!o.alive)return;
+    if(m.k==='bubble'){o.bub=5;if(!o.bubS){o.bubS=spr(FXT.ring,0x7ff8ff);o.bubS.scale.set(16,16,1);o.mesh.add(o.bubS)}o.bubS.visible=true;feed('<i>'+o.name+'</i> activa su escudo burbuja',false)}
+    else if(m.k==='camo'){o.camoT=6;feed('<i>'+o.name+'</i> se camufla',false)}
+    else feed('<i>'+o.name+'</i> se repara',false)}
   else if(m.t==='s3'){const o=G.opp;if(!o||!o.remote)return;o.buf.push({t:performance.now(),p:m.p,d:m.d,r:m.r,f:m.f,lk:m.lk,v:m.v});if(o.buf.length>24)o.buf.shift()}
   else if(m.t==='end3'){
     DU.over=true;const win=m.win===you;DU.why=m.why;DU.wins=m.wins;
@@ -4039,7 +4044,7 @@ function duelKilled(s,by){if(DU.online||!DUlref||DU.state!=='fight')return;const
 function duelDamage(s,amt,by){
   if(DU.state!=='fight')return true;
   if(!DU.online)return false;
-  if(s.remote){if(by&&by.isPlayer){netSend({t:'h3',dmg:Math.round(amt*10)/10});G.dmgDone=(G.dmgDone||0)+amt;G.hitT=1;tone(1400,1200,.04,'sine',.05);dmgNum(s.pos,amt,s.shield>0,false);hitFx(s.pos.clone(),s.shield>0?0x5cf0ff:0xffb04a,s.shield>0,s)}return true}
+  if(s.remote){if(s.bub>0){if(by&&by.isPlayer)hitFx(s.pos.clone(),0x7ff8ff,true,s);return true}if(by&&by.isPlayer){netSend({t:'h3',dmg:Math.round(amt*10)/10});G.dmgDone=(G.dmgDone||0)+amt;G.hitT=1;tone(1400,1200,.04,'sine',.05);dmgNum(s.pos,amt,s.shield>0,false);hitFx(s.pos.clone(),s.shield>0?0x5cf0ff:0xffb04a,s.shield>0,s)}return true}
   if(s.isPlayer){if(by&&by.remote)return true;if(G.ab.act>0)return true;netSend({t:'e3',dmg:Math.round(amt*10)/10});return true}
   return true}
 function duelStep(dt){if(!DU)return;
@@ -4048,6 +4053,7 @@ function duelStep(dt){if(!DU)return;
   if(DU.online&&p.alive&&MODE==='game'){DU.sT=(DU.sT||0)-dt;if(DU.sT<=0){DU.sT=1/15;const f=playerFwd(_du);const r1=v=>Math.round(v*10)/10,r3=v=>Math.round(v*1000)/1000;
     netSend({t:'s3',p:[r1(p.pos.x),r1(p.pos.y),r1(p.pos.z)],d:[r3(f.x),r3(f.y),r3(f.z)],r:r3(G.roll||0),f:G.firing?1:0,lk:G.lockT&&G.lockOk&&G.lockT===G.opp?1:0,w:G.w,v:Math.round(p.speed||0)})}}
   const o=G.opp;
+  if(o){if(o.bub>0){o.bub-=dt;if(o.bub<=0&&o.bubS)o.bubS.visible=false}if(o.camoT>0){o.camoT-=dt;if(o.mesh)o.mesh.visible=o.camoT<=0||Math.sin(G.t*30)>.85;if(o.trail)o.trail.visible=o.camoT<=0;if(G.lockT===o)G.lockT=null}else if(o.mesh&&o.alive)o.mesh.visible=true}
   if(o&&o.remote&&o.alive&&DU.state==='fight'&&MODE==='game'){const L=o.buf[o.buf.length-1];if(!L||performance.now()-L.t>1500)hzWarnSet('Tu rival está en pausa o se le ha cortado la conexión','#ffb62e',2)}
   if(o&&o.remote&&o.alive&&o.buf.length){const now=performance.now()-110,B=o.buf;let a=B[0],b=null;
     for(let k=B.length-1;k>=0;k--){if(B[k].t<=now){a=B[k];b=B[k+1]||null;break}}
