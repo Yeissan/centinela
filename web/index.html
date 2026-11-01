@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Centinela · Batalla de naves antivirus</title>
+<meta name="description" content="Centinela: pilota naves antivirus y limpia el ciberespacio de virus. Gratis, en el navegador, en PC y móvil.">
+<meta name="theme-color" content="#02040a">
+<link rel="icon" type="image/png" href="img/icon-192.png">
+<meta property="og:title" content="Centinela 3D">
+<meta property="og:description" content="Batalla de naves antivirus en el ciberespacio. Gratis, sin descargas.">
+<meta property="og:image" content="img/hero.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;1,800&family=Rajdhani:wght@500;600;700&display=swap">
+<style>
+:root{--bg:#03050b;--ink:#eef8ff;--dim:#93a9c0;--cyan:#5cf0ff;--mag:#ff3df2;--gold:#ffd76a;--mint:#7dffc4;--violet:#a66bff;--orange:#ff9a3d;--edge:rgba(92,240,255,.25);--hx:'Barlow Condensed',sans-serif;--ui:'Rajdhani',system-ui,sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:18px;line-height:1.45;overflow-x:hidden}
+a{color:var(--cyan)}a:hover{color:#b6fbff}
+img{max-width:100%;display:block}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+h1,h2,h3{font-family:var(--hx);font-style:italic;font-weight:800;text-transform:uppercase;margin:0;line-height:.9}
+.k{font-weight:700;font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 26px;border-radius:16px;font:700 17px var(--ui);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;border:0;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn.p{color:#021018;background:linear-gradient(180deg,#c8fcff,var(--cyan) 60%,#22b6d6);box-shadow:0 0 28px rgba(92,240,255,.45)}
+.btn.p:hover{color:#021018;box-shadow:0 0 40px rgba(92,240,255,.65)}
+.btn.g{color:var(--ink);background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.btn.g:hover{color:#fff;background:rgba(255,255,255,.1)}
+.btn.t{color:#fff;background:linear-gradient(180deg,#5fc4ff,#2a8fe0)}
+.btn.t:hover{color:#fff}
+.btn svg{width:20px;height:20px;flex:none}
+/* barra de arriba */
+header{position:sticky;top:0;z-index:20;background:rgba(3,5,11,.78);backdrop-filter:blur(10px);border-bottom:1px solid rgba(92,240,255,.12)}
+header .wrap{display:flex;align-items:center;gap:22px;height:68px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--hx);font-weight:800;font-size:22px;letter-spacing:.24em;color:#fff;text-decoration:none}
+.logo img{width:36px;height:36px;border-radius:10px}
+.logo span{font-size:12px;letter-spacing:.08em;padding:2px 7px;border-radius:6px;background:var(--mag);color:#12001a}
+nav.top{display:flex;gap:6px;margin-left:auto}
+nav.top a{padding:8px 12px;border-radius:10px;color:var(--dim);text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.16em;text-transform:uppercase}
+nav.top a:hover{color:#fff;background:rgba(255,255,255,.05)}
+header .btn{min-height:42px;padding:0 18px;font-size:14px}
+/* portada */
+.hero{position:relative;min-height:min(88vh,820px);display:flex;align-items:flex-end;overflow:hidden}
+.hero .bg{position:absolute;inset:0;background:url(img/hero.jpg) center/cover no-repeat;transform:scale(1.04)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,5,11,.25) 0%,rgba(3,5,11,.35) 45%,var(--bg) 96%),linear-gradient(90deg,rgba(3,5,11,.85),rgba(3,5,11,0) 65%)}
+.hero .wrap{position:relative;z-index:2;padding-bottom:72px;width:100%}
+.hero h1{font-size:clamp(64px,11vw,148px);letter-spacing:.01em;text-shadow:0 0 40px rgba(92,240,255,.35)}
+.hero h1 b{color:var(--cyan);font-weight:800}
+.hero p{max-width:560px;font-size:21px;color:#d6e4f2;margin:16px 0 26px}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.chips span{padding:7px 14px;border-radius:99px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:#cfe0ef}
+.ev{display:inline-flex;align-items:center;gap:10px;margin-bottom:18px;padding:7px 14px 7px 8px;border-radius:99px;background:rgba(255,154,61,.14);box-shadow:inset 0 0 0 1px rgba(255,154,61,.6);font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#ffd0a3;text-decoration:none}
+.ev b{padding:3px 9px;border-radius:99px;background:var(--orange);color:#1a0800}
+/* secciones */
+section{padding:84px 0}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:30px;flex-wrap:wrap}
+.sh h2{font-size:clamp(40px,6vw,64px);margin-top:8px}
+.sh p{max-width:460px;color:var(--dim);margin:0}
+.grid{display:grid;gap:18px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.card{position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(170deg,#121a2c,#080c16);box-shadow:inset 0 0 0 1px var(--c,var(--edge))}
+.mode .im{aspect-ratio:16/10;background:center/cover no-repeat}
+.mode .im::after{content:"";position:absolute;left:0;right:0;top:0;aspect-ratio:16/10;background:linear-gradient(180deg,transparent 40%,#0a0f1c)}
+.mode .tx{position:relative;padding:4px 20px 22px}
+.mode .tag{font-weight:800;font-size:12px;letter-spacing:.18em;color:var(--c)}
+.mode h3{font-size:32px;margin:6px 0 8px}
+.mode p{margin:0;color:var(--dim);font-size:16px}
+.mode .new{position:absolute;top:14px;left:14px;z-index:2;padding:4px 10px;border-radius:99px;background:var(--c);color:#0a0612;font-weight:800;font-size:12px;letter-spacing:.14em}
+/* naves */
+.ships{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:14px}
+.ship{padding:16px 12px 18px;text-align:center;border-radius:20px;background:radial-gradient(80% 60% at 50% 35%,color-mix(in srgb,var(--c) 28%,transparent),transparent 70%),linear-gradient(170deg,#121a2c,#080c16);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 55%,transparent)}
+.ship img{width:100%;aspect-ratio:1;object-fit:contain;filter:drop-shadow(0 10px 18px rgba(0,0,0,.6));transition:transform .3s}
+.ship:hover img{transform:scale(1.08) rotate(-4deg)}
+.ship b{display:block;font-family:var(--hx);font-style:italic;font-weight:800;font-size:22px;text-transform:uppercase;line-height:1;margin-top:6px}
+.ship small{font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--c)}
+/* mapas */
+.map .im{aspect-ratio:16/9;background:center/cover no-repeat}
+.map b{display:block;padding:12px 16px 2px;font-family:var(--hx);font-style:italic;font-weight:800;font-size:24px;text-transform:uppercase}
+.map span{display:block;padding:0 16px 16px;color:var(--dim);font-size:15px}
+/* temporada */
+.season{display:grid;grid-template-columns:1.05fr 1fr;gap:22px;align-items:stretch}
+.sbox{padding:34px;border-radius:26px;background:radial-gradient(70% 60% at 80% 10%,rgba(255,154,61,.28),transparent 70%),linear-gradient(170deg,#1c1008,#0a0710);box-shadow:inset 0 0 0 1px rgba(255,154,61,.55);display:flex;flex-direction:column;gap:14px}
+.sbox h3{font-size:48px}
+.sbox ul{margin:0;padding-left:20px;color:#f1dcc4}
+.sbox .k{color:var(--orange)}
+.simg{border-radius:26px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--edge);background:#080c16}
+.simg img{width:100%;height:100%;object-fit:cover}
+/* ranking */
+.rank{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.rk{border-radius:22px;padding:10px;background:linear-gradient(170deg,#121a2c,#080c16);box-shadow:inset 0 0 0 1px var(--edge)}
+.rk ol{list-style:none;margin:0;padding:0}
+.rk li{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;font-weight:700;font-size:17px}
+.rk li:nth-child(odd){background:rgba(255,255,255,.03)}
+.rk li i{font-style:normal;font-family:var(--hx);font-weight:800;font-size:24px;color:var(--dim)}
+.rk li:nth-child(1) i{color:var(--gold)}.rk li:nth-child(2) i{color:#d6e4f2}.rk li:nth-child(3) i{color:#ffb27a}
+.rk li em{font-style:normal;color:var(--cyan)}
+.rk .msg{padding:22px;color:var(--dim)}
+.two{display:flex;flex-direction:column;gap:16px}
+.two .card{padding:26px}
+.two h3{font-size:34px;margin:6px 0 8px}
+.two p{color:var(--dim);margin:0 0 16px}
+footer{padding:48px 0 60px;border-top:1px solid rgba(92,240,255,.12);color:var(--dim);font-size:15px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+@media (max-width:1000px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g5{grid-template-columns:repeat(2,minmax(0,1fr))}.ships{grid-template-columns:repeat(4,minmax(0,1fr))}.season,.rank{grid-template-columns:1fr}nav.top{display:none}}
+@media (max-width:560px){body{font-size:17px}.wrap{padding:0 16px}header .wrap{gap:10px}.logo{font-size:17px;letter-spacing:.16em}header .btn{padding:0 12px;font-size:12px;letter-spacing:.08em}.g4,.g5{grid-template-columns:1fr}.ships{grid-template-columns:repeat(2,minmax(0,1fr))}section{padding:60px 0}.hero p{font-size:18px}.cta .btn{width:100%}.sbox{padding:24px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="#"><img src="img/icon-192.png" alt="">CENTINELA <span>3D</span></a>
+    <nav class="top" aria-label="Secciones">
+      <a href="#modos">Modos</a><a href="#naves">Naves</a><a href="#mapas">Mapas</a><a href="#temporada">Temporada</a><a href="#ranking">Ranking</a>
+    </nav>
+    <a class="btn p" href="../3d/">Jugar</a>
+  </div>
+</header>
+
+<main>
+<div class="hero">
+  <div class="bg" role="img" aria-label="Una nave Centinela volando sobre la placa base de un ordenador gigante"></div>
+  <div class="wrap">
+    <a class="ev" href="#temporada"><b>Evento</b>Noche de los Virus Zombi</a>
+    <h1>Centinela <b>3D</b></h1>
+    <p>Pilota naves antivirus y limpia el ciberespacio. Vuela entre procesadores, tarjetas gráficas y ciudades de neón mientras los virus atacan el sistema.</p>
+    <div class="cta">
+      <a class="btn p" href="../3d/"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Jugar ahora</a>
+      <a class="btn g" href="../3d/#instalar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Instalar como app</a>
+      <a class="btn t" href="https://t.me/CentinelaGame_bot"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.5 4.3 2.9 11.5c-1 .4-1 1.8.1 2.1l4.6 1.4 1.8 5.6c.3.9 1.4 1.1 2 .4l2.6-2.6 4.8 3.5c.7.5 1.7.1 1.9-.8L23 5.5c.2-1-.6-1.6-1.5-1.2zM9.6 15.4l-.4 3.4-1.3-4.3 10.6-8.3z"/></svg>Centinela en Telegram</a>
+    </div>
+    <div class="chips"><span>Gratis</span><span>PC y móvil</span><span>Sin descargas</span><span>Multijugador</span></div>
+  </div>
+</div>
+
+<section id="modos">
+  <div class="wrap">
+    <div class="sh"><div><span class="k">Elige cómo jugar</span><h2>Modos de juego</h2></div><p>Solo contra todos, defendiendo el núcleo con oleadas de virus o cara a cara contra otra persona.</p></div>
+    <div class="grid g4">
+      <article class="card mode" style="--c:#5cf0ff"><div class="im" style="background-image:url(img/m_red.jpg)"></div><div class="tx"><span class="tag">16 NAVES</span><h3>Battle Royale</h3><p>La zona se cierra. Gana el último antivirus en pie.</p></div></article>
+      <article class="card mode" style="--c:#7dffc4"><div class="im" style="background-image:url(img/pve.jpg)"></div><div class="tx"><span class="tag">5 OLEADAS</span><h3>Limpieza de zona</h3><p>Protege el núcleo, destruye los nidos y vence al Megavirus.</p></div></article>
+      <article class="card mode" style="--c:#ff9a3d"><span class="new">EVENTO</span><div class="im" style="background-image:url(img/hero.jpg)"></div><div class="tx"><span class="tag">HALLOWEEN</span><h3>Virus Zombi</h3><p>De noche, los virus vuelven como zombis. Llega el Rey Calabaza.</p></div></article>
+      <article class="card mode" style="--c:#ff5cf0"><span class="new">NUEVO</span><div class="im" style="background-image:url(img/duelo.jpg)"></div><div class="tx"><span class="tag">EN LÍNEA</span><h3>Duelo 1 contra 1</h3><p>Tú contra otra persona real, al mejor de 3 rondas.</p></div></article>
+    </div>
+  </div>
+</section>
+
+<section id="naves" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sh"><div><span class="k">Tu flota</span><h2>Siete naves</h2></div><p>Cada una vuela distinto. Desbloquéalas subiendo de nivel y ponles tu pintura favorita.</p></div>
+    <div class="ships">
+      <div class="ship" style="--c:#5cf0ff"><img src="../naves/centinela.webp" alt="Nave Centinela" loading="lazy"><b>Centinela</b><small>Común</small></div>
+      <div class="ship" style="--c:#5cf0ff"><img src="../naves/nucleo.webp" alt="Nave Núcleo" loading="lazy"><b>Núcleo</b><small>Rara</small></div>
+      <div class="ship" style="--c:#c79bff"><img src="../naves/espectro.webp" alt="Nave Espectro" loading="lazy"><b>Espectro</b><small>Épica</small></div>
+      <div class="ship" style="--c:#c79bff"><img src="../naves/bastion.webp" alt="Nave Bastión" loading="lazy"><b>Bastión</b><small>Épica</small></div>
+      <div class="ship" style="--c:#ffd76a"><img src="../naves/shuriken.webp" alt="Nave Shuriken" loading="lazy"><b>Shuriken</b><small>Legendaria</small></div>
+      <div class="ship" style="--c:#ff4fb8"><img src="../naves/furia.webp" alt="Nave Furia" loading="lazy"><b>Furia</b><small>Legendaria</small></div>
+      <div class="ship" style="--c:#ffd76a"><img src="../naves/corona.webp" alt="Nave Valquiria" loading="lazy"><b>Valquiria</b><small>Mítica</small></div>
+    </div>
+  </div>
+</section>
+
+<section id="mapas" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sh"><div><span class="k">Campos de batalla</span><h2>Cinco mapas</h2></div><p>Cada mapa tiene sus propias defensas: torretas, minas, rayos y muros de fuego que atacan a todos.</p></div>
+    <div class="grid g5">
+      <article class="card map"><div class="im" style="background-image:url(img/m_red.jpg)"></div><b>Red Neón</b><span>Torres de neón y anillos flotantes.</span></article>
+      <article class="card map"><div class="im" style="background-image:url(img/m_placa.jpg)"></div><b>Placa Base</b><span>Un PC gamer gigante: ventiladores, disipadores y la gráfica.</span></article>
+      <article class="card map"><div class="im" style="background-image:url(img/m_ciudad.jpg)"></div><b>Ciudad</b><span>Rascacielos y autopistas de datos.</span></article>
+      <article class="card map"><div class="im" style="background-image:url(img/m_nube.jpg)"></div><b>La Nube</b><span>Islas de servidores sobre un mar de datos.</span></article>
+      <article class="card map"><div class="im" style="background-image:url(img/m_fuego.jpg)"></div><b>Cortafuegos</b><span>Arriesgado, con el mejor botín.</span></article>
+    </div>
+  </div>
+</section>
+
+<section id="temporada" style="padding-top:20px">
+  <div class="wrap season">
+    <div class="sbox">
+      <span class="k">Temporada 1 · Asalto Neón</span>
+      <h3>Pase de temporada y evento de Halloween</h3>
+      <ul>
+        <li>Pase gratis de 30 niveles: armas, insignias y bits.</li>
+        <li>Pase Élite con pinturas, estelas, explosiones y marcos.</li>
+        <li>Evento Noche de los Virus Zombi con retos y premios.</li>
+        <li>Lo que compras es solo estilo: nunca te hace más fuerte.</li>
+      </ul>
+      <div class="cta" style="margin-top:auto"><a class="btn p" href="../3d/">Ver la temporada</a></div>
+    </div>
+    <div class="simg"><img src="img/tienda.jpg" alt="La tienda del juego con el Lote Calabaza y pinturas para las naves" loading="lazy"></div>
+  </div>
+</section>
+
+<section id="ranking" style="padding-top:20px">
+  <div class="wrap rank">
+    <div>
+      <div class="sh" style="margin-bottom:18px"><div><span class="k">En directo</span><h2>Mejores agentes</h2></div></div>
+      <div class="rk"><ol id="rkList"><li class="msg">Cargando el ranking…</li></ol></div>
+    </div>
+    <div class="two">
+      <div class="card" style="--c:rgba(92,170,255,.5)"><span class="k" style="color:#7fc6ff">El original</span><h3>Centinela en Telegram</h3><p>El juego de siempre, dentro de Telegram: torneos, duelos y premios para la comunidad.</p><a class="btn t" href="https://t.me/CentinelaGame_bot">Abrir en Telegram</a></div>
+      <div class="card" style="--c:rgba(125,255,196,.45)"><span class="k" style="color:var(--mint)">Comunidad</span><h3>Únete al grupo</h3><p>Novedades, torneos y gente con la que jugar duelos.</p><a class="btn g" href="https://t.me/CentinelaComunidad">Ir a la comunidad</a></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Centinela · un juego de Yeissan</span>
+    <span><a href="../3d/">Jugar</a> · <a href="https://t.me/CentinelaGame_bot">Telegram</a> · <a href="https://t.me/CentinelaComunidad">Comunidad</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const list=document.getElementById('rkList');
+  const urls=['https://centinela-servidor-production.up.railway.app/db/ranking.json?orderBy=%22p%22&limitToLast=10'];
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  fetch(urls[0]).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
+    const rows=Object.keys(d||{}).map(k=>({n:String(d[k].n||'Agente').slice(0,16),p:+d[k].p||0})).sort((a,b)=>b.p-a.p).slice(0,10);
+    if(!rows.length)throw 0;
+    list.innerHTML=rows.map((r,i)=>'<li><i>'+(i+1)+'</i><span>'+esc(r.n)+'</span><em>'+r.p.toLocaleString('es')+' pts</em></li>').join('');
+  }).catch(()=>{list.innerHTML='<li class="msg">El ranking se verá aquí cuando el servidor responda.</li>'});
+})();
+</script>
+</body>
+</html>
