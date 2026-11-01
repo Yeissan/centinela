@@ -1924,7 +1924,7 @@ function empFx(pos){for(let i=0;i<3;i++){const rg=new THREE.Mesh(ringGeoFx||(rin
 
 function damage(s,amt,by){
   if(!s.alive)return;
-  if(G.mode==='duel'&&DU&&duelDamage(s,amt,by))return;
+  if(G.mode==='duel'){amt*=DUEL_K;if(DU&&duelDamage(s,amt,by))return}
   if(s.isPlayer&&G.ab.act>0){return}
   s.lastHit=G.t;if(by&&by!=='zone')s.lastAttacker=by;
   const sh0=s.shield,fs=Math.min(s.shield,amt);s.shield-=fs;s.hull-=amt-fs;
@@ -3928,6 +3928,8 @@ function pveMini(loc,sc){const C=G.core;if(!C)return;const [x,y]=loc(C.pos.x,C.p
    En línea: el servidor de Railway empareja, reenvía dónde está cada nave y lleva la vida.
    Si no hay nadie buscando, se juega igual contra la máquina (aquí mismo).
    ===================================================================== */
+/* en el duelo cada golpe quita solo una parte del daño normal, para que las peleas duren más (como en los juegos en línea) */
+const DUEL_K=.3;
 const SRV3=(()=>{try{return localStorage.getItem('c3d_srv')||''}catch(e){return ''}})()||'wss://centinela-servidor-production.up.railway.app/ws';
 let DU=null,DUws=null,DUlref=null;
 const _du=new THREE.Vector3(),_du2=new THREE.Vector3();
