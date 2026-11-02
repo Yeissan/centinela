@@ -4825,18 +4825,18 @@ if(typeof pick==='function'){const pk=pick;pick=function(){const r=pk.apply(this
 let durSel=0;
 VIEWS.taller=()=>{const it=durItems();durSel=Math.min(durSel,it.length-1);const x=it[durSel],C=durCost(x.k,x.hp),tot=it.reduce((a,y)=>a+(y.k==='a'?0:durCost(y.k,y.hp)),0);
   const col=hp=>hp>=99.95?'#58f29a':hp>75?'#ffc83d':'#ff7a3d';
-  const L='<div class="arL"><span class="lab2">Estado</span>'+it.map((y,i)=>'<button type="button" class="rk dIt'+(i===durSel?' on':'')+'" data-di="'+i+'" style="--r:'+col(y.hp)+'"><small>'+y.lab+'</small><b>'+y.n+'</b><span class="r"><span class="dB"><i style="width:'+y.hp+'%;background:'+col(y.hp)+'"></i></span><em>'+durPct(y.hp)+'</em></span></button>').join('')+
+  const L='<div class="tlL"><span class="lab2">Estado</span>'+it.map((y,i)=>'<button type="button" class="rk dIt'+(i===durSel?' on':'')+'" data-di="'+i+'" style="--r:'+col(y.hp)+'"><small>'+y.lab+'</small><b>'+y.n+'</b><span class="r"><span class="dB"><i style="width:'+y.hp+'%;background:'+col(y.hp)+'"></i></span><em>'+durPct(y.hp)+'</em></span></button>').join('')+
     '<div class="dKit">🔧 <b>'+(PR.kits||0)+'</b> kit'+((PR.kits||0)===1?'':'s')+' de reparación</div></div>';
   let pen=x.k==='s'?(x.hp<99.95?'Rinde un poco menos: −'+durShPen(x.hp).toFixed(1)+' % escudo y −'+durSpPen(x.hp).toFixed(1)+' % velocidad.':'Está perfecta.'):x.k==='w'?(x.hp<99.95?'Hace un '+durWPen(x.hp).toFixed(1)+' % menos de daño.':'Está perfecta.'):'Las habilidades no se dañan.';
-  const Cn='<div class="arC"><div class="arInfo"><div class="dBig" style="--c:'+col(x.hp)+'">'+durPct(x.hp)+'</div><div class="xp"><div class="t"><b>'+x.n+'</b></div><div class="how" style="font-size:calc(.9*var(--u));color:#dbe7f2">'+pen+'</div><div class="how">Siempre puedes jugar aunque esté dañada · en los duelos 1 contra 1 no cuenta</div></div></div></div>';
+  const Cn='<div class="tlC"><div class="arInfo"><div class="dBig" style="--c:'+col(x.hp)+'">'+durPct(x.hp)+'</div><div class="xp"><div class="t"><b>'+x.n+'</b></div><div class="how" style="font-size:calc(.9*var(--u));color:#dbe7f2">'+pen+'</div><div class="how">Siempre puedes jugar aunque esté dañada · en los duelos 1 contra 1 no cuenta</div></div></div></div>';
   const dmg=x.k!=='a'&&x.hp<99.95;
-  const R='<div class="arR"><span class="lab2">Cómo reparar '+(x.k==='s'?'la nave':'el arma')+'</span>'+
+  const R='<div class="tlR"><span class="lab2">Cómo reparar '+(x.k==='s'?'la nave':'el arma')+'</span>'+
     '<div class="dOp"><span class="ic" style="--c:#5cf0ff">⏳</span><span class="tx"><b>Se repara sola</b><small>Gratis · +'+DUR_H+' % cada hora<br>'+(dmg?'Lista en '+durTime(x.hp):'Ya está al 100 %')+'</small></span></div>'+
     '<div class="dOp"><span class="ic" style="--c:#ffc83d">'+ic('i-bits')+'</span><span class="tx"><b>Con Bits</b><small>Al 100 % ahora mismo<br>Tienes '+fmt(PR.bits)+' bits</small></span><button type="button" class="dGo c" data-rb="1"'+(dmg?'':' disabled')+'>'+(dmg?fmt(C)+' BITS':'OK')+'</button></div>'+
     '<div class="dOp"><span class="ic" style="--c:#ff9a3d">🔧</span><span class="tx"><b>Kit de reparación</b><small>Al 100 % al momento<br>Tienes '+(PR.kits||0)+' · se ganan ganando partidas</small></span><button type="button" class="dGo o" data-rk="1"'+(dmg&&PR.kits?'':' disabled')+'>USAR 1</button></div>'+
     '<div class="dOp"><span class="ic" style="--c:#b77bff">💠</span><span class="tx"><b>Comprar kit</b><small>1 kit por 30 Núcleos<br>Tienes '+fmt(PR.nuc||0)+' Núcleos</small></span><button type="button" class="dGo p" data-bk="1">30 NÚCLEOS</button></div>'+
     '<button type="button" class="dAll" data-ra="1"'+(tot?'':' disabled')+'>'+(tot?'🔧 REPARAR TODO · '+fmt(tot)+' BITS':'✓ TODO REPARADO')+'</button></div>';
-  return '<div class="arv">'+L+Cn+R+'</div>'};
+  return '<div class="tlv">'+L+Cn+R+'</div>'};
 BIND.taller=B=>{
   B.querySelectorAll('[data-di]').forEach(b=>b.addEventListener('click',()=>{durSel=+b.dataset.di;render()}));
   const it=durItems(),x=it[durSel],ok=m=>{saveP();setBitsTop();nucTop();durFx.n=-1;tone(500,1300,.3,'sine',.06);toast(m);render()};
@@ -4874,6 +4874,15 @@ BIND.taller=B=>{
 .arTl{display:flex;align-items:center;gap:calc(.5*var(--u));padding:calc(.55*var(--u)) calc(.9*var(--u));border:0;border-radius:calc(.9*var(--u));cursor:pointer;color:#fff;background:rgba(255,120,60,.1);box-shadow:inset 0 0 0 1px rgba(255,120,60,.5);font:700 calc(.9*var(--u)) var(--ui)}
 .arTl b{font:800 italic calc(1.1*var(--u)) var(--hx)}.arTl span{margin-left:auto;color:#ffb48a}
 .ov.arm .arTl{pointer-events:auto}
+.tlv{position:relative!important;display:block!important;flex:1 1 auto;min-height:calc(20*var(--u))}
+.tlL,.tlR{position:absolute!important;top:0!important;bottom:0!important;height:100%!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;text-align:left!important;gap:calc(.6*var(--u));padding:calc(.6*var(--u))!important;border-radius:calc(1*var(--u));overflow:hidden;color:#eef8ff;pointer-events:auto}
+.tlL{left:0!important;width:calc(18*var(--u))!important;background:rgba(3,7,16,.82)!important}
+.tlR{right:0!important;width:calc(27*var(--u))!important;background:rgba(3,7,16,.92)!important;box-shadow:inset 0 0 0 1px rgba(92,240,255,.18)!important}
+.tlC{position:absolute!important;left:calc(19.4*var(--u))!important;right:calc(28.4*var(--u))!important;top:0!important;bottom:0!important;display:flex!important;flex-direction:column!important;justify-content:flex-end!important;pointer-events:none}
+.tlC .arInfo{pointer-events:auto}
+.tlR>*,.tlL>*{width:100%!important;box-sizing:border-box!important;align-self:stretch!important}
+@container (max-width:820px){.dIt{min-height:0!important;padding-top:calc(.45*var(--u))!important;padding-bottom:calc(.5*var(--u))!important}.tlR{width:calc(30*var(--u))!important}.tlC{right:calc(31.4*var(--u))!important}}
+
 @container (max-width:820px){.durBox{width:auto;max-width:calc(30*var(--u));top:calc(6.2*var(--u))}.durBox .dS{display:none}}
 `;document.head.appendChild(st)}
 window.__dur={get:durGet,set:durSet,after:w=>durAfter(w),lobby:()=>durLobby(),fx:()=>durFx.sp.length,dbg:()=>({n:durFx.sp.length,b:durFx.sp[0]&&durFx.sp[0].userData.b,sc:durFx.sp[0]&&durFx.sp[0].scale.x,p:durFx.sp[0]&&durFx.sp[0].position.toArray(),ys:yawG.getWorldScale(new THREE.Vector3()).toArray(),key:durFx.n,cur:!!cur})};
