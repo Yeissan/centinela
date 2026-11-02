@@ -4282,6 +4282,7 @@ document.body.appendChild(netL);
 #netL[hidden]{display:none}
 #netC{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 #netLabs{position:absolute;inset:0;pointer-events:none}
+.netTop,.netLeg,.netPg,.netCd,.netUn,.netHi{zoom:var(--k,1)}
 .nch{clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px)}
 .netTop{position:absolute;left:14px;top:12px;display:flex;gap:8px}
 .netBk{width:52px;border:0;background:rgba(5,10,22,.88);box-shadow:inset 0 0 0 1px rgba(92,240,255,.5);color:#5cf0ff;font:800 34px/1 var(--hx);cursor:pointer}
@@ -4297,7 +4298,7 @@ document.body.appendChild(netL);
 .netPg b{display:block;font:800 italic 17px var(--hx);letter-spacing:.03em}
 .netPg span{display:block;font-weight:700;font-size:13px;letter-spacing:.1em;color:#b9cadb;margin:1px 0 5px}
 .netSg{display:flex;gap:3px}.netSg i{width:8px;height:5px;border-radius:2px;background:rgba(255,255,255,.12)}.netSg i.non{background:#5cf0ff;box-shadow:0 0 6px #5cf0ff}
-.netCd{position:absolute;right:14px;top:12px;width:clamp(232px,24vw,300px);max-height:calc(100% - 24px);box-sizing:border-box;padding:12px 14px 14px;display:flex;flex-direction:column;background:linear-gradient(170deg,rgba(12,22,42,.95),rgba(4,8,18,.96));box-shadow:inset 0 0 0 1px var(--zc,#5cf0ff)}
+.netCd{position:absolute;right:14px;top:12px;width:290px;max-height:calc((100vh - 24px)/var(--k,1));box-sizing:border-box;padding:12px 14px 14px;display:flex;flex-direction:column;background:linear-gradient(170deg,rgba(12,22,42,.95),rgba(4,8,18,.96));box-shadow:inset 0 0 0 1px var(--zc,#5cf0ff)}
 .netCd::before{content:'';position:absolute;left:14px;right:14px;top:0;height:2px;background:linear-gradient(90deg,transparent,#ff9a3d,transparent)}
 .netCd .nim{flex:none;height:clamp(70px,18vh,140px);background:#0a1426 center/cover no-repeat;display:grid;place-items:center;font:800 italic 60px var(--hx);color:rgba(255,255,255,.75);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
 .netCd .nim.nlk{background:repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 2px,transparent 2px 5px),radial-gradient(closest-side,#1b2333,#070a12);font-size:44px}
@@ -4364,9 +4365,9 @@ function netChoose(){const z=NET_Z[netSel];
   try{localStorage.setItem('c3d_mapa',mapSel)}catch(e){}mapCard();netClose();openView(null);
   toast(z.kind==='ev'?'Modo elegido: Noche de los Virus Zombi':z.kind==='rnd'?'Mapa sorpresa: te toca una zona al azar':'Zona elegida: '+z.n)}
 function netResize(){if(!netR)return;const w=innerWidth,h=innerHeight,{R,comp,cam,bloom}=netR;R.setSize(w,h,false);comp.setSize(w,h);cam.aspect=w/h;
-  const port=w<760&&h>w,cd=$('netCd'),cw=port?0:cd.offsetWidth+28,ch=port?cd.offsetHeight+10:0;
+  const port=w<760&&h>w,cd=$('netCd'),K=port?1:Math.max(.62,Math.min(1.9,w/1200,h/680));netL.style.setProperty('--k',K.toFixed(3));const cr=cd.getBoundingClientRect(),cw=port?0:cr.width+28*K,ch=port?cr.height+10:0;
   const avail=(w-cw)/w,ah=(h-ch)/h;netR.dist=80*Math.max(1,(.75*1.78)/(avail*cam.aspect),.95/ah);
-  if(h<500&&!port)netR.dist*=.84;netL.style.setProperty('--ps',Math.max(.6,Math.min(1,h/740)).toFixed(2));netL.classList.toggle('nsm',h<500);cam.setViewOffset(w,h,cw*.5,ch*.5,w,h);cam.updateProjectionMatrix()}
+  if(h<500&&!port)netR.dist*=.84;netL.style.setProperty('--ps',(port?Math.max(.6,Math.min(1,h/740)):Math.max(.6,Math.min(1.7,K))).toFixed(2));netL.classList.toggle('nsm',h<500);cam.setViewOffset(w,h,cw*.5,ch*.5,w,h);cam.updateProjectionMatrix()}
 let netDrag=null;
 {const cv=$('netC');
  cv.addEventListener('pointerdown',e=>{netDrag={x:e.clientX,y:e.clientY,r:netRotT,m:0,id:e.pointerId};try{cv.setPointerCapture(e.pointerId)}catch(_){}cv.style.cursor='grabbing'});
