@@ -4705,6 +4705,9 @@ function crdTop(){const e=$('crdTop');if(e){const C=wpCards();e.textContent=C.c+
 .arv{position:relative;flex:1;min-height:calc(20*var(--u))}
 .arv>.arL{position:absolute;left:0;top:0;bottom:0;height:100%;width:calc(18*var(--u))}
 .arv>.arR{position:absolute;right:0;top:0;bottom:0;height:100%;width:calc(27*var(--u))}
+.arv>.arL,.arv>.arR{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;text-align:left!important;color:#eef8ff}
+.arv>.arR{background:rgba(3,7,16,.92)!important}.arv>.arL{background:rgba(3,7,16,.82)!important}
+.arv>.arR>*,.arv>.arL>*{align-self:stretch!important;width:100%!important;box-sizing:border-box!important;max-width:none!important}
 .arv>.arC{position:absolute;left:calc(19.4*var(--u));right:calc(28.4*var(--u));top:0;bottom:0}
 .arL{box-sizing:border-box;display:flex;flex-direction:column;gap:calc(.6*var(--u));min-height:0;overflow:hidden;padding:calc(.6*var(--u));border-radius:calc(1*var(--u));background:rgba(3,7,16,.82)}
 .arS{display:grid;grid-template-columns:calc(6*var(--u)) 1fr;align-items:center;gap:calc(.8*var(--u));height:calc(5.6*var(--u));padding:0 calc(.8*var(--u)) 0 calc(.5*var(--u));position:relative;text-align:left}
