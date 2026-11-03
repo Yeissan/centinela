@@ -5197,6 +5197,10 @@ function wpnAttach(mesh,shipId,wid){if(!mesh)return;
 {let lastM=null,lastW=null;const loop=()=>{requestAnimationFrame(loop);try{if(typeof cur==='undefined'||!cur)return;const w=PR.lo.w;if(cur!==lastM||w!==lastW){lastM=cur;lastW=w;wpnAttach(cur,SHIPS[sel].id,w)}}catch(e){}};requestAnimationFrame(loop)}
 /* partida: la nave que pilotas */
 {const pm0=playerMesh;playerMesh=function(proto,sh){const g=pm0.apply(this,arguments);try{const m=g.children.find(c=>c.isMesh);if(m)wpnAttach(m,sh.id,PR.lo.w)}catch(e){}return g}}
+/* el misil que vuela: modelo de Yeissan (se usa en todos los misiles del juego) */
+let misGeo=null,misMat=null;
+wpnLoad('arma-misil').then(src=>{const g=src.geometry.clone();g.rotateY(Math.PI/2);g.scale(1.6,1.6,1.6);misGeo=g;misMat=src.material;window.__mslMat=misMat}).catch(()=>{});
+{const loop=()=>{requestAnimationFrame(loop);if(!misGeo)return;try{if(missileGeo!==misGeo)missileGeo=misGeo;if(typeof HZM!=='undefined'&&HZM&&HZM.mis!==misMat)HZM.mis=misMat;window.__mslMat=misMat}catch(e){}};requestAnimationFrame(loop)}
 
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
