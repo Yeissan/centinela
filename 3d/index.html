@@ -5211,6 +5211,8 @@ function wpnMuzzles(slot){if(!G||G.view!=='ext'||!G.pm||!G.pm.visible||!G.player
   G.pm.traverse(o=>{if(o.userData.wpn&&o.userData.slot===slot&&o.userData.tips)o.userData.tips.forEach(t=>{o.localToWorld(_wmv.set(t[0],t[1],t[2]));out.push(_wmv.clone().sub(o0).add(G.player.pos))})});
   return out.length?out:null}
 window.__wpn={mz:s=>wpnMuzzles(s),fire:()=>playerFire(),setMouse:v=>{mouseDown=v}};
+/* en la partida: al cambiar de arma (rueda, X o selector) cambia también la que se ve en la nave */
+{const loop=()=>{requestAnimationFrame(loop);try{if(!G||!G.pm||!G.ship)return;const m=G.pm.children.find(c=>c.isMesh);if(m)wpnAttach(m,G.ship.id,[G.w,G.sec])}catch(e){}};requestAnimationFrame(loop)}
 
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
