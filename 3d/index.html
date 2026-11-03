@@ -5185,7 +5185,7 @@ window.__dur={get:durGet,set:durSet,after:w=>durAfter(w),lobby:()=>durLobby(),fx
    ARMAS EN 3D · el arma equipada se ve montada en la nave (hangar y partida)
    Modelos de Yeissan. p = sitio en la nave (medidas del modelo), s = tamaño.
    ===================================================================== */
-const WPN3D={laser:{f:'arma-laser',s:.36,p:[[.08,.2,0]],tips:[[-.95,-.016,.145],[-.95,-.016,-.145]]},scatter:{f:'arma-dispersor',s:.3,p:[[.1,.2,0]],tips:[[-.95,-.02,.29],[-.95,-.02,0],[-.95,-.02,-.29]]},chain:{f:'arma-cadena',s:.36,p:[[.1,.24,0]],tips:[[-.9,.05,0]]},missile:{f:'arma-lanzador',s:.14,p:[[.25,-.105,.49],[.25,-.105,-.49]],sec:1,tips:[[-.9,0,0]]}};
+const WPN3D={laser:{f:'arma-laser',s:.36,p:[[.08,.2,0]],tips:[[-.95,-.016,.145],[-.95,-.016,-.145]]},scatter:{f:'arma-dispersor',s:.3,p:[[.1,.2,0]],tips:[[-.95,-.02,.29],[-.95,-.02,0],[-.95,-.02,-.29]]},chain:{f:'arma-cadena',s:.36,p:[[.1,.24,0]],tips:[[-.9,.05,0]]},minigun:{f:'arma-ametralladora',s:.3,p:[[.1,.2,0]],tips:[[-.95,0,.052]],spin:{f:'arma-ametralladora-giro',c:[0,.052]}},missile:{f:'arma-lanzador',s:.14,p:[[.25,-.105,.49],[.25,-.105,-.49]],sec:1,tips:[[-.9,0,0]]}};
 const _wpC={};
 function wpnLoad(f){if(!_wpC[f])_wpC[f]=fetch('naves/'+f+'-3d.txt').then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>decode(t,[.36,.94,1]));return _wpC[f]}
 /* en las naves que no son la Centinela, se coloca encima, en el centro */
@@ -5195,7 +5195,8 @@ function wpnSpot(mesh,shipId,W,p){if(shipId==='centinela')return p;const g=mesh.
 function wpnAttach(mesh,shipId,ids){if(!mesh)return;const key=ids.join('|');if(mesh.userData.wpnKey===key)return;
   mesh.children.filter(c=>c.userData.wpn).forEach(c=>mesh.remove(c));mesh.userData.wpnKey=key;
   ids.forEach(wid=>{const W=WPN3D[wid];if(!W)return;
-    wpnLoad(W.f).then(src=>{if(mesh.userData.wpnKey!==key)return;W.p.forEach(p=>{const m=new THREE.Mesh(src.geometry,src.material);m.userData.wpn=1;m.userData.slot=W.sec?'s':'w';m.userData.tips=W.tips;m.scale.setScalar(W.s);m.position.set(...wpnSpot(mesh,shipId,W,p));mesh.add(m)})}).catch(()=>{})})}
+    wpnLoad(W.f).then(src=>{if(mesh.userData.wpnKey!==key)return;W.p.forEach(p=>{const m=new THREE.Mesh(src.geometry,src.material);m.userData.wpn=1;m.userData.slot=W.sec?'s':'w';m.userData.tips=W.tips;m.scale.setScalar(W.s);m.position.set(...wpnSpot(mesh,shipId,W,p));mesh.add(m);
+      if(W.spin)wpnLoad(W.spin.f).then(sp=>{if(mesh.userData.wpnKey!==key)return;if(!sp._piv){sp._piv=sp.geometry.clone();sp._piv.translate(0,-W.spin.c[0],-W.spin.c[1])}const r=new THREE.Mesh(sp._piv,sp.material);r.position.set(0,W.spin.c[0],W.spin.c[1]);r.userData.spin=1;m.add(r)}).catch(()=>{})})}).catch(()=>{})})}
 /* hangar: se vuelve a montar cuando cambias de nave o de arma */
 {let lastM=null,lastW=null;const loop=()=>{requestAnimationFrame(loop);try{if(typeof cur==='undefined'||!cur)return;const w=PR.lo.w+'|'+PR.lo.s;if(cur!==lastM||w!==lastW){lastM=cur;lastW=w;wpnAttach(cur,SHIPS[sel].id,[PR.lo.w,PR.lo.s])}}catch(e){}};requestAnimationFrame(loop)}
 /* partida: la nave que pilotas */
@@ -5213,6 +5214,9 @@ function wpnMuzzles(slot){if(!G||G.view!=='ext'||!G.pm||!G.pm.visible||!G.player
 window.__wpn={mz:s=>wpnMuzzles(s),fire:()=>playerFire(),setMouse:v=>{mouseDown=v}};
 /* en la partida: al cambiar de arma (rueda, X o selector) cambia también la que se ve en la nave */
 {const loop=()=>{requestAnimationFrame(loop);try{if(!G||!G.pm||!G.ship)return;const m=G.pm.children.find(c=>c.isMesh);if(m)wpnAttach(m,G.ship.id,[G.w,G.sec])}catch(e){}};requestAnimationFrame(loop)}
+
+/* los cañones de la ametralladora giran al disparar */
+{let t0=performance.now();const loop=now=>{requestAnimationFrame(loop);const dt=Math.min(.05,(now-t0)/1000);t0=now;try{if(!G||!G.pm)return;const v=G.w==='minigun'?(G.spin||0)*32:0;if(!v)return;G.pm.traverse(o=>{if(o.userData.spin)o.rotation.x+=v*dt})}catch(e){}};requestAnimationFrame(loop)}
 
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
