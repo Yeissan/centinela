@@ -5185,7 +5185,7 @@ window.__dur={get:durGet,set:durSet,after:w=>durAfter(w),lobby:()=>durLobby(),fx
    ARMAS EN 3D · el arma equipada se ve montada en la nave (hangar y partida)
    Modelos de Yeissan. p = sitio en la nave (medidas del modelo), s = tamaño.
    ===================================================================== */
-const WPN3D={laser:{f:'arma-laser',s:.36,p:[[.08,.2,0]],tips:[[-.95,-.016,.145],[-.95,-.016,-.145]]},scatter:{f:'arma-dispersor',s:.3,p:[[.1,.2,0]],tips:[[-.95,-.02,.29],[-.95,-.02,0],[-.95,-.02,-.29]]},missile:{f:'arma-lanzador',s:.14,p:[[.25,-.105,.49],[.25,-.105,-.49]],sec:1,tips:[[-.9,0,0]]}};
+const WPN3D={laser:{f:'arma-laser',s:.36,p:[[.08,.2,0]],tips:[[-.95,-.016,.145],[-.95,-.016,-.145]]},scatter:{f:'arma-dispersor',s:.3,p:[[.1,.2,0]],tips:[[-.95,-.02,.29],[-.95,-.02,0],[-.95,-.02,-.29]]},chain:{f:'arma-cadena',s:.36,p:[[.1,.24,0]],tips:[[-.9,.05,0]]},missile:{f:'arma-lanzador',s:.14,p:[[.25,-.105,.49],[.25,-.105,-.49]],sec:1,tips:[[-.9,0,0]]}};
 const _wpC={};
 function wpnLoad(f){if(!_wpC[f])_wpC[f]=fetch('naves/'+f+'-3d.txt').then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>decode(t,[.36,.94,1]));return _wpC[f]}
 /* en las naves que no son la Centinela, se coloca encima, en el centro */
