@@ -1842,9 +1842,10 @@ function playerFire(){
   let aim=f.clone();
   if(G.lockT&&G.lockOk){const t=G.lockT,dist=t.pos.distanceTo(p.pos);aim=t.pos.clone().addScaledVector(t.vel,dist/Math.min(W.spd,1e3)).sub(p.pos).normalize()}
   const dm=W.dmg*G.mods.dmg*WL_DMG[(G.wl||1)-1],base=p.pos.clone().addScaledVector(f,3).add(G.q?new THREE.Vector3(0,-1,0).applyQuaternion(G.q):new THREE.Vector3(0,-1,0));
-  if(G.w==='chain'){chainShot(aim,dm,base);return}
-  if(G.w==='scatter'){for(let k=0;k<4+2*(G.wl||1);k++){const d=aim.clone();d.x+=rand(-.06,.06);d.y+=rand(-.05,.05);d.z+=rand(-.06,.06);d.normalize();spawnShot(p,base.clone(),d,dm,W)}return}
-  wlOffsets(G.w).forEach(s=>{let a=aim;if(G.w==='minigun'){a=aim.clone();a.x+=rand(-.012,.012);a.y+=rand(-.012,.012);a.z+=rand(-.012,.012);a.normalize()}spawnShot(p,base.clone().addScaledVector(r,s),a,dm,W)});
+  const MZ=typeof wpnMuzzles==='function'?wpnMuzzles('w'):null;
+  if(G.w==='chain'){chainShot(aim,dm,MZ?MZ[0]:base);return}
+  if(G.w==='scatter'){for(let k=0;k<4+2*(G.wl||1);k++){const d=aim.clone();d.x+=rand(-.06,.06);d.y+=rand(-.05,.05);d.z+=rand(-.06,.06);d.normalize();spawnShot(p,(MZ?MZ[k%MZ.length]:base).clone(),d,dm,W)}return}
+  wlOffsets(G.w).forEach((s,k)=>{let a=aim;if(G.w==='minigun'){a=aim.clone();a.x+=rand(-.012,.012);a.y+=rand(-.012,.012);a.z+=rand(-.012,.012);a.normalize()}spawnShot(p,MZ?MZ[k%MZ.length].clone():base.clone().addScaledVector(r,s),a,dm,W)});
 }
 function beam(a,b){
   const pts=[a.clone()];const n=6;for(let k=1;k<n;k++){const q=a.clone().lerp(b,k/n);q.x+=rand(-1.5,1.5);q.y+=rand(-1.5,1.5);q.z+=rand(-1.5,1.5);pts.push(q)}pts.push(b.clone());
@@ -1869,7 +1870,7 @@ function fireMissile(){
   if(G.sec==='missile'){
     G.ammo--;if(G.mode==='duel'&&duelOnline())netSend({t:'f3',k:'m'});if(G.mode==='ffa')ffSend({t:'f4',k:'m',tg:G.mlock>=1&&G.mlockT&&G.mlockT.fid!=null?G.mlockT.fid:-1});tone(200,60,.4,'sawtooth',.06);
     if(!window.__mslMat)window.__mslMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0xffb62e).multiplyScalar(2),toneMapped:false});const m=new THREE.Mesh(missileGeo,window.__mslMat);
-    m.position.copy(p.pos).addScaledVector(f,4).y-=2;GS.add(m);
+    {const MZ=typeof wpnMuzzles==='function'?wpnMuzzles('s'):null;if(MZ){G.mside=(G.mside||0)+1;m.position.copy(MZ[G.mside%MZ.length])}else m.position.copy(p.pos).addScaledVector(f,4).y-=2}GS.add(m);
     const tg=G.mlock>=1&&G.mlockT&&G.mlockT.alive?G.mlockT:null;missiles.push({mesh:m,pos:m.position.clone(),dir:f.clone(),target:tg,owner:p,life:tg?25:5,sp:210});
     if(tg)feed('Misil fijado contra <i>'+tg.name+'</i>',true);else toast('Misil sin fijar: va recto · mantén la mira para fijar');G.mlock=0;
   } else if(G.sec==='mines'){
@@ -5184,7 +5185,7 @@ window.__dur={get:durGet,set:durSet,after:w=>durAfter(w),lobby:()=>durLobby(),fx
    ARMAS EN 3D · el arma equipada se ve montada en la nave (hangar y partida)
    Modelos de Yeissan. p = sitio en la nave (medidas del modelo), s = tamaño.
    ===================================================================== */
-const WPN3D={laser:{f:'arma-laser',s:.36,p:[[.08,.2,0]]},missile:{f:'arma-lanzador',s:.14,p:[[.25,-.105,.49],[.25,-.105,-.49]],sec:1}};
+const WPN3D={laser:{f:'arma-laser',s:.36,p:[[.08,.2,0]],tips:[[-.95,-.016,.145],[-.95,-.016,-.145]]},missile:{f:'arma-lanzador',s:.14,p:[[.25,-.105,.49],[.25,-.105,-.49]],sec:1,tips:[[-.9,0,0]]}};
 const _wpC={};
 function wpnLoad(f){if(!_wpC[f])_wpC[f]=fetch('naves/'+f+'-3d.txt').then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>decode(t,[.36,.94,1]));return _wpC[f]}
 /* en las naves que no son la Centinela, se coloca encima, en el centro */
@@ -5194,7 +5195,7 @@ function wpnSpot(mesh,shipId,W,p){if(shipId==='centinela')return p;const g=mesh.
 function wpnAttach(mesh,shipId,ids){if(!mesh)return;const key=ids.join('|');if(mesh.userData.wpnKey===key)return;
   mesh.children.filter(c=>c.userData.wpn).forEach(c=>mesh.remove(c));mesh.userData.wpnKey=key;
   ids.forEach(wid=>{const W=WPN3D[wid];if(!W)return;
-    wpnLoad(W.f).then(src=>{if(mesh.userData.wpnKey!==key)return;W.p.forEach(p=>{const m=new THREE.Mesh(src.geometry,src.material);m.userData.wpn=1;m.scale.setScalar(W.s);m.position.set(...wpnSpot(mesh,shipId,W,p));mesh.add(m)})}).catch(()=>{})})}
+    wpnLoad(W.f).then(src=>{if(mesh.userData.wpnKey!==key)return;W.p.forEach(p=>{const m=new THREE.Mesh(src.geometry,src.material);m.userData.wpn=1;m.userData.slot=W.sec?'s':'w';m.userData.tips=W.tips;m.scale.setScalar(W.s);m.position.set(...wpnSpot(mesh,shipId,W,p));mesh.add(m)})}).catch(()=>{})})}
 /* hangar: se vuelve a montar cuando cambias de nave o de arma */
 {let lastM=null,lastW=null;const loop=()=>{requestAnimationFrame(loop);try{if(typeof cur==='undefined'||!cur)return;const w=PR.lo.w+'|'+PR.lo.s;if(cur!==lastM||w!==lastW){lastM=cur;lastW=w;wpnAttach(cur,SHIPS[sel].id,[PR.lo.w,PR.lo.s])}}catch(e){}};requestAnimationFrame(loop)}
 /* partida: la nave que pilotas */
@@ -5203,6 +5204,13 @@ function wpnAttach(mesh,shipId,ids){if(!mesh)return;const key=ids.join('|');if(m
 let misGeo=null,misMat=null;
 wpnLoad('arma-misil').then(src=>{const g=src.geometry.clone();g.rotateY(Math.PI/2);g.scale(1.6,1.6,1.6);misGeo=g;misMat=src.material;window.__mslMat=misMat}).catch(()=>{});
 {const loop=()=>{requestAnimationFrame(loop);if(!misGeo)return;try{if(missileGeo!==misGeo)missileGeo=misGeo;if(typeof HZM!=='undefined'&&HZM&&HZM.mis!==misMat)HZM.mis=misMat;window.__mslMat=misMat}catch(e){}};requestAnimationFrame(loop)}
+
+/* las bocas de las armas en el mundo: los disparos y los misiles salen de ahí (vista desde fuera) */
+const _wmv=new THREE.Vector3();
+function wpnMuzzles(slot){if(!G||G.view!=='ext'||!G.pm||!G.pm.visible||!G.player)return null;G.pm.updateMatrixWorld(true);const out=[],o0=G.pm.position;
+  G.pm.traverse(o=>{if(o.userData.wpn&&o.userData.slot===slot&&o.userData.tips)o.userData.tips.forEach(t=>{o.localToWorld(_wmv.set(t[0],t[1],t[2]));out.push(_wmv.clone().sub(o0).add(G.player.pos))})});
+  return out.length?out:null}
+window.__wpn={mz:s=>wpnMuzzles(s),fire:()=>playerFire(),setMouse:v=>{mouseDown=v}};
 
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
