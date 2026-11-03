@@ -379,6 +379,7 @@ button:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
 .troll svg{width:calc(2*var(--u));height:calc(2*var(--u))}
 #tRL{left:calc(10*var(--u))}#tRR{left:calc(15.2*var(--u))}
 .fly .troll{display:grid}
+.simp .troll{display:grid}.troll.on{color:#021018;background:radial-gradient(circle at 40% 35%,#d6fdff,#5cf0ff);box-shadow:0 0 calc(1.2*var(--u)) rgba(92,240,255,.6)}
 
 /* ---------- pantalla de resultados (estilo battle royale móvil) ---------- */
 .res{background:linear-gradient(115deg,rgba(2,4,12,.94) 30%,rgba(18,6,36,.94) 70%,rgba(2,10,22,.96));display:block;overflow:hidden}
@@ -1694,8 +1695,8 @@ async function startGame2(s){
   $('kf').innerHTML='';
   MODE='game';paused=false;
   $('H').hidden=true;$('P').hidden=true;$('over').hidden=true;$('pause').hidden=true;
-  $('P').classList.toggle('tch',TOUCH);$('P').classList.toggle('fly',!!G.q);$('T').hidden=!TOUCH;
-  {const fm=flyMode();$('pchF').innerHTML=fm==='simple'?'<b>Ratón</b> girar':fm==='ayuda'?'<b>Ratón</b> apunta · la nave vira e inclina sola':'<b>Ratón</b> inclinar y tirar de la nave';$('pchAD').textContent='A/D';$('pchADt').textContent=fm==='simple'?'de lado':fm==='ayuda'?'inclinar · doble toque = tonel':'inclinar · doble toque = tonel'}
+  $('P').classList.toggle('tch',TOUCH);$('P').classList.toggle('fly',!!G.q);$('P').classList.toggle('simp',!G.q);['tRL','tRR'].forEach(id=>{const b=$(id);b.classList.remove('on');const em=b.querySelector('em');if(em)em.textContent=G.q?'TONEL':'VERTICAL'});$('T').hidden=!TOUCH;
+  {const fm=flyMode();$('pchF').innerHTML=fm==='simple'?'<b>Ratón</b> girar':fm==='ayuda'?'<b>Ratón</b> apunta · la nave vira e inclina sola':'<b>Ratón</b> inclinar y tirar de la nave';$('pchAD').textContent='A/D';$('pchADt').textContent=fm==='simple'?'de lado · doble toque y mantener = nave vertical':fm==='ayuda'?'inclinar · doble toque = tonel':'inclinar · doble toque = tonel'}
   $('pchelp').style.opacity=1;setTimeout(()=>{$('pchelp').style.opacity=0},12000);
   renderer.toneMappingExposure=1.0;
   buildSegs();setWeaponHud();genCracks();setView(G.view,true);$('tAut').classList.toggle('on',G.auto);
@@ -1771,7 +1772,7 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouseDown=false;i
   btn('tTbo',()=>{if(G)G.tTbo=true},()=>{if(G)G.tTbo=false});
   btn('tMsl',()=>fireMissile());
   btn('tAbl',()=>useAbility());
-  btn('tFlr',()=>useFlares());btn('tRL',()=>barrelRoll(-1));btn('tRR',()=>barrelRoll(1));
+  btn('tFlr',()=>useFlares());btn('tRL',()=>{if(G&&!G.q){G.knT=G.knT===-1?0:-1;$('tRL').classList.toggle('on',G.knT===-1);$('tRR').classList.remove('on')}else barrelRoll(-1)});btn('tRR',()=>{if(G&&!G.q){G.knT=G.knT===1?0:1;$('tRR').classList.toggle('on',G.knT===1);$('tRL').classList.remove('on')}else barrelRoll(1)});
   const ts=$('tThr');let tsId=null;
   const setT=e=>{const r=ts.getBoundingClientRect();if(G){G.thr=clamp(1-(e.clientY-r.top-r.width*.3)/(r.height-r.width*.6),0,1)}};
   ts.addEventListener('pointerdown',e=>{e.stopPropagation();tsId=e.pointerId;try{ts.setPointerCapture(e.pointerId)}catch(_){}setT(e)});
@@ -2126,6 +2127,11 @@ function step(dt){
     strafe=clamp((TOUCH?G.joy.x:(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0))+(PAD.on?PAD.strafe:0),-1,1);
     climb=clamp((TOUCH?-G.joy.y:(keys.KeyR?1:0)-(keys.KeyF?1:0))+(PAD.on?-PAD.climb:0),-1,1);
     G.roll+=(clamp(-dyaw/Math.max(dt,.001)*.12,-.5,.5)-strafe*.25-G.roll)*Math.min(1,dt*5);
+    // nave vertical: doble toque y mantener A o D (en el móvil, los botones VERTICAL)
+    {const kL=keys.KeyA||keys.ArrowLeft,kR=keys.KeyD||keys.ArrowRight;
+     if(kL&&!G._sA){if(G.t-(G.sLA??-9)<.3)G.knK=-1;G.sLA=G.t}G._sA=!!kL;if(kR&&!G._sD){if(G.t-(G.sLD??-9)<.3)G.knK=1;G.sLD=G.t}G._sD=!!kR;
+     if((G.knK===-1&&!kL)||(G.knK===1&&!kR))G.knK=0;
+     const kt=stn?0:TOUCH?(G.knT||0):(G.knK||0);G.knA=(G.knA||0)+(kt-(G.knA||0))*Math.min(1,dt*7)}
     }
     const thrUp=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+(PAD.on?(PAD.spdUp?1:0)-(PAD.spdDn?1:0):0);
     if(PAD.on&&PAD.thr!=null)G.thr=PAD.thr;else G.thr=clamp(G.thr+thrUp*.6*dt,0,1);
@@ -2148,7 +2154,7 @@ function step(dt){
   if(G.view==='ext'){
     playerFwd(_cf);
     // la nave
-    if(G.pm){G.pm.visible=p.alive;G.pm.position.copy(p.pos);if(G.q){G.pm.quaternion.copy(G.q).multiply(_qY)}else{G.pm.lookAt(_ct.copy(p.pos).add(_cf));G.pm.rotateZ(clamp(-G.roll*1.6,-.9,.9))}
+    if(G.pm){G.pm.visible=p.alive;G.pm.position.copy(p.pos);if(G.q){G.pm.quaternion.copy(G.q).multiply(_qY)}else{G.pm.lookAt(_ct.copy(p.pos).add(_cf));G.pm.rotateZ(clamp(-G.roll*1.6,-.9,.9)*(1-Math.abs(G.knA||0))-(G.knA||0)*Math.PI/2)}
       const tr=G.pm.userData.trail,a=tr.geometry.attributes.position.array;const e=_ct.copy(_cf).multiplyScalar(-5.6).add(p.pos);
       if(!G.pm.userData.tInit){for(let k=0;k<a.length;k+=3){a[k]=e.x;a[k+1]=e.y;a[k+2]=e.z}G.pm.userData.tInit=true}
       for(let k=a.length-3;k>=3;k-=3){a[k]=a[k-3];a[k+1]=a[k-2];a[k+2]=a[k-1]}a[0]=e.x;a[1]=e.y;a[2]=e.z;tr.geometry.attributes.position.needsUpdate=true}
@@ -2158,11 +2164,11 @@ function step(dt){
     for(let k=0;k<5&&insideBox(want,4);k++)want.lerp(p.pos,.35);
     if(!G.camP)G.camP=want.clone();else G.camP.lerp(want,Math.min(1,dt*7));
     gcam.position.copy(G.camP).add({x:(Math.random()-.5)*G.shake*.6,y:(Math.random()-.5)*G.shake*.6,z:0});
-    gcam.up.copy(_cu);gcam.lookAt(_ct.copy(p.pos).addScaledVector(_cf,46).addScaledVector(_cu,TOUCH?-1:2));if(!G.q)gcam.rotateZ(G.roll*.35);
+    gcam.up.copy(_cu);gcam.lookAt(_ct.copy(p.pos).addScaledVector(_cf,46).addScaledVector(_cu,TOUCH?-1:2));if(!G.q)gcam.rotateZ(G.roll*.35+(G.knA||0)*.3);
   }else{
   gcam.position.copy(p.pos);
   if(G.q){gcam.quaternion.copy(G.q);gcam.rotateX((Math.random()-.5)*G.shake*.03);gcam.rotateY((Math.random()-.5)*G.shake*.03)}else
-  gcam.rotation.set(G.pitch+(Math.random()-.5)*G.shake*.03,G.yaw+(Math.random()-.5)*G.shake*.03,G.roll+(reduce?0:Math.sin(G.t*1.3)*.01));
+  gcam.rotation.set(G.pitch+(Math.random()-.5)*G.shake*.03,G.yaw+(Math.random()-.5)*G.shake*.03,G.roll*(1-Math.abs(G.knA||0))+(G.knA||0)*Math.PI/2+(reduce?0:Math.sin(G.t*1.3)*.01));
   }
   gcam.fov+=(((G.view==='ext'?66:74)+(p.speed>110?8:0))-gcam.fov)*Math.min(1,dt*3);gcam.updateProjectionMatrix();gcam.updateMatrixWorld();
   // punto de mira en pantalla (en vista exterior no está en el centro)
@@ -2252,7 +2258,7 @@ function hud(dt){
   const spd=Math.round(p.speed*7),alt=Math.round(p.pos.y*4);
   $('tSpd').textContent=spd;$('tAltv').textContent=alt;
   $('tkS').style.backgroundPositionY=(spd*.08)+'px';$('tkA').style.backgroundPositionY=(alt*.3)+'px';
-  $('hz').style.transform='translateY('+(G.pitch*120)+'px) rotate('+(-G.roll)+'rad)';
+  $('hz').style.transform='translateY('+(G.pitch*120)+'px) rotate('+(-G.roll*(1-Math.abs(G.knA||0))-(G.knA||0)*Math.PI/2)+'rad)';
   const turn=clamp((G.yaw-(G.lyaw??G.yaw))/Math.max(dt,.001),-3,3);G.lyaw=G.yaw;G.sway=(G.sway||0)+(turn-(G.sway||0))*Math.min(1,dt*4);
   $('ckp').style.transform=reduce?'':'translate('+(-G.sway*.6)+'cqw,'+((G.pitch-(G.lpitch??G.pitch))/Math.max(dt,.001)*.15)+'cqw) rotate('+(G.roll*.04)+'rad)';G.lpitch=G.pitch;
   const hr=p.hull/p.maxH;
