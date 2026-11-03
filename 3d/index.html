@@ -5184,19 +5184,21 @@ window.__dur={get:durGet,set:durSet,after:w=>durAfter(w),lobby:()=>durLobby(),fx
    ARMAS EN 3D · el arma equipada se ve montada en la nave (hangar y partida)
    Modelos de Yeissan. p = sitio en la nave (medidas del modelo), s = tamaño.
    ===================================================================== */
-const WPN3D={laser:{f:'arma-laser',s:.36,p:[.08,.2,0]}};
+const WPN3D={laser:{f:'arma-laser',s:.36,p:[[.08,.2,0]]},missile:{f:'arma-lanzador',s:.14,p:[[.25,-.105,.49],[.25,-.105,-.49]],sec:1}};
 const _wpC={};
 function wpnLoad(f){if(!_wpC[f])_wpC[f]=fetch('naves/'+f+'-3d.txt').then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>decode(t,[.36,.94,1]));return _wpC[f]}
 /* en las naves que no son la Centinela, se coloca encima, en el centro */
-function wpnSpot(mesh,shipId,W){if(shipId==='centinela')return W.p;const g=mesh.geometry;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox;return [(b.min.x+b.max.x)/2+.08,b.max.y*.85,(b.min.z+b.max.z)/2]}
-function wpnAttach(mesh,shipId,wid){if(!mesh)return;
-  mesh.children.filter(c=>c.userData.wpn).forEach(c=>mesh.remove(c));mesh.userData.wpnId=wid;
-  const W=WPN3D[wid];if(!W)return;
-  wpnLoad(W.f).then(src=>{if(mesh.userData.wpnId!==wid)return;const m=new THREE.Mesh(src.geometry,src.material);m.userData.wpn=1;m.scale.setScalar(W.s);m.position.set(...wpnSpot(mesh,shipId,W));mesh.add(m)}).catch(()=>{})}
+/* en las naves que no son la Centinela se reparte por su forma */
+function wpnSpot(mesh,shipId,W,p){if(shipId==='centinela')return p;const g=mesh.geometry;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox,cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2;
+  if(W.sec)return [cx+.2,b.min.y*.6,cz+Math.sign(p[2])*(b.max.z-b.min.z)*.36];return [cx+.08,b.max.y*.85,cz]}
+function wpnAttach(mesh,shipId,ids){if(!mesh)return;const key=ids.join('|');if(mesh.userData.wpnKey===key)return;
+  mesh.children.filter(c=>c.userData.wpn).forEach(c=>mesh.remove(c));mesh.userData.wpnKey=key;
+  ids.forEach(wid=>{const W=WPN3D[wid];if(!W)return;
+    wpnLoad(W.f).then(src=>{if(mesh.userData.wpnKey!==key)return;W.p.forEach(p=>{const m=new THREE.Mesh(src.geometry,src.material);m.userData.wpn=1;m.scale.setScalar(W.s);m.position.set(...wpnSpot(mesh,shipId,W,p));mesh.add(m)})}).catch(()=>{})})}
 /* hangar: se vuelve a montar cuando cambias de nave o de arma */
-{let lastM=null,lastW=null;const loop=()=>{requestAnimationFrame(loop);try{if(typeof cur==='undefined'||!cur)return;const w=PR.lo.w;if(cur!==lastM||w!==lastW){lastM=cur;lastW=w;wpnAttach(cur,SHIPS[sel].id,w)}}catch(e){}};requestAnimationFrame(loop)}
+{let lastM=null,lastW=null;const loop=()=>{requestAnimationFrame(loop);try{if(typeof cur==='undefined'||!cur)return;const w=PR.lo.w+'|'+PR.lo.s;if(cur!==lastM||w!==lastW){lastM=cur;lastW=w;wpnAttach(cur,SHIPS[sel].id,[PR.lo.w,PR.lo.s])}}catch(e){}};requestAnimationFrame(loop)}
 /* partida: la nave que pilotas */
-{const pm0=playerMesh;playerMesh=function(proto,sh){const g=pm0.apply(this,arguments);try{const m=g.children.find(c=>c.isMesh);if(m)wpnAttach(m,sh.id,PR.lo.w)}catch(e){}return g}}
+{const pm0=playerMesh;playerMesh=function(proto,sh){const g=pm0.apply(this,arguments);try{const m=g.children.find(c=>c.isMesh);if(m)wpnAttach(m,sh.id,[PR.lo.w,PR.lo.s])}catch(e){}return g}}
 /* el misil que vuela: modelo de Yeissan (se usa en todos los misiles del juego) */
 let misGeo=null,misMat=null;
 wpnLoad('arma-misil').then(src=>{const g=src.geometry.clone();g.rotateY(Math.PI/2);g.scale(1.6,1.6,1.6);misGeo=g;misMat=src.material;window.__mslMat=misMat}).catch(()=>{});
