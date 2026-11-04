@@ -1681,10 +1681,11 @@ async function startGame2(s){
   {const pr=await load(s).catch(()=>loadLod(s)).catch(()=>null);G._pr=pr;G.pm=playerMesh(pr,s);GS.add(G.pm);G.camP=null}
   G.yaw=G.tyaw=Math.atan2(p.pos.x,p.pos.z);flyInit();
   const pool=SHIPS.map((x,i)=>protos[i]).filter(Boolean);
+  const EP=(()=>{const c=protos[SHIPS.findIndex(x=>x.id==='centinela')];const e=pool.filter(q=>q!==c);return e.length?e:pool})();
   for(let i=0;i<(G.mode==='br'?BOTS:0);i++){
     const a=a0+(i+1)/(BOTS+1)*Math.PI*2+rand(-.15,.15),r=rand(.25,.65)*ARENA;
     const b=newShip(false,NAMES[i],new THREE.Vector3(Math.cos(a)*r,rand(30,Math.min(CEIL-30,120)),Math.sin(a)*r),D.hp,D.hp*.6);for(let k=0;k<20&&insideBox(b.pos,8);k++)b.pos.y+=10;
-    b.mesh=enemyMesh(pool.length?pool[i%pool.length]:null);b.mesh.position.copy(b.pos);GS.add(b.mesh);
+    b.mesh=enemyMesh(EP.length?EP[i%EP.length]:null);b.mesh.position.copy(b.pos);GS.add(b.mesh);
     b.mesh.userData.img=THUMB[SHIPS[i%SHIPS.length].id];
     {const N=18,pa=new Float32Array(N*3),ca=new Float32Array(N*3);for(let k=0;k<N;k++){pa[k*3]=b.pos.x;pa[k*3+1]=b.pos.y;pa[k*3+2]=b.pos.z;const f=Math.pow(1-k/N,1.6);ca[k*3]=1.6*f;ca[k*3+1]=.35*f;ca[k*3+2]=.7*f}
      const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(pa,3));tg.setAttribute('color',new THREE.BufferAttribute(ca,3));
@@ -1692,7 +1693,7 @@ async function startGame2(s){
     b.dir.set(-b.pos.x,0,-b.pos.z).normalize();b.wander.set(rand(-300,300),rand(30,120),rand(-300,300));
     G.ships.push(b);
   }
-  if(PVEM())pveInit(pool);if(G.mode==='duel')duelInit(pool);if(G.mode==='ffa')ffaInit(pool);
+  if(PVEM())pveInit(EP);if(G.mode==='duel')duelInit(pool);if(G.mode==='ffa')ffaInit(pool);
   for(let i=0;i<(G.mode==='br'?40:PVEM()?14:G.mode==='ffa'?24:0);i++)spawnPickup();
   $('kf').innerHTML='';
   MODE='game';paused=false;
@@ -3992,7 +3993,7 @@ $('mmName').addEventListener('input',e=>{const v=e.target.value.trim().slice(0,1
 $('mmName').addEventListener('keydown',e=>e.stopPropagation());
 $('mmX').addEventListener('click',()=>{netSend({t:'x3'});try{DUws&&DUws.close()}catch(e){}DUws=null;DU=null;mmClose()});
 $('mmBot').addEventListener('click',()=>{netSend({t:'x3'});try{DUws&&DUws.close()}catch(e){}DUws=null;
-  const s=SHIPS[sel],M=shipMods(s),o=SHIPS[Math.floor(Math.random()*SHIPS.length)];
+  const s=SHIPS[sel],M=shipMods(s),o=SHIPS[1+Math.floor(Math.random()*(SHIPS.length-1))];
   DU={online:false,you:0,map:mapPick(),me:{n:duelName(),mh:M.hull,ms:M.shield},opp:{n:'Bot '+['Kira','Byte','Neo','Vex','Zed'][Math.random()*5|0],sk:o.id,mh:M.hull,ms:M.shield},wins:[0,0],round:0,state:'cd',ready:true};
   mmClose();startGame()});
 function duelFound(m){
@@ -4286,7 +4287,7 @@ function ffaMsg(m){
 function ffSpot(k){const a=k/8*Math.PI*2+.4,R=ARENA*.42,v=new THREE.Vector3(Math.cos(a)*R,60+(k%3)*18,Math.sin(a)*R);for(let j=0;j<20&&insideBox(v,12);j++)v.y+=12;return v}
 function ffShip(i,pos,hp,sh){
   const old=FF.ships[i];if(old&&!old.isPlayer){old.alive=false;if(old.mesh)GS.remove(old.mesh);if(old.trail){GS.remove(old.trail);old.trail.geometry.dispose()}G.ships=G.ships.filter(x=>x!==old)}
-  const P=FF.pl[i],si=SHIPS.findIndex(x=>x.id===P.sk),pr=FF.pool.length?FF.pool[Math.max(0,si)%FF.pool.length]:null;
+  const P=FF.pl[i];if(P.bot&&P.sk==='centinela')P.sk=SHIPS[1+i%(SHIPS.length-1)].id;const si=SHIPS.findIndex(x=>x.id===P.sk),pr=FF.pool.length?FF.pool[Math.max(0,si)%FF.pool.length]:null;
   const b=makeBot(P.n,pos,hp,sh,pr,THUMB[P.sk]||THUMB.centinela);b.maxH=P.mh;b.maxS=P.ms;b.hull=hp;b.shield=sh;b.fid=i;
   b.dir.set(-pos.x,0,-pos.z).normalize();b.mesh.lookAt(_ff.copy(pos).add(b.dir));
   if(P.bot&&FF.host===FF.me){b.fbot=true}else{b.remote=true;b.buf=[];b.lastF=0}
@@ -5218,6 +5219,74 @@ window.__wpn={mz:s=>wpnMuzzles(s),fire:()=>playerFire(),setMouse:v=>{mouseDown=v
 
 /* los cañones de la ametralladora giran al disparar */
 {let t0=performance.now();const loop=now=>{requestAnimationFrame(loop);const dt=Math.min(.05,(now-t0)/1000);t0=now;try{if(!G||!G.pm)return;const v=G.w==='minigun'?(G.spin||0)*32:0;if(!v)return;G.pm.traverse(o=>{if(o.userData.spin)o.rotation.x+=v*dt})}catch(e){}};requestAnimationFrame(loop)}
+
+/* =====================================================================
+   UNA SOLA NAVE · la Centinela sube de nivel, se mejora y desbloquea skins.
+   Las demás naves pasan a ser naves enemigas (virus).
+   ===================================================================== */
+const NSK=[
+ {id:'n_artico',n:'Ártico',lv:3,tint:[.8,1.3,1.75],css:'sepia(1) saturate(2) hue-rotate(160deg) brightness(1.15)'},
+ {id:'n_sombra',n:'Sombra',lv:6,tint:[.45,.45,.55],css:'grayscale(1) brightness(.55) contrast(1.3)'},
+ {id:'n_neonv',n:'Lila',lv:9,tint:[1.7,.7,1.8],css:'sepia(1) saturate(4) hue-rotate(255deg)'},
+ {id:'n_selva',n:'Selva',lv:12,tint:[.7,1.6,.6],css:'sepia(1) saturate(3) hue-rotate(60deg)'},
+ {id:'n_coral',n:'Coral',lv:15,tint:[1.8,.75,.6],css:'sepia(1) saturate(4) hue-rotate(-30deg) brightness(1.05)'},
+ {id:'n_cobalto',n:'Cobalto',lv:20,tint:[.55,.75,1.9],css:'sepia(1) saturate(5) hue-rotate(185deg)'},
+ {id:'n_glitch',n:'Glitch',kills:100,tint:[1.6,.55,1.2],css:'sepia(1) saturate(5) hue-rotate(300deg) contrast(1.2)'},
+ {id:'n_oro',n:'Oro de maestría',lv:30,tint:[1.9,1.45,.55],css:'sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(1.15)'}];
+NSK.forEach(x=>{x.k='nskin';x.r='Nave';x.p=0;SHOP.push(x)});
+const NSTATS=[['hp','Blindaje',1.5],['sh','Escudo',1.5],['spd','Velocidad',1],['turn','Giro',1.5]];
+function nvD(){PR.nv=PR.nv||{xp:0,lv:1,k:0,up:{}};return PR.nv}
+function nvHas(x){const d=nvD();if(x.lv)return d.lv>=x.lv;if(x.kills)return d.k>=x.kills;return false}
+function nvReq(x){const d=nvD();return x.lv?'Nave nivel '+x.lv:'Derriba '+x.kills+' naves · '+Math.min(d.k,x.kills)+'/'+x.kills}
+/* la nave siempre es la Centinela */
+{const pk=pick;pick=function(){return pk.call(this,0)}}
+try{if(sel!==0)pick(0)}catch(e){}
+{const st=document.createElement('style');st.textContent='#fleet,#prev,#next{display:none!important}';document.head.appendChild(st);const h=$('hint');if(h)h.lastChild.textContent='Arrastra la nave para girarla'}
+/* mejoras de la nave en la partida (no cuentan en duelos ni en Todos contra todos) */
+{const sg=startGame2;startGame2=async function(s){const r=await sg.apply(this,arguments);
+  try{if(G&&G.player&&G.mode!=='duel'&&G.mode!=='ffa'){const u=nvD().up,p=G.player;
+    if(u.hp){p.maxH=Math.round(p.maxH*(1+.015*u.hp));p.hull=p.maxH}if(u.sh){p.maxS=Math.round(p.maxS*(1+.015*u.sh));p.shield=p.maxS}
+    if(u.spd)G.mods.spd*=1+.01*u.spd;if(u.turn)G.mods.turn*=1+.015*u.turn}}catch(e){console.warn(e)}return r}}
+/* al acabar la partida la nave gana experiencia (mismo ritmo lento que las armas) */
+function nvCommit(win){if(!G||G.nvDone)return [];G.nvDone=1;const d=nvD(),C=wpCards(),msgs=[],before=NSK.filter(nvHas).map(x=>x.id);
+  const k=G.player?G.player.kills||0:0;d.k+=k;let v=100+k*100+Math.min(600,(G.dmgDone||0)*.3)+(win?250:0);
+  if(d.lv<WMAX){d.xp+=Math.round(v);while(d.lv<WMAX&&d.xp>=WXP(d.lv)){d.xp-=WXP(d.lv);d.lv++;C.c++;const got=['1 común'];if(d.lv%5===0){C.r++;got.push('1 rara')}if(d.lv===WMAX){C.e++;got.push('1 épica')}msgs.push('¡La Centinela sube al nivel '+d.lv+'! +'+got.join(' +')+' tarjeta'+(got.length>1?'s':''))}if(d.lv>=WMAX)d.xp=0}
+  NSK.forEach(x=>{if(!before.includes(x.id)&&nvHas(x))msgs.push('Nueva skin para la Centinela: '+x.n)});saveP();return msgs}
+{const sr=showResults;showResults=function(win){let m=[];try{m=nvCommit(win)}catch(e){console.warn(e)}const r=sr.apply(this,arguments);m.forEach((t,i)=>setTimeout(()=>toast(t),9000+i*2300));return r}}
+/* las naves enemigas: todas menos la Centinela */
+function enemyPool(pool){const c=protoCent();return pool.filter(p=>p!==c)}
+let _pc=null;function protoCent(){return _pc}
+loadLod(SHIPS[0]).then(p=>{_pc=p}).catch(()=>{});
+/* ---------- pantalla del Hangar ---------- */
+let nvTab='mejoras';
+const nvImg=css=>'<img src="'+THUMB.centinela+'" alt=""'+(css?' style="filter:'+css+'"':'')+'>';
+VIEWS.hangar=()=>{const d=nvD(),C=wpCards(),eq=PR.shop.eq.paint;
+  const L='<div class="arL"><span class="lab2">Mejoras de la nave</span>'+NSTATS.map(([k,n,pc])=>{const lv=d.up[k]||0,nx=WUPC[lv];let btn;
+    if(!nx)btn='<button type="button" class="upB max" disabled>MÁXIMO</button>';
+    else{const ck=nx.c?'c':nx.r?'r':'e',need=nx[ck],ok=d.lv>=nx.lv&&C[ck]>=need&&PR.bits>=nx.b;btn='<button type="button" class="upB'+(ok?'':' no')+'" data-nu="'+k+'">'+(d.lv>=nx.lv?cardIc(CARDC[ck])+need+' · '+ic('i-bits')+fmt(nx.b):ic('i-lock')+' Nave nivel '+nx.lv)+'</button>'}
+    return '<div class="upR"><div class="nm"><b>'+n+'</b><span class="pp">'+[0,1,2,3,4].map(i=>'<i'+(i<lv?' class="on"':'')+'></i>').join('')+'</span></div><div class="vl">'+(lv?'+'+(pc*lv).toFixed(1).replace('.0','')+' %':'—')+'</div>'+btn+'</div>'}).join('')+
+    '<button type="button" class="arCr" data-go="equip">'+['c','r','e'].map(k=>'<span>'+cardIc(CARDC[k])+'<b>'+C[k]+'</b></span>').join('')+'<small>TARJETAS</small></button></div>';
+  const nx=NSK.find(x=>x.lv===d.lv+1)||NSK.find(x=>x.lv>d.lv);
+  const Cn='<div class="arC"><div class="arInfo">'+wpLvRing(d,'#5cf0ff')+'<div class="xp"><div class="t"><span class="rr" style="background:#5cf0ff">TU NAVE</span><b>Centinela</b></div><div class="bar"><i style="width:'+(d.lv>=WMAX?100:d.xp/WXP(d.lv)*100)+'%"></i></div><div class="nm"><span>'+(d.lv>=WMAX?'NIVEL MÁXIMO':fmt(d.xp)+' / '+fmt(WXP(d.lv))+' XP')+'</span><span>'+(nx?'Nivel '+nx.lv+': skin '+nx.n:'Máx. '+WMAX)+'</span></div><div class="how">Sube jugando: cada partida, cada baja y cada victoria dan experiencia · las mejoras no cuentan en duelos</div></div></div></div>';
+  const all=[{id:null,n:'Original',css:'',own:1}].concat(NSK.map(x=>({...x,own:nvHas(x),req:nvReq(x)}))).concat(SHOP.filter(x=>x.k==='paint').map(x=>({...x,own:owns(x.id),req:x.ev?'Evento':'Tienda · '+fmt(x.p)+' Núcleos',shop:1})));
+  const n=all.filter(x=>x.own).length;
+  const R='<div class="arR"><div class="arHd"><span class="lab2">Skins · '+n+' de '+all.length+'</span><span class="lab2" style="color:#ffcf7a">Nivel · retos · tienda</span></div><div class="skG">'+all.map(x=>{const on=(eq||null)===x.id;
+    return '<button type="button" class="skT nvS'+(on?' on':'')+(x.own?'':' lk')+'" data-ns="'+(x.id||'')+'">'+(on?'<span class="eq">EN USO</span>':'')+'<span class="pv">'+nvImg(x.css)+'</span><b>'+x.n.replace('Pintura ','')+'</b><small>'+(on?'Equipada':x.own?'Conseguida':x.req)+'</small></button>'}).join('')+'</div></div>';
+  return '<div class="arv">'+L+Cn+R+'</div>'};
+BIND.hangar=B=>{
+  B.querySelector('[data-go]').addEventListener('click',()=>{arTab='mejoras';openView('equip')});
+  B.querySelectorAll('[data-ns]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.ns||null;
+    if(id){const x=SHOPI(id);const own=x.k==='nskin'?nvHas(x):owns(id);if(!own){if(x.k==='paint'){toast(x.n+' · está en la Tienda');openView('tienda')}else toast(x.n+' · '+nvReq(x));return}}
+    PR.shop.eq.paint=id;saveP();shopApply();toast('Skin '+(id?SHOPI(id).n.replace('Pintura ',''):'Original')+' equipada');render()}));
+  B.querySelectorAll('[data-nu]').forEach(b=>b.addEventListener('click',()=>{const d=nvD(),k=b.dataset.nu,lv=d.up[k]||0,nx=WUPC[lv],C=wpCards();if(!nx)return;const ck=nx.c?'c':nx.r?'r':'e',need=nx[ck];
+    if(d.lv<nx.lv){toast('Esta mejora pide la nave en nivel '+nx.lv+' (la tienes en el '+d.lv+')');return}
+    if(C[ck]<need){toast('Te faltan '+(need-C[ck])+' tarjetas '+CARDNP[ck]);return}
+    if(PR.bits<nx.b){toast('Te faltan '+fmt(nx.b-PR.bits)+' bits');return}
+    C[ck]-=need;PR.bits-=nx.b;d.up[k]=lv+1;saveP();setBitsTop();crdTop();tone(600,1500,.3,'sine',.06);toast('¡Mejora conseguida! '+NSTATS.find(s=>s[0]===k)[1]+' '+(lv+1)+'★');render()}))};
+{const r1=render;render=function(){r1();if(view==='hangar'){$('ovT').textContent='Hangar';$('ovS').textContent='Tu Centinela: nivel, mejoras y skins'}}}
+{const ov=openView;openView=function(v){const r=ov(v);if(v==='hangar')ovH.classList.add('arm');return r}}
+{const st=document.createElement('style');st.textContent='.nvS .pv img{width:100%;height:100%;object-fit:contain}.arv .arL .upR{flex:none}';document.head.appendChild(st)}
+window.__nv={d:()=>nvD(),commit:w=>nvCommit(w)};
 
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
