@@ -3295,7 +3295,7 @@ function openView(v){
   ovH.hidden=false;render();
 }
 function render(){
-  const T={equip:['Armería','Tus armas, sus skins y sus mejoras'],taller:['Taller','Repara tu nave y tus armas'],hangar:['Hangar','Tu flota de Centinela'],pase:['Pase de temporada','Gratis · se sube jugando'],ranking:['Ranking',''],misiones:['Misiones y evento','Las misiones se renuevan cada día'],buzon:['Buzón',''],ajustes:['Ajustes','Se guardan en este navegador'],clan:['Clan y amigos',''],tienda:['Tienda','Solo estilo · nunca te hace más fuerte'],item:['Tienda',''],nucleos:['Conseguir Núcleos',SHOP_TEST?'Modo prueba · sin dinero real':''],mapas:['Elige mapa','Cada mapa tiene sus propias defensas que atacan a todos'],modos:['Modos de juego','Elige cómo quieres jugar'],evento:['Evento de Halloween','Noche de los Virus Zombi']}[view];
+  const T={equip:['Armería','Tus armas, sus skins y sus mejoras'],taller:['Taller','Repara tu nave y tus armas'],hangar:['Hangar','Tu flota de Centinela'],pase:['Pase de temporada','Gratis · se sube jugando'],ranking:['Ranking',''],misiones:['Misiones y evento','Las misiones se renuevan cada día'],buzon:['Buzón',''],ajustes:['Ajustes','Tus avances se guardan en el servidor'],clan:['Clan y amigos',''],tienda:['Tienda','Solo estilo · nunca te hace más fuerte'],item:['Tienda',''],nucleos:['Conseguir Núcleos',SHOP_TEST?'Modo prueba · sin dinero real':''],mapas:['Elige mapa','Cada mapa tiene sus propias defensas que atacan a todos'],modos:['Modos de juego','Elige cómo quieres jugar'],evento:['Evento de Halloween','Noche de los Virus Zombi']}[view];
   $('ovT').textContent=T[0];$('ovS').textContent=T[1];
   const B=$('ovB');B.innerHTML=VIEWS[view]();BIND[view]&&BIND[view](B);
 }
@@ -5303,6 +5303,65 @@ BIND.hangar=B=>{
 {const ov=openView;openView=function(v){const r=ov(v);if(v==='hangar')ovH.classList.add('arm');return r}}
 {const st=document.createElement('style');st.textContent='.nvS .pv img{width:100%;height:100%;object-fit:contain}.arv .arL .upR{flex:none}';document.head.appendChild(st)}
 window.__nv={d:()=>nvD(),commit:w=>nvCommit(w),skin:id=>{PR.shop.eq.paint=id||null;shopApply()}};
+
+/* =====================================================================
+   GUARDADO EN EL SERVIDOR · los avances se copian solos al servidor y se recuperan
+   en otro dispositivo con el "código de cuenta" (Ajustes → Cuenta).
+   ===================================================================== */
+const CL_URL=SRV3.replace(/^wss:/,'https:').replace(/^ws:/,'http:').replace(/\/ws$/,'');
+const CL_KEY='c3d_cuenta';
+const clRnd=n=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';let s='';const r=new Uint32Array(n);(crypto.getRandomValues?crypto.getRandomValues(r):r.forEach((_,i)=>r[i]=Math.random()*4e9));for(let i=0;i<n;i++)s+=a[r[i]%a.length];return s};
+function clAcc(){let a=null;try{a=JSON.parse(localStorage.getItem(CL_KEY)||'null')}catch(e){}if(!a||!a.id||!a.k){a={id:clRnd(10),k:clRnd(16)};try{localStorage.setItem(CL_KEY,JSON.stringify(a))}catch(e){}}return a}
+const clCode=a=>(a.id+a.k).match(/.{1,5}/g).join('-');
+let clSt={t:0,state:'',dirty:false,busy:false,last:0};
+try{clSt.t=+localStorage.getItem('c3d_nube_t')||0}catch(e){}
+async function clPost(path,body){const r=await fetch(CL_URL+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}return {code:r.status,...j}}
+function clData(){return {pr:PR,nombre:duelName(),mapa:(()=>{try{return localStorage.getItem('c3d_mapa')}catch(e){return null}})(),modo:GMODE}}
+function clApply(d){if(!d||!d.pr)return;try{localStorage.setItem(PKEY,JSON.stringify(d.pr));if(d.nombre)localStorage.setItem('c3d_nombre',d.nombre);if(d.mapa!=null)localStorage.setItem('c3d_mapa',d.mapa);if(d.modo)localStorage.setItem('c3d_modo',d.modo)}catch(e){}}
+async function clSave(force){if(clSt.busy||(!clSt.dirty&&!force))return;clSt.busy=true;clSt.dirty=false;const a=clAcc(),t=Date.now();
+  try{const r=await clPost('/c3d/save',{id:a.id,k:a.k,t,d:clData()});
+    if(r.ok){clSt.t=r.t;clSt.state='ok';clSt.last=Date.now();try{localStorage.setItem('c3d_nube_t',r.t)}catch(e){}}
+    else if(r.code===409){clSt.state='viejo'}else if(r.code===403){clSt.state='llave'}else{clSt.state='error';clSt.dirty=true}}
+  catch(e){clSt.state='sin';clSt.dirty=true}
+  clSt.busy=false;clDot()}
+/* al entrar: si en el servidor hay avances más nuevos (de otro dispositivo), se cargan */
+async function clStart(){const a=clAcc();
+  try{const r=await clPost('/c3d/load',{id:a.id,k:a.k});
+    if(r.ok&&!r.nuevo&&r.d&&r.t>clSt.t+1000&&!sessionStorage.getItem('c3d_nube_rl')){sessionStorage.setItem('c3d_nube_rl','1');clApply(r.d);try{localStorage.setItem('c3d_nube_t',r.t)}catch(e){}location.reload();return}
+    if(r.ok){clSt.state='ok';if(r.nuevo||r.t<clSt.t||!r.t)clSave(true)}else clSt.state=r.code===403?'llave':'error'}
+  catch(e){clSt.state='sin'}
+  clDot()}
+{const sp=saveP;saveP=function(){sp.apply(this,arguments);clSt.dirty=true}}
+setInterval(()=>{if(clSt.dirty&&Date.now()-clSt.last>4000)clSave()},2000);
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&clSt.dirty){const a=clAcc();try{navigator.sendBeacon&&navigator.sendBeacon(CL_URL+'/c3d/save',new Blob([JSON.stringify({id:a.id,k:a.k,t:Date.now(),d:clData()})],{type:'text/plain'}));clSt.dirty=false}catch(e){}}});
+setTimeout(clStart,1200);
+/* recuperar con el código en este dispositivo */
+async function clUse(code){const c=String(code||'').replace(/[^A-Za-z0-9]/g,'');if(c.length<22){toast('Ese código no es válido');return}
+  const a={id:c.slice(0,10),k:c.slice(10)};
+  try{const r=await clPost('/c3d/load',a);if(!r.ok){toast(r.code===403?'Ese código no es correcto':'No se pudo conectar con el servidor');return}
+    if(r.nuevo||!r.d){toast('No hay avances guardados con ese código');return}
+    localStorage.setItem(CL_KEY,JSON.stringify(a));clApply(r.d);localStorage.setItem('c3d_nube_t',r.t);toast('¡Avances recuperados! Cargando…');setTimeout(()=>location.reload(),900)}
+  catch(e){toast('No se pudo conectar con el servidor')}}
+/* indicador y pantalla de cuenta */
+function clDot(){const txt={ok:'Guardado en el servidor',sin:'Sin conexión · se guarda en este navegador',error:'No se pudo guardar · se reintentará',viejo:'Hay avances más nuevos en otro dispositivo',llave:'Código de cuenta no válido'}[clSt.state]||'Conectando…';
+  const el=document.getElementById('clInfo');if(el){el.textContent=txt;el.className='clI '+(clSt.state==='ok'?'ok':'ko')}}
+{const va=VIEWS.ajustes;VIEWS.ajustes=()=>{let h=va();if(setTab!=='cta')return h;const a=clAcc();
+  const box='<div class="srow clR"><span><b>Guardado en el servidor</b><small id="clInfo" class="clI">…</small></span><button type="button" class="btnS ghost" id="clNow">Guardar ahora</button></div>'+
+   '<div class="srow clR"><span><b>Tu código de cuenta</b><small>Con él sigues con tus avances en otro ordenador o móvil · no se lo des a nadie</small></span><span class="clCode"><code id="clC">'+clCode(a)+'</code><button type="button" class="btnS" id="clCp">Copiar</button></span></div>'+
+   '<div class="srow clR"><span><b>Usar un código</b><small>Pega aquí el código de tu otro dispositivo para traer tus avances</small></span><span class="clCode"><input id="clIn" maxlength="40" placeholder="XXXXX-XXXXX-…" autocomplete="off" spellcheck="false"><button type="button" class="btnS gold" id="clGo">Recuperar</button></span></div>';
+  return h.replace('<span class="lab2">Cuenta</span>','<span class="lab2">Cuenta</span>'+box)}}
+{const ba=BIND.ajustes;BIND.ajustes=B=>{ba(B);if(setTab!=='cta')return;clDot();
+  const n=B.querySelector('#clNow');n&&n.addEventListener('click',()=>{clSt.dirty=true;clSave(true).then(()=>toast(clSt.state==='ok'?'Guardado en el servidor':'No se pudo guardar ahora'))});
+  const c=B.querySelector('#clCp');c&&c.addEventListener('click',()=>{const t=clCode(clAcc());try{navigator.clipboard.writeText(t);toast('Código copiado')}catch(e){toast(t)}});
+  const i=B.querySelector('#clIn');i&&i.addEventListener('keydown',e=>e.stopPropagation());
+  const g=B.querySelector('#clGo');g&&g.addEventListener('click',()=>clUse(i.value))}}
+{const st=document.createElement('style');st.textContent=`
+.clR .clI.ok{color:#58f29a}.clR .clI.ko{color:#ffcf7a}
+.clCode{display:flex;align-items:center;gap:calc(.6*var(--u))}
+.clCode code{font:700 calc(1.05*var(--u)) ui-monospace,monospace;letter-spacing:.06em;padding:calc(.4*var(--u)) calc(.8*var(--u));border-radius:calc(.6*var(--u));background:rgba(92,240,255,.1);box-shadow:inset 0 0 0 1px rgba(92,240,255,.4);color:#dff}
+.clCode input{width:calc(17*var(--u));height:calc(2.7*var(--u));box-sizing:border-box;padding:0 calc(.7*var(--u));border-radius:calc(.6*var(--u));border:0;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);color:#fff;font:700 calc(.95*var(--u)) ui-monospace,monospace}
+`;document.head.appendChild(st)}
+window.__cl={sp:()=>saveP(),view:(t,v)=>{setTab=t;openView(v)},st:()=>clSt,acc:()=>clAcc(),save:()=>clSave(true),use:c=>clUse(c),code:()=>clCode(clAcc())};
 
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
