@@ -5470,6 +5470,198 @@ if(GMODE==='zombie'&&daysLeft(EV_END)<=0)setMode('invierno');
 `;document.head.appendChild(st)}
 window.__wiGift=v=>wiGift(v);window.__wi={img:()=>MODEIMG.invierno,wi:()=>WI(),gifts:()=>G&&G.gifts?G.gifts.length:-1,frz:()=>G?G.frz||0:0};
 
+/* =====================================================================
+   ATAQUES DE VIRUS EN EL MAPA (Battle Royale)
+   Cada cierto tiempo aparece un ataque en algún sitio de la zona segura:
+   · Infección que se extiende  · Minero de bits  · Base hackeada
+   Se ve en el radar, en un aviso arriba y cada uno tiene su premio.
+   ===================================================================== */
+const VE={list:[],next:0,order:[],tex:null};
+const _vv=new THREE.Vector3(),_vw=new THREE.Vector3();
+const veOn=()=>G&&G.mode==='br'&&!G.over;
+function veMesh(o){GS.add(o);return o}
+function veFree(o){if(!o)return;GS.remove(o);o.traverse(c=>{if(c.geometry&&!c.geometry._keep)c.geometry.dispose();if(c.material&&!c.material._keep){if(c.material.map&&!c.material.map._keep)c.material.map.dispose();c.material.dispose()}})}
+const veMat=(c,i,base)=>new THREE.MeshStandardMaterial({color:base??0x220008,emissive:c,emissiveIntensity:i??.7,roughness:.4,metalness:.35});
+const veBasic=(c,k)=>new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(k||1),toneMapped:false});
+/* el virus en 3D: bola facetada con pinchos y ojos */
+function veVirus(r,col){col=col??0xff1e4a;const g=new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),new THREE.MeshStandardMaterial({color:0x3a0010,emissive:col,emissiveIntensity:.5,roughness:.35,metalness:.4,flatShading:true})));
+  const ico=new THREE.IcosahedronGeometry(r,0),pa=ico.attributes.position,seen=new Set(),sm=veMat(col,.6,0x40000c),tm=veBasic(0xffc0d0,1.1),L=r*.75;
+  const sg=new THREE.CylinderGeometry(r*.06,r*.12,L,6),tg=new THREE.SphereGeometry(r*.17,8,6);
+  for(let i=0;i<pa.count;i++){const v=new THREE.Vector3(pa.getX(i),pa.getY(i),pa.getZ(i)),k=v.toArray().map(n=>n.toFixed(2)).join();if(seen.has(k))continue;seen.add(k);
+    const d=v.normalize(),c=new THREE.Mesh(sg,sm);c.position.copy(d).multiplyScalar(r+L/2-r*.1);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);g.add(c);
+    const t=new THREE.Mesh(tg,tm);t.position.copy(d).multiplyScalar(r+L);g.add(t)}
+  ico.dispose();
+  const em=veBasic(0xfff2a0,1.3);for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(r*.2,10,8),em);e.position.set(sx*r*.33,r*.2,r*.88);g.add(e)}
+  const gl=spr(FXT.flash,col);gl.scale.set(r*5,r*5,1);gl.material.opacity=.3;g.add(gl);return g}
+/* letrero que se puede reescribir (el bote del minero) */
+function veSign(w,h){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const tx=new THREE.CanvasTexture(cv);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthWrite:false,toneMapped:false}));sp.scale.set(w/14,h/14,1);
+  sp.set=(t,sub,col)=>{const x=cv.getContext('2d');x.clearRect(0,0,w,h);x.textAlign='center';x.textBaseline='middle';x.shadowColor=col;x.shadowBlur=30;x.fillStyle='#fff';x.font='800 italic '+(h*.5|0)+'px "Barlow Condensed",sans-serif';x.fillText(t,w/2,h*.36);
+    if(sub){x.shadowBlur=14;x.fillStyle=col;x.font='700 '+(h*.2|0)+'px "Barlow Condensed",sans-serif';x.fillText(sub,w/2,h*.8)}tx.needsUpdate=true};return sp}
+function veVeins(){if(VE.tex)return VE.tex;const cv=document.createElement('canvas');cv.width=cv.height=512;const x=cv.getContext('2d');
+  const g=x.createRadialGradient(256,256,0,256,256,256);g.addColorStop(0,'rgba(90,0,20,.9)');g.addColorStop(.6,'rgba(70,0,16,.72)');g.addColorStop(.9,'rgba(120,0,30,.45)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,512,512);
+  x.strokeStyle='rgba(255,40,80,1)';x.lineCap='round';
+  const br=(px,py,a,l,w,d)=>{if(d>7||l<3)return;const nx=px+Math.cos(a)*l,ny=py+Math.sin(a)*l;x.lineWidth=w;x.beginPath();x.moveTo(px,py);x.lineTo(nx,ny);x.stroke();br(nx,ny,a+rand(-.5,.5),l*.85,w*.8,d+1);if(Math.random()<.45)br(nx,ny,a+rand(-1.2,1.2),l*.6,w*.6,d+1)};
+  for(let i=0;i<26;i++)br(256,256,i/26*Math.PI*2,rand(20,35),5,0);
+  VE.tex=new THREE.CanvasTexture(cv);VE.tex._keep=true;return VE.tex}
+/* objetivo al que se le puede disparar (entra en la lista de los peligros) */
+function veTarget(name,center,hp,rad,onHit){const t={hz:true,ve:true,name,pos:center,center,vel:new THREE.Vector3(),isPlayer:false,alive:true,kills:0,hp,maxHp:hp,r2:rad*rad};
+  t.hit=(dmg,by)=>{if(!t.alive)return;if(onHit&&onHit(dmg,by)===false)return;t.hp-=dmg;hitFx(center.clone().add({x:rand(-rad*.4,rad*.4),y:rand(-rad*.4,rad*.4),z:rand(-rad*.4,rad*.4)}),0xff6a8a,false,null);if(t.hp<=0){t.alive=false;t.onDie&&t.onDie(by)}};
+  HZT.push(t);return t}
+function veUntarget(t){const i=HZT.indexOf(t);if(i>=0)HZT.splice(i,1);t.alive=false}
+/* sitio libre dentro de la zona segura */
+function veSpot(clear){const z=G.zone;for(let k=0;k<60;k++){const a=Math.random()*6.283,r=Math.sqrt(Math.random())*Math.min(z.r*.6,ARENA*.7),x=z.cx+Math.cos(a)*r,zz=z.cz+Math.sin(a)*r;
+    if(Math.hypot(x,zz)>ARENA*.82)continue;let ok=true;for(const y of [FLOOR+10,FLOOR+50,FLOOR+90])if(insideBox(_vv.set(x,y,zz),clear)){ok=false;break}
+    if(ok&&G.player.pos.distanceTo(_vv.set(x,G.player.pos.y,zz))>140)return new THREE.Vector3(x,FLOOR,zz)}
+  return new THREE.Vector3(z.cx+rand(-60,60),FLOOR,z.cz+rand(-60,60))}
+function veWin(t,sub){kpop(t,sub,null,false);tone(600,1500,.35,'sine',.06)}
+const veDir=p=>{const a=Math.atan2(p.x-G.player.pos.x,p.z-G.player.pos.z);return ['sur','sureste','este','noreste','norte','noroeste','oeste','suroeste'][((Math.round(a/(Math.PI/4))%8)+8)%8]};
+
+/* ---------- 1 · INFECCIÓN QUE SE EXTIENDE ---------- */
+function veInfeccion(){const C=veSpot(26),RMAX=170,LIFE=150,e={k:'inf',n:'Infección que se extiende',ic:'☣',col:'#ff3d6a',pos:C,t0:G.t,R:15};
+  const disc=veMesh(new THREE.Mesh(new THREE.PlaneGeometry(2.2,2.2),new THREE.MeshBasicMaterial({map:veVeins(),transparent:true,depthWrite:false,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-4})));disc.rotation.x=-Math.PI/2;disc.position.set(C.x,FLOOR+1.2,C.z);
+  const ring=veMesh(new THREE.Mesh(new THREE.TorusGeometry(1,.008,6,120),veBasic(0xff3d6a,1.2)));ring.rotation.x=-Math.PI/2;ring.position.set(C.x,FLOOR+2,C.z);
+  const top=new THREE.Vector3(C.x,FLOOR+70,C.z),grp=veMesh(new THREE.Group());grp.position.copy(top);
+  const cr=new THREE.Mesh(new THREE.OctahedronGeometry(16,0),veMat(0xff1e4a,1,0x500010));cr.scale.set(1,2.4,1);grp.add(cr);
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(3,7,520,12,1,true),new THREE.MeshBasicMaterial({color:new THREE.Color(0xff3d6a),transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));beam.position.y=230;grp.add(beam);
+  const gl=spr(FXT.flash,0xff2a5a);gl.scale.set(110,110,1);gl.material.opacity=.4;grp.add(gl);
+  const orb=[];for(let i=0;i<6;i++){const v=veVirus(7);grp.add(v);orb.push(v)}
+  const dg=new THREE.BoxGeometry(1,1,1),dm=veMat(0xff3d6a,.8,0x30000a),deb=[];const dG=veMesh(new THREE.Group());
+  for(let i=0;i<70;i++){const m=new THREE.Mesh(dg,dm);m.visible=false;dG.add(m);deb.push({m,a:rand(0,6.28),r:rand(0,1),y:rand(0,60),v:rand(6,16),s:rand(1.5,5)})}
+  const t=veTarget('foco de infección',top,450,24);
+  t.onDie=by=>{boom(top,0xff3d6a,2.4);noise(.7,.3);e.end=G.t;
+    if(by&&by.isPlayer){G.bits+=150;G.bitsT=(G.bitsT||0)+150;veWin('INFECCIÓN DETENIDA','+150 bits · has roto el foco');addPickup(PICK[0],top.clone())}
+    else feed('El foco de infección ha caído'+(by&&by.name?' por <b>'+by.name+'</b>':''),false)};
+  e.hud=()=>'radio '+Math.round(e.R)+' m'+(t.alive?' · foco '+Math.ceil(t.hp/t.maxHp*100)+' %':'');
+  e.step=dt=>{const age=G.t-e.t0;
+    if(e.end==null&&age>LIFE){e.end=G.t;feed('La infección se ha disipado',false)}
+    const fade=e.end!=null?Math.max(0,1-(G.t-e.end)/3):1;if(e.end!=null&&fade<=0){e.done=true;return}
+    if(e.end==null)e.R=Math.min(RMAX,15+age*1.7);
+    const R=e.R*fade;disc.scale.set(R,R,1);ring.scale.set(R,R,R);disc.material.opacity=fade;
+    grp.visible=t.alive;cr.rotation.y+=dt*.8;grp.position.y=top.y+Math.sin(G.t*1.5)*3;
+    orb.forEach((v,i)=>{const a=G.t*.7+i/6*6.283;v.position.set(Math.cos(a)*44,Math.sin(G.t*2+i)*14-6,Math.sin(a)*44);v.rotation.y+=dt})
+    for(const d of deb){d.y+=d.v*dt;if(d.y>70){d.y=0;d.a=rand(0,6.28);d.r=rand(.1,1)}const rr=d.r*R;d.m.visible=fade>0&&R>20;d.m.position.set(C.x+Math.cos(d.a)*rr,FLOOR+d.y,C.z+Math.sin(d.a)*rr);d.m.scale.setScalar(d.s*(1-d.y/80));d.m.rotation.set(d.y*.1,d.a+d.y*.05,0)}
+    if(e.end!=null)return;
+    for(const s of G.ships){if(!s.alive)continue;const dx=s.pos.x-C.x,dz=s.pos.z-C.z;if(dx*dx+dz*dz<R*R&&s.pos.y<FLOOR+110){hzHurt(s,5,t,'inf',.5);if(s.isPlayer)hzWarnSet('☣ Zona infectada · sal o rompe el foco','#ff3d6a',4)}}};
+  e.mini=(loc,sc)=>{const [x,y]=loc(C.x,C.z);mmc.fillStyle='rgba(255,40,80,.28)';mmc.beginPath();mmc.arc(x,y,e.R*sc,0,7);mmc.fill();mmc.strokeStyle='#ff3d6a';mmc.lineWidth=2;mmc.stroke()};
+  e.kill=()=>{veUntarget(t);[disc,ring,grp,dG].forEach(veFree)};
+  return e}
+
+/* ---------- 2 · MINERO DE BITS ---------- */
+function veMinero(){const C=veSpot(40),H=95,LIFE=200,e={k:'min',n:'Minero de bits',ic:'💎',col:'#ffb43d',pos:C,t0:G.t,bote:120};
+  const tw=veMesh(new THREE.Group());tw.position.copy(C);
+  const tm=new THREE.MeshStandardMaterial({color:0x0a1830,metalness:.7,roughness:.35,emissive:0xff8a1e,emissiveIntensity:.12});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(26,H,26),tm);body.position.y=H/2;tw.add(body);
+  const stM=veBasic(0x3ef6ff,1.1);for(let k=0;k<6;k++){const st=new THREE.Mesh(new THREE.BoxGeometry(26.6,1.2,26.6),stM);st.position.y=10+k*14;tw.add(st)}
+  col(C.x,C.z,14,14,FLOOR+H,FLOOR-1);const box=boxes[boxes.length-1];
+  const top=new THREE.Vector3(C.x,FLOOR+H+22,C.z);
+  const v=veVirus(13,0xff9a1e);v.position.y=H+22;tw.add(v);
+  const rg=new THREE.Mesh(new THREE.TorusGeometry(26,1.4,8,64),veBasic(0xffc84a,1.1));rg.position.y=H+22;rg.rotation.x=Math.PI/2.4;tw.add(rg);
+  const cm=veMat(0xffa020,.7,0x301000);
+  for(let i=0;i<6;i++){const a=i/6*6.283,pts=[new THREE.Vector3(0,H+14,0),new THREE.Vector3(Math.cos(a)*16,H+4,Math.sin(a)*16),new THREE.Vector3(Math.cos(a)*13.5,H-40,Math.sin(a)*13.5)];tw.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),20,1.2,6),cm))}
+  const sign=veSign(720,220);sign.position.y=H+62;tw.add(sign);let signT=0;
+  const gems=[],gG=new THREE.OctahedronGeometry(2,0),gM=veBasic(0x5cf0ff,1.1);for(let i=0;i<26;i++){const m=new THREE.Mesh(gG,gM);tw.add(m);gems.push({m,a:rand(0,6.28),k:Math.random()})}
+  const t=veTarget('minero de bits',top,700,22);
+  t.onDie=by=>{boom(top,0xffb43d,2.6);noise(.8,.3);e.end=G.t;const b=Math.round(e.bote);
+    if(by&&by.isPlayer){G.bits+=b;G.bitsT=(G.bitsT||0)+b;veWin('¡BOTE CONSEGUIDO!','+'+b+' bits');addPickup(PICK[3],top.clone())}
+    else feed('<b>'+((by&&by.name)||'Alguien')+'</b> se ha llevado el bote de '+b+' bits',false)};
+  e.hud=()=>(t.alive?'bote 💎 '+fmt(Math.round(e.bote)):'');
+  e.step=dt=>{const age=G.t-e.t0;
+    if(e.end==null&&age>LIFE){e.end=G.t;veUntarget(t);feed('El minero ha escapado con el bote de '+Math.round(e.bote)+' bits',false)}
+    if(e.end!=null){v.visible=rg.visible=sign.visible=false;gems.forEach(g=>g.m.visible=false);if(G.t-e.end>4){e.done=true}return}
+    e.bote=Math.min(2500,e.bote+14*dt);
+    signT-=dt;if(signT<=0){signT=.4;sign.set('💎 '+fmt(Math.round(e.bote)),'BOTE · DESTRÚYELO Y ES TUYO','#ffb43d')}
+    v.rotation.y+=dt*.6;rg.rotation.z+=dt*1.2;
+    for(const g of gems){g.k+=dt*.35;if(g.k>1){g.k=0;g.a=rand(0,6.28)}const r=150*(1-g.k)+4,y=H+22-(1-g.k)*(H*.6);g.m.position.set(Math.cos(g.a+g.k*2)*r,y,Math.sin(g.a+g.k*2)*r);g.m.rotation.y+=dt*3}
+    // los bots también van a por el bote
+    e.botT=(e.botT||0)-dt;if(e.botT<=0){e.botT=.45;let n=0;
+      for(const s of G.ships){if(s.isPlayer||!s.alive||(s.spawnT!=null&&!s.spawned))continue;const d=s.pos.distanceTo(top);
+        if(d<170&&!s.target){const dir=_vw.copy(top).sub(s.pos).normalize();dir.x+=rand(-.04,.04);dir.y+=rand(-.04,.04);dir.normalize();spawnShot(s,s.pos.clone().addScaledVector(dir,6),dir.clone(),9)}
+        else if(d<520&&!s.target&&n<3&&Math.random()<.15){s.wander.set(top.x+rand(-60,60),top.y+rand(-20,30),top.z+rand(-60,60));n++}}}
+    if(G.player.alive&&G.player.pos.distanceTo(top)<220)hzWarnSet('💎 Bote: '+fmt(Math.round(e.bote))+' bits · destruye el minero','#ffb43d',1)};
+  e.mini=(loc,sc)=>{const [x,y]=loc(C.x,C.z);mmc.fillStyle='#ffb43d';mmc.beginPath();mmc.arc(x,y,9,0,7);mmc.fill();mmc.fillStyle='#1a0e00';mmc.font='800 13px sans-serif';mmc.textAlign='center';mmc.textBaseline='middle';mmc.fillText('$',x,y+1)};
+  e.kill=()=>{veUntarget(t);veFree(tw);const i=boxes.indexOf(box);if(i>=0){boxes.splice(i,1)}};
+  return e}
+
+/* ---------- 3 · BASE HACKEADA ---------- */
+function veHackeada(){const C=veSpot(64),LIFE=240,e={k:'hak',n:'Base hackeada',ic:'⚠',col:'#ff3d6a',pos:C,t0:G.t};
+  const g=veMesh(new THREE.Group());g.position.copy(C);
+  const plat=new THREE.Mesh(new THREE.CylinderGeometry(52,58,8,6),new THREE.MeshStandardMaterial({color:0x1a0a10,metalness:.6,roughness:.4,emissive:0x400010,emissiveIntensity:.15}));plat.position.y=4;g.add(plat);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(53,.8,6,6),veBasic(0xff3d6a,1.1));rim.rotation.x=Math.PI/2;rim.position.y=8.5;g.add(rim);
+  const blk=new THREE.Mesh(new THREE.BoxGeometry(34,36,34),new THREE.MeshStandardMaterial({color:0x220810,metalness:.7,roughness:.35,emissive:0xff1e4a,emissiveIntensity:.06}));blk.position.y=26;g.add(blk);
+  const scrC=document.createElement('canvas');scrC.width=512;scrC.height=280;const sx=scrC.getContext('2d');
+  const drawScr=()=>{sx.fillStyle='#2a0008';sx.fillRect(0,0,512,280);sx.fillStyle='#ff3d6a';sx.font='800 italic 92px "Barlow Condensed",sans-serif';sx.textAlign='center';sx.fillText('⚠ HACKEADA',256,120);sx.font='700 46px "Barlow Condensed",sans-serif';sx.fillStyle='#ffb0c0';sx.fillText('SISTEMA BAJO CONTROL VIRUS',256,200);for(let i=0;i<10;i++){sx.fillStyle=i%2?'rgba(255,61,106,.5)':'rgba(255,255,255,.25)';sx.fillRect(Math.random()*512,Math.random()*280,80+Math.random()*200,3+Math.random()*6)}};
+  drawScr();const scrT=new THREE.CanvasTexture(scrC);
+  for(let k=0;k<4;k++){const s=new THREE.Mesh(new THREE.PlaneGeometry(26,14),new THREE.MeshBasicMaterial({map:scrT,toneMapped:false}));const a=k*Math.PI/2;s.position.set(Math.sin(a)*17.2,28,Math.cos(a)*17.2);s.rotation.y=a;g.add(s)}
+  col(C.x,C.z,18,18,FLOOR+44,FLOOR-1);const bx=[boxes[boxes.length-1]];
+  // torretas
+  const tur=[],twM=new THREE.MeshStandardMaterial({color:0x2a0a14,metalness:.6,emissive:0xff1e4a,emissiveIntensity:.05});
+  for(let k=0;k<4;k++){const a=k*Math.PI/2+Math.PI/4,px=Math.cos(a)*40,pz=Math.sin(a)*40;
+    const tw=new THREE.Mesh(new THREE.BoxGeometry(8,30,8),twM);tw.position.set(px,23,pz);g.add(tw);col(C.x+px,C.z+pz,5,5,FLOOR+44,FLOOR-1);bx.push(boxes[boxes.length-1]);
+    const hd=new THREE.Group();hd.position.set(px,42,pz);g.add(hd);const eyeM=veMat(0xff1e4a,.9,0x300008);hd.add(new THREE.Mesh(new THREE.SphereGeometry(5,14,10),eyeM));
+    const brl=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,10,8),new THREE.MeshStandardMaterial({color:0x111111}));brl.rotation.x=Math.PI/2;brl.position.z=6;hd.add(brl);
+    const center=new THREE.Vector3(C.x+px,FLOOR+42,C.z+pz);const T=veTarget('torreta hackeada',center,160,10);T.hd=hd;T.cool=rand(.5,1.5);T.burst=0;T.losT=0;T.los=true;T.eyeM=eyeM;
+    T.onDie=by=>{boom(center,0xff3d6a,1.4);noise(.4,.2);hd.visible=false;if(by&&by.isPlayer){G.bits+=40;G.bitsT=(G.bitsT||0)+40;feed('Torreta de la base destruida · +40 bits',true)}
+      if(tur.filter(x=>x.alive).length===2&&core.alive)feed('¡El escudo del virus ha caído! Dispárale',true)};tur.push(T)}
+  // el virus de arriba, con escudo mientras queden 3 o más torretas
+  const top=new THREE.Vector3(C.x,FLOOR+60,C.z);const v=veVirus(10);v.position.y=60;g.add(v);
+  const shM=new THREE.MeshBasicMaterial({color:new THREE.Color(0xff6a8a),transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,wireframe:true});
+  const shield=new THREE.Mesh(new THREE.IcosahedronGeometry(22,2),shM);shield.position.y=60;g.add(shield);
+  const shielded=()=>tur.filter(x=>x.alive).length>2;
+  const core=veTarget('virus de la base',top,500,20,(dmg,by)=>{if(shielded()){hitFx(top.clone().add({x:rand(-14,14),y:rand(-14,14),z:rand(-14,14)}),0xffa0b0,true,null);if(by&&by.isPlayer&&!(e.tip>G.t)){e.tip=G.t+5;toast('Escudo activo · destruye 2 torretas para romperlo')}return false}});
+  core.onDie=by=>{boom(top,0xff3d6a,2.6);noise(.8,.3);e.end=G.t;tur.forEach(x=>{if(x.alive){veUntarget(x);x.hd.visible=false}});
+    if(by&&by.isPlayer){G.bits+=250;G.bitsT=(G.bitsT||0)+250;veWin('BASE LIBERADA','+250 bits · has desconectado el virus');addPickup(PICK[0],top.clone().add({x:20,y:0,z:0}));addPickup(PICK[2],top.clone().add({x:-20,y:0,z:0}))}
+    else feed('La base hackeada ha sido liberada'+(by&&by.name?' por <b>'+by.name+'</b>':''),false)};
+  e.hud=()=>core.alive?(shielded()?'escudo · '+tur.filter(x=>x.alive).length+' torretas':'¡sin escudo!'):'';
+  e.step=dt=>{const age=G.t-e.t0;
+    if(e.end==null&&age>LIFE){e.end=G.t;veUntarget(core);tur.forEach(x=>veUntarget(x));feed('El virus abandona la base hackeada',false)}
+    if(e.end!=null){v.visible=shield.visible=false;rim.material.color.setHex(0x5cf0ff);if(G.t-e.end>5)e.done=true;return}
+    v.rotation.y+=dt*.7;shield.visible=shielded();shield.rotation.y-=dt*.3;
+    if(Math.random()<dt*2){drawScr();scrT.needsUpdate=true}
+    for(const T of tur){if(!T.alive)continue;
+      let best=T.tgt&&T.tgt.alive&&T.tgt.pos.distanceTo(T.center)<230?T.tgt:null;T.losT-=dt;
+      if(!best||T.losT<=0){let bd=230;best=null;for(const s of G.ships){if(!s.alive||(s.isPlayer&&G.camo>0)||(s.spawnT!=null&&!s.spawned))continue;const d=s.pos.distanceTo(T.center);if(d<bd){bd=d;best=s}}if(best){T.losT=.3;T.los=hzLOS(T.center,best.pos)}}
+      if(best&&!T.los)best=null;if(best!==T.tgt){T.tgt=best;T.aim=0}
+      const s=T.tgt;if(!s){T.hd.rotation.y+=dt*.8;continue}
+      T.hd.lookAt(s.pos);T.aim=(T.aim||0)+dt;T.cool-=dt;
+      if(T.aim>.8&&T.cool<=0){T.burst++;T.cool=T.burst%3===0?1.1:.18;const mz=_vv.set(0,0,10).applyQuaternion(T.hd.quaternion).add(T.center);
+        const dist=s.pos.distanceTo(mz),dir=_vw.copy(s.pos).addScaledVector(s.vel,dist/420).sub(mz).normalize();dir.x+=rand(-.025,.025);dir.y+=rand(-.025,.025);dir.normalize();
+        spawnShot(T,mz.clone(),dir.clone(),4);if(mz.distanceTo(G.player.pos)<220)tone(640,420,.05,'square',.012)}
+      if(s.isPlayer)hzWarnSet('⚠ La base hackeada te dispara','#ff3d6a',3)}};
+  e.mini=(loc,sc)=>{const [x,y]=loc(C.x,C.z);mmc.strokeStyle='rgba(255,61,106,.45)';mmc.lineWidth=2;mmc.beginPath();mmc.arc(x,y,230*sc,0,7);mmc.stroke();mmc.fillStyle='#ff3d6a';mmc.fillRect(x-7,y-7,14,14);mmc.fillStyle='#fff';mmc.font='800 12px sans-serif';mmc.textAlign='center';mmc.textBaseline='middle';mmc.fillText('!',x,y+1)};
+  e.kill=()=>{veUntarget(core);tur.forEach(veUntarget);veFree(g);scrT.dispose();for(const b of bx){const i=boxes.indexOf(b);if(i>=0)boxes.splice(i,1)}};
+  return e}
+
+const VE_TYPES={inf:veInfeccion,min:veMinero,hak:veHackeada};
+function veSpawn(k){if(!k){if(!VE.order.length)VE.order=Object.keys(VE_TYPES).sort(()=>Math.random()-.5);k=VE.order.pop()}
+  const e=VE_TYPES[k]();VE.list.push(e);
+  banner('⚠ ATAQUE DE VIRUS',e.n+' · al '+veDir(e.pos),'red',3.2);feed(e.ic+' <b>'+e.n+'</b> en el mapa · mira tu radar',true);tone(220,520,.4,'sawtooth',.05);return e}
+function veReset(){for(const e of VE.list)try{e.kill()}catch(err){}VE.list.length=0;VE.next=0;VE.order=[];const h=document.getElementById('veH');if(h)h.hidden=true}
+function veStep(dt){if(!veOn()){return}
+  if(!VE.next)VE.next=G.t+rand(55,75);
+  if(G.t>VE.next){if(!VE.list.length&&G.player.alive&&G.zone.r>220)veSpawn();VE.next=G.t+rand(90,120)}
+  for(const e of VE.list)e.step(dt);
+  for(let i=VE.list.length-1;i>=0;i--)if(VE.list[i].done){VE.list[i].kill();VE.list.splice(i,1)}}
+/* aviso fijo arriba: qué ataque hay, a cuánta distancia y hacia dónde */
+const veH=document.createElement('div');veH.id='veH';veH.hidden=true;veH.innerHTML='<i class="ar">▲</i><span class="ic"></span><span class="tx"><b></b><small></small></span>';{const P=$('P');if(P)P.appendChild(veH)}
+function veHud(){const e=VE.list.find(x=>x.end==null);if(!veOn()||!e||!G.player.alive){veH.hidden=true;return}veH.hidden=false;veH.style.setProperty('--c',e.col);
+  const p=G.player.pos,d=Math.hypot(e.pos.x-p.x,e.pos.z-p.z),a=Math.atan2(-(e.pos.x-p.x),-(e.pos.z-p.z))-G.yaw;
+  veH.querySelector('.ar').style.transform='rotate('+(-a)+'rad)';veH.querySelector('.ic').textContent=e.ic;veH.querySelector('b').textContent=e.n;veH.querySelector('small').textContent=Math.round(d)+' m'+(e.hud()?' · '+e.hud():'')}
+{const st=hzStep;hzStep=function(dt){st.apply(this,arguments);try{veStep(dt)}catch(err){console.error(err)}}}
+{const hc=hzClear;hzClear=function(){veReset();return hc.apply(this,arguments)}}
+{const hh=hzHud;hzHud=function(dt){hh.apply(this,arguments);veHud()}}
+{const hm=hzMini;hzMini=function(loc,sc){hm.apply(this,arguments);if(veOn())for(const e of VE.list)if(e.end==null)e.mini(loc,sc)}}
+{const st=document.createElement('style');st.textContent=`
+#veH{position:absolute;left:50%;top:calc(9.2*var(--u));transform:translateX(-50%);display:flex;align-items:center;gap:calc(.6*var(--u));padding:calc(.4*var(--u)) calc(1.1*var(--u)) calc(.4*var(--u)) calc(.5*var(--u));border-radius:99px;background:rgba(8,4,14,.78);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 0 calc(1.6*var(--u)) color-mix(in srgb,var(--c) 30%,transparent);pointer-events:none;z-index:5;white-space:nowrap}
+#veH[hidden]{display:none}
+#veH .ar{font-style:normal;display:grid;place-items:center;width:calc(2.1*var(--u));height:calc(2.1*var(--u));border-radius:50%;background:var(--c);color:#12040a;font-size:calc(.95*var(--u))}
+#veH .ic{font-size:calc(1.3*var(--u))}
+#veH b{display:block;font:800 calc(1*var(--u)) var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
+#veH small{display:block;font:700 calc(.8*var(--u)) var(--ui);color:#e8dfe8}
+`;document.head.appendChild(st)}
+window.__ve={spawn:k=>veSpawn(k),list:()=>VE.list.map(e=>({k:e.k,done:!!e.done,end:e.end,R:e.R,bote:e.bote,pos:e.pos.toArray()})),VE,step:dt=>veStep(dt)};
+
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
 let _instEv=null;
