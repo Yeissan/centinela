@@ -5571,7 +5571,7 @@ function veMinero(){const C=veSpot(40),H=95,LIFE=200,e={k:'min',n:'Minero de bit
     if(e.end==null&&age>LIFE){e.end=G.t;veUntarget(t);feed('El minero ha escapado con el bote de '+Math.round(e.bote)+' bits',false)}
     if(e.end!=null){v.visible=rg.visible=sign.visible=false;gems.forEach(g=>g.m.visible=false);if(G.t-e.end>4){e.done=true}return}
     e.bote=Math.min(2500,e.bote+14*dt);
-    signT-=dt;if(signT<=0){signT=.4;sign.set('💎 '+fmt(Math.round(e.bote)),'BOTE · DESTRÚYELO Y ES TUYO','#ffb43d')}
+    signT-=dt;if(signT<=0){signT=.4;sign.set('💎 '+fmt(Math.round(e.bote)),(typeof T==='function'?T:x=>x)('BOTE · DESTRÚYELO Y ES TUYO'),'#ffb43d')}
     v.rotation.y+=dt*.6;rg.rotation.z+=dt*1.2;
     for(const g of gems){g.k+=dt*.35;if(g.k>1){g.k=0;g.a=rand(0,6.28)}const r=150*(1-g.k)+4,y=H+22-(1-g.k)*(H*.6);g.m.position.set(Math.cos(g.a+g.k*2)*r,y,Math.sin(g.a+g.k*2)*r);g.m.rotation.y+=dt*3}
     // los bots también van a por el bote
@@ -5591,7 +5591,7 @@ function veHackeada(){const C=veSpot(64),LIFE=240,e={k:'hak',n:'Base hackeada',i
   const rim=new THREE.Mesh(new THREE.TorusGeometry(53,.8,6,6),veBasic(0xff3d6a,1.1));rim.rotation.x=Math.PI/2;rim.position.y=8.5;g.add(rim);
   const blk=new THREE.Mesh(new THREE.BoxGeometry(34,36,34),new THREE.MeshStandardMaterial({color:0x220810,metalness:.7,roughness:.35,emissive:0xff1e4a,emissiveIntensity:.06}));blk.position.y=26;g.add(blk);
   const scrC=document.createElement('canvas');scrC.width=512;scrC.height=280;const sx=scrC.getContext('2d');
-  const drawScr=()=>{sx.fillStyle='#2a0008';sx.fillRect(0,0,512,280);sx.fillStyle='#ff3d6a';sx.font='800 italic 92px "Barlow Condensed",sans-serif';sx.textAlign='center';sx.fillText('⚠ HACKEADA',256,120);sx.font='700 46px "Barlow Condensed",sans-serif';sx.fillStyle='#ffb0c0';sx.fillText('SISTEMA BAJO CONTROL VIRUS',256,200);for(let i=0;i<10;i++){sx.fillStyle=i%2?'rgba(255,61,106,.5)':'rgba(255,255,255,.25)';sx.fillRect(Math.random()*512,Math.random()*280,80+Math.random()*200,3+Math.random()*6)}};
+  const drawScr=()=>{sx.fillStyle='#2a0008';sx.fillRect(0,0,512,280);sx.fillStyle='#ff3d6a';sx.font='800 italic 92px "Barlow Condensed",sans-serif';sx.textAlign='center';sx.fillText((typeof T==='function'?T:x=>x)('⚠ HACKEADA'),256,120);sx.font='700 46px "Barlow Condensed",sans-serif';sx.fillStyle='#ffb0c0';sx.fillText((typeof T==='function'?T:x=>x)('SISTEMA BAJO CONTROL VIRUS'),256,200);for(let i=0;i<10;i++){sx.fillStyle=i%2?'rgba(255,61,106,.5)':'rgba(255,255,255,.25)';sx.fillRect(Math.random()*512,Math.random()*280,80+Math.random()*200,3+Math.random()*6)}};
   drawScr();const scrT=new THREE.CanvasTexture(scrC);
   for(let k=0;k<4;k++){const s=new THREE.Mesh(new THREE.PlaneGeometry(26,14),new THREE.MeshBasicMaterial({map:scrT,toneMapped:false}));const a=k*Math.PI/2;s.position.set(Math.sin(a)*17.2,28,Math.cos(a)*17.2);s.rotation.y=a;g.add(s)}
   col(C.x,C.z,18,18,FLOOR+44,FLOOR-1);const bx=[boxes[boxes.length-1]];
@@ -5661,6 +5661,367 @@ function veHud(){const e=VE.list.find(x=>x.end==null);if(!veOn()||!e||!G.player.
 #veH small{display:block;font:700 calc(.8*var(--u)) var(--ui);color:#e8dfe8}
 `;document.head.appendChild(st)}
 window.__ve={spawn:k=>veSpawn(k),list:()=>VE.list.map(e=>({k:e.k,done:!!e.done,end:e.end,R:e.R,bote:e.bote,pos:e.pos.toArray()})),VE,step:dt=>veStep(dt)};
+
+/* =====================================================================
+   TUTORIAL · 1 minuto, 5 pasos (mirar, anillos, virus de práctica, arma especial, turbo + mejora)
+   Sale solo la primera vez que alguien pulsa JUGAR y luego desde el botón del menú.
+   ===================================================================== */
+let TUT=null;
+const TUT_STEPS=TOUCH?[
+  {t:'Mira a tu alrededor',s:'Arrastra el dedo por la derecha de la pantalla para apuntar',l:'Mira a tu alrededor'},
+  {t:'Atraviesa los anillos',s:'Usa el <span class="kk">joystick</span> para girar y pasa por dentro',l:'Atraviesa 3 anillos'},
+  {t:'Derriba los virus',s:'Apunta y pulsa el botón de <span class="kk">disparo</span>',l:'Derriba 3 virus de práctica'},
+  {t:'Arma especial',s:'Pulsa el botón del <span class="kk">misil</span>',l:'Usa tu arma especial'},
+  {t:'Turbo y mejoras',s:'Pulsa <span class="kk">turbo</span> y recoge la mejora azul',l:'Turbo y recoge una mejora'}]:[
+  {t:'Mira a tu alrededor',s:'Mueve el <span class="kk">ratón</span> para apuntar y girar',l:'Mira con el ratón'},
+  {t:'Atraviesa los anillos',s:'<span class="kk">W</span> acelera · mueve el <span class="kk">ratón</span> para girar',l:'Atraviesa 3 anillos'},
+  {t:'Derriba los virus',s:'Apunta y <span class="kk">clic</span> para disparar',l:'Derriba 3 virus de práctica'},
+  {t:'Arma especial',s:'<span class="kk">Clic derecho</span> lanza tu misil',l:'Lanza un misil (clic der.)'},
+  {t:'Turbo y mejoras',s:'Mantén <span class="kk">Shift</span> para el turbo y recoge la mejora azul',l:'Turbo y recoge una mejora'}];
+function tutStart(){if(TUT)return;TUT={prev:GMODE,step:-1,objs:[],tg:[]};GMODE='tut';startGame()}
+{const mp=mapPick;mapPick=function(){return GMODE==='tut'?0:mp.apply(this,arguments)}}
+/* la primera vez que alguien pulsa JUGAR, primero el tutorial */
+{const sg=startGame;startGame=function(){if(!TUT&&!PR.tutSeen&&GMODE==='br'){PR.tutSeen=1;saveP();return tutStart()}return sg.apply(this,arguments)}}
+{const th=toHangar;toHangar=function(){if(TUT){tutClean();GMODE=TUT.prev;TUT=null;tutUI(false)}return th.apply(this,arguments)}}
+{const fm=fireMissile;fireMissile=function(){const a=G?G.ammo:0;const r=fm.apply(this,arguments);if(TUT&&G&&TUT.step===3&&G.ammo<a)TUT.ok=true;return r}}
+function tutClean(){if(!TUT)return;for(const o of TUT.objs)veFree(o);TUT.objs=[];for(const t of TUT.tg)veUntarget(t);TUT.tg=[]}
+const tutAhead=(d,side,up)=>{const p=G.player.pos,f=playerFwd(new THREE.Vector3());f.y=0;f.normalize();const r=new THREE.Vector3(-f.z,0,f.x);
+  const v=p.clone().addScaledVector(f,d).addScaledVector(r,side||0);v.y=clamp(p.y+(up||0),FLOOR+30,CEIL-30);for(let k=0;k<10&&insideBox(v,18);k++)v.y+=15;return v};
+function tutGo(n){tutClean();TUT.step=n;TUT.ok=false;TUT.acc=0;TUT.cnt=0;const p=G.player;
+  if(n===1){TUT.rings=[];const f=playerFwd(new THREE.Vector3());f.y=0;f.normalize();
+    for(let i=0;i<3;i++){const c=tutAhead(110+i*95,[0,-35,30][i],[0,12,-8][i]);const g=new THREE.Group();g.position.copy(c);g.lookAt(c.clone().add(f));
+      const m=new THREE.Mesh(new THREE.TorusGeometry(16,1.3,10,48),new THREE.MeshBasicMaterial({color:new THREE.Color(0x5cf0ff),toneMapped:false,transparent:true}));g.add(m);
+      const gl=spr(FXT.flash,0x5cf0ff);gl.scale.set(60,60,1);gl.material.opacity=.25;g.add(gl);GS.add(g);TUT.objs.push(g);TUT.rings.push({g,m,c,done:false})}}
+  if(n===2){for(let i=0;i<3;i++){const c=tutAhead(130,(i-1)*40,[0,14,-6][i]);const v=veVirus(5);v.position.copy(c);GS.add(v);TUT.objs.push(v);
+    const t=veTarget('virus de práctica',c,40,9);t.onDie=()=>{boom(c,0xff3d6a,1.2);v.visible=false;TUT.cnt++};TUT.tg.push(t)}}
+  if(n===3){G.ammo=Math.max(G.ammo,2);G.ammoMax=Math.max(G.ammoMax,2)}
+  if(n===4){TUT.pick=G.picks;TUT.turbo=0;addPickup(PICK[0],tutAhead(150,0,0))}
+  tutUI(true)}
+function tutUI(on){let el=document.getElementById('tut');if(!on){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.id='tut';$('P').appendChild(el);
+    el.innerHTML='<div class="tc"><div class="tp"></div><div class="tt"></div><div class="ts"></div><div class="td"></div><button type="button" class="tk">Saltar tutorial</button></div><div class="tl"><b>Tutorial · 1 minuto</b><div class="tli"></div></div><div class="tn"></div>';
+    el.querySelector('.tk').addEventListener('click',e=>{e.stopPropagation();toHangar()})}
+  const n=Math.max(0,TUT.step),S=TUT_STEPS[n];
+  el.querySelector('.tp').textContent='Tutorial · paso '+(n+1)+' de 5';el.querySelector('.tt').textContent=S.t;el.querySelector('.ts').innerHTML=S.s;
+  el.querySelector('.td').innerHTML=TUT_STEPS.map((_,i)=>'<i class="'+(i<n?'ok':i===n?'on':'')+'"></i>').join('');
+  el.querySelector('.tli').innerHTML=TUT_STEPS.map((x,i)=>'<div class="st'+(i<n?' ok':i===n?' on':'')+'"><i>'+(i<n?'✓':i+1)+'</i>'+x.l+'</div>').join('')}
+function tutNote(t){const n=document.querySelector('#tut .tn');if(!n)return;n.textContent=t;n.classList.remove('pop');void n.offsetWidth;n.classList.add('pop')}
+function tutNext(){tone(700,1400,.2,'sine',.05);if(TUT.step>=4){tutDone();return}tutGo(TUT.step+1)}
+function tutDone(){TUT.step=5;tutClean();
+  const first=!PR.tutDone;PR.tutDone=1;if(first){PR.bits+=200}saveP();
+  if(typeof c3Stat==='function')c3Stat('tut');
+  banner('¡TUTORIAL COMPLETADO!',first?'+200 bits · ya estás listo para el Battle Royale':'Ya estás listo para el Battle Royale','gold',3.2);tone(600,1600,.4,'sine',.06);
+  const el=document.getElementById('tut');if(el)el.classList.add('fin');
+  setTimeout(()=>{if(TUT&&G&&G.mode==='tut')toHangar()},3600)}
+function tutStep(dt){if(!TUT||!G||G.mode!=='tut')return;const p=G.player;
+  p.hull=p.maxH;G.zone.timer=Math.max(G.zone.timer,300);G.zone.state='wait';
+  G.introShown=true;if(G.intro>0||TUT.step>=5)return;
+  if(TUT.step<0){TUT.f0=playerFwd(new THREE.Vector3());$('kf').innerHTML='';tutGo(0);return}
+  const f=playerFwd(new THREE.Vector3());
+  if(TUT.step===0){TUT.acc+=f.angleTo(TUT.f0);TUT.f0.copy(f);if(TUT.acc>2.2)tutNext();return}
+  if(TUT.step===1){const nx=TUT.rings.find(r=>!r.done);if(!nx){tutNext();return}
+    TUT.rings.forEach(r=>{r.m.material.opacity=r===nx?1:r.done?.15:.45;r.m.material.color.setHex(r.done?0x58f29a:0x5cf0ff)});nx.g.rotation.z+=dt;
+    if(p.pos.distanceTo(nx.c)<18){nx.done=true;tone(900,1500,.12,'sine',.05);const k=TUT.rings.filter(r=>r.done).length;tutNote('Anillo '+k+' de 3 ✓')}
+    else if(p.pos.distanceTo(nx.c)>420){/* se ha alejado mucho: los anillos vuelven a ponerse delante */tutGo(1)}
+    return}
+  if(TUT.step===2){for(const o of TUT.objs)o.rotation.y+=dt;if(TUT.cnt!==TUT.shown){TUT.shown=TUT.cnt;if(TUT.cnt)tutNote('Virus '+TUT.cnt+' de 3 ✓')}
+    if(TUT.cnt>=3)tutNext();else if(TUT.tg.every(t=>t.center.distanceTo(p.pos)>500))tutGo(2);return}
+  if(TUT.step===3){if(G.ammo<1)G.ammo=1;if(TUT.ok)tutNext();return}
+  if(TUT.step===4){if(G.boost<100&&(keys.ShiftLeft||keys.ShiftRight||G.tTbo||(PAD.on&&PAD.boost)))TUT.turbo+=dt;
+    const pk=G.picks>TUT.pick,tb=TUT.turbo>.6;
+    if(tb&&!TUT.tbN){TUT.tbN=1;tutNote('Turbo ✓')}if(pk&&!TUT.pkN){TUT.pkN=1;tutNote('Mejora recogida ✓')}
+    if(pk&&tb)tutNext();else if(!pk&&!pickups.length)addPickup(PICK[0],tutAhead(150,0,0))}}
+{const st=hzStep;hzStep=function(dt){st.apply(this,arguments);try{tutStep(dt)}catch(err){console.error(err)}}}
+window.__tut={start:()=>tutStart(),st:()=>TUT&&{step:TUT.step,cnt:TUT.cnt,ok:TUT.ok},go:n=>tutGo(n),tg:()=>TUT?TUT.tg:[],rings:()=>TUT&&TUT.rings?TUT.rings.map(r=>r.c):[]};
+{const st=document.createElement('style');st.textContent=`
+#tut .tc{position:absolute;left:50%;top:calc(8.5*var(--u));transform:translateX(-50%);text-align:center;padding:calc(1*var(--u)) calc(2.2*var(--u));border-radius:calc(1.4*var(--u));background:rgba(4,10,22,.82);box-shadow:inset 0 0 0 1.5px rgba(92,240,255,.6),0 0 calc(2*var(--u)) rgba(92,240,255,.3);z-index:9;color:#fff;pointer-events:auto}
+#tut .tp{font:800 calc(.8*var(--u)) var(--ui);letter-spacing:.2em;color:#5cf0ff;text-transform:uppercase}
+#tut .tt{font:800 italic calc(2.3*var(--u))/1.1 var(--hx);text-transform:uppercase;margin:calc(.3*var(--u)) 0;text-shadow:0 0 calc(1.2*var(--u)) rgba(92,240,255,.6)}
+#tut .ts{font:700 calc(1*var(--u)) var(--ui);color:#dfe8f2}
+#tut .kk{display:inline-block;padding:0 calc(.45*var(--u));border-radius:calc(.4*var(--u));background:rgba(92,240,255,.15);box-shadow:inset 0 0 0 1px rgba(92,240,255,.5)}
+#tut .td{display:flex;gap:calc(.4*var(--u));justify-content:center;margin:calc(.7*var(--u)) 0 calc(.4*var(--u))}#tut .td i{width:calc(1.6*var(--u));height:calc(.35*var(--u));border-radius:9px;background:rgba(255,255,255,.18)}#tut .td i.ok{background:#58f29a}#tut .td i.on{background:#5cf0ff}
+#tut .tk{border:0;background:none;color:#9fb3c8;font:700 calc(.75*var(--u)) var(--ui);letter-spacing:.1em;text-transform:uppercase;text-decoration:underline;cursor:pointer}
+#tut .tl{position:absolute;right:calc(1.6*var(--u));top:calc(13*var(--u));width:calc(17*var(--u));padding:calc(.9*var(--u)) calc(1.1*var(--u));border-radius:calc(1.1*var(--u));background:rgba(4,10,22,.8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);z-index:9}
+#tut .tl b{display:block;font:800 calc(.75*var(--u)) var(--ui);letter-spacing:.18em;color:#9fb3c8;text-transform:uppercase;margin-bottom:calc(.4*var(--u))}
+#tut .st{display:flex;gap:calc(.6*var(--u));align-items:center;font:700 calc(.95*var(--u)) var(--ui);margin:calc(.4*var(--u)) 0;color:#c8d4e2}
+#tut .st i{font-style:normal;flex:none;width:calc(1.4*var(--u));height:calc(1.4*var(--u));border-radius:50%;display:grid;place-items:center;font-size:calc(.7*var(--u));background:rgba(255,255,255,.1)}
+#tut .st.ok i{background:#58f29a;color:#031}#tut .st.on{color:#fff}#tut .st.on i{background:#5cf0ff;color:#031}
+#tut .tn{position:absolute;left:50%;top:62%;transform:translateX(-50%);font:800 italic calc(1.8*var(--u)) var(--hx);color:#5cf0ff;text-shadow:0 0 calc(1*var(--u)) #5cf0ff;opacity:0;z-index:9;white-space:nowrap}
+#tut .tn.pop{animation:tutpop 1.6s ease-out}@keyframes tutpop{0%{opacity:0;transform:translate(-50%,10px)}15%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0}}
+#tut.fin .tc,#tut.fin .tl{display:none}
+`;document.head.appendChild(st)}
+
+/* =====================================================================
+   DEMO PÚBLICA: menú honesto (sin amigos inventados), "Cómo se juega",
+   botón del tutorial y contador de partidas en el servidor (sin datos personales)
+   ===================================================================== */
+{const fr=document.querySelector('.glass.fr');if(fr){
+  const row=(k,t)=>'<div class="cgr"><span class="kk">'+k+'</span><span>'+t+'</span></div>';
+  fr.innerHTML='<div class="cgh"><span class="lab">Cómo se juega</span><span class="cgt">'+(TOUCH?'MÓVIL':'PC')+'</span></div>'+
+   (TOUCH?row('Joystick','Girar y moverte')+row('Arrastrar','Apuntar')+row('Disparo','Disparar')+row('Misil','Arma especial')+row('Turbo','Ir más rápido')+row('Bengalas','Contra misiles')
+         :row('W / S','Acelerar y frenar')+row('Ratón','Apuntar y girar')+row('Clic','Disparar')+row('Clic der.','Misil')+row('Shift','Turbo')+row('C','Bengalas contra misiles'))+
+   '<button type="button" class="cgb" id="tutBtn">▶ Tutorial · 1 minuto</button>';
+  $('tutBtn').addEventListener('click',()=>{tone(500,900,.1,'sine',.04);tutStart()})}}
+{const sq=document.getElementById('squad');if(sq)sq.style.display='none'}
+/* el texto del mapa dice lo que de verdad pasa */
+const liveTx=()=>({br:'Tú contra 15 bots',pve:'Tú contra oleadas de virus',zombie:'Tú contra oleadas de virus',invierno:'Tú contra oleadas de virus',duel:'Contra una persona real',ffa:'Contra personas reales'})[GMODE]||'Tú contra bots';
+{const mc=mapCard;mapCard=function(){mc.apply(this,arguments);const s=document.querySelector('.mode .tx span');if(s)s.innerHTML='<i class="live"></i> '+liveTx()}}
+mapCard();
+/* contador de partidas */
+const C3_SID=(()=>{try{let s=localStorage.getItem('c3d_sid');if(!s){s=Math.random().toString(36).slice(2,12);localStorage.setItem('c3d_sid',s)}return s}catch(e){return ''}})();
+const C3_ORIG=(()=>{try{const r=document.referrer?new URL(document.referrer).hostname:'';const h=r||location.hostname;return /itch\.(io|zone)/.test(h)?'itch.io':/crazygames/.test(h)?'crazygames':/github\.io/.test(h)?'web':/t\.me|telegram/.test(h)?'telegram':h||'directo'}catch(e){return 'directo'}})();
+function c3Stat(e,x){try{const b=JSON.stringify(Object.assign({e,s:C3_SID,o:C3_ORIG,l:(typeof LANG!=='undefined'?LANG:'es')},x||{}));
+  if(e==='end'&&navigator.sendBeacon)navigator.sendBeacon(CL_URL+'/c3d/stat',new Blob([b],{type:'text/plain'}));else fetch(CL_URL+'/c3d/stat',{method:'POST',headers:{'Content-Type':'application/json'},body:b}).catch(()=>{})}catch(err){}}
+{const sg=startGame2;startGame2=async function(){const r=await sg.apply(this,arguments);if(G&&(MODE==='game'||MODE==='launch')){G._c3t=performance.now();G._c3m=G.mode;c3Stat('start',{m:G.mode})}return r}}
+function c3End(){if(G&&G._c3t&&!G._c3e){G._c3e=1;c3Stat('end',{m:G._c3m,d:(performance.now()-G._c3t)/1000})}}
+{const eg=endGame;endGame=function(){c3End();return eg.apply(this,arguments)}}
+{const th=toHangar;toHangar=function(){c3End();return th.apply(this,arguments)}}
+addEventListener('pagehide',()=>{if(MODE==='game')c3End()});
+{const st=document.createElement('style');st.textContent=`
+.glass.fr .cgh{display:flex;justify-content:space-between;align-items:center}
+.cgr{display:flex;align-items:center;gap:calc(.7*var(--u));font:700 calc(.9*var(--u)) var(--ui);color:#dfe8f2;margin-top:calc(.36*var(--u))}
+.cgr .kk{min-width:calc(4.6*var(--u));text-align:center;padding:calc(.2*var(--u)) calc(.5*var(--u));border-radius:calc(.5*var(--u));background:rgba(92,240,255,.12);box-shadow:inset 0 0 0 1px rgba(92,240,255,.45);color:#bff8ff;font:800 calc(.8*var(--u)) var(--ui)}
+.cgt{font:800 calc(.7*var(--u)) var(--ui);letter-spacing:.14em;padding:calc(.2*var(--u)) calc(.6*var(--u));border-radius:99px;background:rgba(255,255,255,.08);color:#9fb3c8}
+.cgb{margin-top:calc(.7*var(--u));width:100%;height:calc(2.3*var(--u));border:0;border-radius:calc(.8*var(--u));font:800 calc(.95*var(--u)) var(--ui);letter-spacing:.12em;text-transform:uppercase;color:#031018;background:linear-gradient(180deg,#e9fdff,#5cf0ff 60%,#22b8d8);box-shadow:0 0 calc(1.4*var(--u)) rgba(92,240,255,.45);cursor:pointer}
+.cgb:hover{filter:brightness(1.1)}
+`;document.head.appendChild(st)}
+
+/* Diccionario español → inglés. {n} = un número (se copia en el mismo orden). */
+const I18N_EN={
+"(la tienes en el":"(you have it in the","(tienes el":"(you have the",
+": el navegador solo lo detecta después de pulsar algo.":": the browser only detects it after you press something.",
+": el rival soltó bengalas":": your rival dropped flares",
+": llegará cuando el servidor tenga partidas en directo":": coming when the server has live matches",
+"ALT":"ALT","ALTURA":"ALTITUDE","ARMAS":"WEAPONS","ARMAS DAÑADAS":"WEAPONS DAMAGED","AUTO":"AUTO","Abierta":"Open",
+"Acelerar y frenar":"Speed up / slow down","Activa el pase Élite para conseguirlo":"Activate the Elite pass to get it","Activar Élite ·":"Activate Elite ·",
+"Ahora ataca a tus rivales":"Now it attacks your rivals",
+"Ahora mismo cada paquete se da gratis para probar. Cuando conectemos el pago de prueba, saldrá la pantalla de pago y se paga con la tarjeta {n}, sin cobrar nada.":"Right now every pack is free to try. When test payments are connected, a payment screen will appear and you pay with card {n}, without being charged.",
+"Ajustes":"Settings","Al {n} % ahora mismo":"At {n} % right now","Al {n} % al momento":"At {n} % instantly","Alcance":"Range","Ametralladora":"Machine gun","Ametralladora rotativa":"Rotary cannon",
+"Anuncio de prueba…":"Test ad…","Apunta y":"Aim and","Apunta y pulsa el botón de":"Aim and press the","Apuntar y girar":"Aim and turn",
+"Archipiélago Nube":"Cloud Archipelago","Archipiélago Nube · Zona {n}":"Cloud Archipelago · Zone {n}","Archivo Perdido":"Lost Archive","Archivo Perdido · Reto especial":"Lost Archive · Special challenge",
+"Arma nivel {n}":"Weapon level {n}","Arma principal":"Main weapon","Arma secundaria":"Secondary weapon","Armas":"Weapons","Armería":"Armory",
+"Arrastra el dedo por la derecha de la pantalla para apuntar":"Drag your finger on the right side of the screen to aim","Arrastra la nave para girarla":"Drag the ship to rotate it","Arrastra para girar · toca una zona":"Drag to rotate · tap a zone",
+"Asalto":"Assault","Asalto al":"Assault on the","Asignado: botón":"Assigned: button","Atraviesa los anillos":"Fly through the rings","Aviso · Equipo Centinela":"Notice · Centinela Team",
+"Avión con ayuda":"Assisted plane","Avión manual":"Manual plane","Azul glaciar, como recién salida del congelador del servidor.":"Glacier blue, fresh out of the server's freezer.","AÉREO · COMBATE VERTICAL":"AERIAL · VERTICAL COMBAT",
+"BAJAS":"KILLS","BATTLE ROYALE":"BATTLE ROYALE","BATTLE ROYALE · PLACA BASE":"BATTLE ROYALE · MOTHERBOARD","BENGALAS":"FLARES","BITS":"BITS","BOTE · DESTRÚYELO Y ES TUYO":"JACKPOT · DESTROY IT AND IT'S YOURS","BOTS · NORMAL":"BOTS · NORMAL",
+"Backdoor · {n} m":"Backdoor · {n} m","Baja va mejor en móviles sencillos":"Low runs better on basic phones","Bajas":"Kills","Bajas +{n}":"Kills +{n}","Bajas ×{n}":"Kills ×{n}","Barrera láser":"Laser barrier",
+"Base hackeada":"Hacked base","Bastión":"Bastion","Battle royale · Placa Base · Normal":"Battle royale · Motherboard · Normal","Bengalas contra misiles":"Flares vs. missiles","Blindaje":"Armor","Bloqueada":"Locked",
+"Borde dorado del pase Élite.":"Golden border from the Elite pass.","Borde naranja del evento de Halloween.":"Orange border from the Halloween event.","Borde rojo navideño en tu foto de perfil.":"Christmas red border on your profile picture.","Borde rosa neón en tu foto de perfil.":"Neon pink border on your profile picture.",
+"Borrar":"Delete","Borrar progreso":"Delete progress","Botín extra":"Extra loot","Busca escudos azules o aléjate":"Find blue shields or get away","Buscando partida con":"Looking for a match with","Buscando rival":"Looking for a rival","Buzón":"Mailbox","Básico":"Basic",
+"CALOR":"HEAT","CAMBIAR MODO":"CHANGE MODE","CARGANDO NAVE":"LOADING SHIP","CASCO CRÍTICO":"HULL CRITICAL","CENTINELA · RAMPA {n} · DESTINO: PLACA BASE":"CENTINELA · RAMP {n} · DESTINATION: MOTHERBOARD",
+"CLIC":"CLICK","CLIC DER.":"RIGHT CLICK","CLÁSICO · COMBATE MIXTO":"CLASSIC · MIXED COMBAT","CLÁSICO · EL DE SIEMPRE":"CLASSIC · THE ORIGINAL","CLÁSICO · {n} NAVES":"CLASSIC · {n} SHIPS","CONEXIÓN PERDIDA":"CONNECTION LOST","CONGELACIÓN DEL SISTEMA":"SYSTEM FREEZE",
+"CRU":"CRU","CRUCERO":"CRUISE","Cabina":"Cockpit","Cada mapa tiene sus propias defensas que atacan a todos":"Each map has its own defenses that attack everyone","Cadencia":"Fire rate",
+"Cae la noche en el sistema. Los virus que derribas se levantan otra vez como zombis verdes. Protege el núcleo hasta el amanecer y vence al":"Night falls on the system. The viruses you shoot down rise again as green zombies. Protect the core until dawn and defeat the",
+"Calabaza":"Pumpkin","Calidad gráfica":"Graphics quality","Calidad gráfica ajustada a «":"Graphics quality set to «","Cambiar arma":"Switch weapon","Cambiar de arma":"Switch weapon","Cambiar en el hangar ›":"Change in the hangar ›","Cambiar mapa":"Change map","Cambiar tu nombre":"Change your name","Cambiar vista":"Change view",
+"Camuflaje":"Camouflage","Cancelar":"Cancel","Carbono":"Carbon","Carga un segundo y atraviesa a todos los enemigos en línea.":"Charges for a second and pierces every enemy in a line.","Cargando el ranking de Centinela…":"Loading the Centinela ranking…","Cargando naves y mapa…":"Loading ships and map…",
+"Cañón de plasma":"Plasma cannon","Cañón de riel":"Railgun","Chat rápido en partida":"Quick chat in matches","Ciberespacio":"Cyberspace","Ciberespacio · Muy pronto":"Cyberspace · Coming soon","Cibernético":"Cyber","Circuito":"Circuit",
+"Ciudad de Datos":"Data City","Ciudad de Datos · Zona {n}":"Data City · Zone {n}","Clan y":"Clan and","Clan y amigos":"Clan and friends","Clic":"Click","Clic der.":"Right click","Clásico":"Classic",
+"Como un avión de combate: apuntas y la nave se inclina y vira sola":"Like a fighter jet: you aim and the ship banks and turns by itself","Como un simulador: inclinas y tiras tú de la nave":"Like a simulator: you bank and pull the ship yourself",
+"Completa el pase de temporada":"Complete the season pass","Completa los {n} retos":"Complete the {n} challenges","Completada":"Completed","Completando el pase Élite te devuelve más de lo que cuesta.":"Completing the Elite pass gives you back more than it costs.",
+"Comprar kit":"Buy kit","Comprar ·":"Buy ·","Común":"Common","Común · NIVEL {n}":"Common · LEVEL {n}","Con Bits":"With Bits","Con regalo · Equipo Centinela":"With a gift · Centinela Team",
+"Con él sigues con tus avances en otro ordenador o móvil · no se lo des a nadie":"Use it to keep your progress on another computer or phone · don't share it",
+"Conecta tu joystick o mando":"Connect your joystick or gamepad","Conectando con el servidor…":"Connecting to the server…","Congelación":"Freeze","Congelación del Sistema":"System Freeze","Congelación del Sistema · hasta el {n} de enero":"System Freeze · until January {n}","Congelación · Evento · {n} días":"Freeze · Event · {n} days",
+"Conseguir Núcleos":"Get Cores","Consigue las {n} primeras skins":"Get the first {n} skins","Contra una persona real":"Against a real person","Controles":"Controls","Controles · pulsa Asignar y mueve o pulsa lo que quieras usar":"Controls · press Assign and move or press what you want to use",
+"Copiar":"Copy","Corona de la temporada":"Season crown","Cortafuegos":"Firewall","Cortafuegos · Zona {n}":"Firewall · Zone {n}","Crear o unirte a un clan":"Create or join a clan","Cristal":"Crystal",
+"Cuando eliminas a alguien, sale confeti de colores.":"When you take someone down, colorful confetti bursts out.","Cuenta":"Account","Curación":"Healing","Cuánto gira al deslizar el dedo":"How much it turns when you swipe","Cuánto gira la nave al mover el ratón":"How much the ship turns when you move the mouse",
+"CÓMO SE PAGA EN LA PRUEBA":"HOW PAYMENT WORKS IN THE TEST","Código copiado":"Code copied","Código de cuenta no válido":"Invalid account code","Cómo conseguir tarjetas:":"How to get cards:","Cómo reparar":"How to repair","Cómo reparar la nave":"How to repair the ship","Cómo se juega":"How to play",
+"DE":"OF","DENTRO":"INSIDE","DISPARAR":"SHOOT","DUELO {n} CONTRA {n} · AL MEJOR DE {n}":"{n} VS {n} DUEL · BEST OF {n}","Darknet · Gana {n} duelos":"Darknet · Win {n} duels","Daño":"Damage","Daño causado":"Damage dealt",
+"De noche y con niebla. Los virus que derribas vuelven como zombis. Al final llega el Rey Calabaza.":"Night and fog. The viruses you shoot down come back as zombies. At the end, the Pumpkin King arrives.",
+"Defiende el núcleo hasta el amanecer":"Defend the core until dawn","Defiéndelo":"Defend it","Derriba los virus":"Shoot down the viruses","Derriba {n} naves con esta arma · {n}/{n}":"Shoot down {n} ships with this weapon · {n}/{n}","Derriba {n} naves · {n}/{n}":"Shoot down {n} ships · {n}/{n}",
+"Derriba {n} virus de hielo":"Shoot down {n} ice viruses","Derriba {n} virus de práctica":"Shoot down {n} practice viruses","Derriba {n} virus zombi":"Shoot down {n} zombie viruses","Derriba {n} zombis con esta arma · {n}/{n}":"Shoot down {n} zombies with this weapon · {n}/{n}",
+"Derrota al Rey Escarcha":"Defeat the Frost King","Descarga eléctrica":"Electric discharge","Destacado":"Featured","Diamante":"Diamond","Diario · {n} h":"Daily · {n} h","Dificultad de los bots:":"Bot difficulty:","Difícil":"Hard",
+"Dispara solo cuando apuntas a un enemigo":"Fires by itself when you aim at an enemy","Disparar":"Shoot","Disparo automático":"Auto fire","Disparo automático activado":"Auto fire on","Disparo automático apagado":"Auto fire off","Disparo automático en el móvil":"Auto fire on mobile",
+"Disparo lento y muy fuerte. Daña también a las naves de alrededor.":"Slow, very powerful shot. Also damages nearby ships.","Disparos de oro puro.":"Shots of pure gold.","Disparos morados, a juego con los Núcleos.":"Purple shots, matching the Cores.","Dispersor":"Scatter gun",
+"Dominio {n} contra {n}":"{n} vs {n} Domination","Dos equipos se pelean por {n} zonas del mapa. Cuantas más zonas tengas, más puntos.":"Two teams fight over {n} zones of the map. The more zones you hold, the more points.",
+"Duelo {n} contra {n}":"{n} vs {n} Duel","Duración":"Duration","DÍAS":"DAYS","Dúos":"Duos","Dúos y escuadrón llegan en la fase {n}":"Duos and squads arrive in phase {n}",
+"EL EVENTO":"THE EVENT","EL MÁS ELEGIDO":"MOST PICKED","ELIGE DÓNDE COMBATIR":"CHOOSE WHERE TO FIGHT","ELIMINA A LOS VIRUS":"DESTROY THE VIRUSES","EN USO":"IN USE","ESCUDO":"SHIELD","ESCUDO ROTO":"SHIELD DOWN",
+"EVENTO DE INVIERNO · QUEDAN {n} DÍAS":"WINTER EVENT · {n} DAYS LEFT","EVENTO DE TEMPORADA · QUEDAN {n} DÍAS":"SEASON EVENT · {n} DAYS LEFT","EVENTO · HALLOWEEN":"EVENT · HALLOWEEN","EVENTO · HASTA EL {n} DE NOVIEMBRE":"EVENT · UNTIL NOVEMBER {n}","EVENTO · INVIERNO":"EVENT · WINTER",
+"Efectos de disparos y explosiones":"Shot and explosion effects","El Kernel":"The Kernel","El Kernel · Nivel {n}":"The Kernel · Level {n}","El evento de invierno ya terminó. Vuelve en el próximo evento.":"The winter event is over. Come back for the next one.",
+"El foco de infección ha caído":"The infection core has fallen","El jefe de la infección ha llegado":"The infection boss has arrived","El minero ha escapado con el bote de":"The miner escaped with the jackpot of",
+"El motor deja un arcoíris detrás de tu nave.":"The engine leaves a rainbow behind your ship.","El muro de fuego del sistema. Arriesgado y con buen botín.":"The system's wall of fire. Risky, with good loot.","El señor del hielo ha llegado":"The lord of ice has arrived","El virus abandona la base hackeada":"The virus leaves the hacked base",
+"Elegir":"Choose","Elegir modo de juego":"Choose game mode","Elige cómo quieres jugar":"Choose how you want to play","Elimina {n} virus":"Destroy {n} viruses","Eliminado por":"Taken down by",
+"En los duelos {n} contra {n} las mejoras no cuentan.":"Upgrades don't count in {n} vs {n} duels.","En línea":"Online","En tu web":"On your site","Enchúfalo por USB (o Bluetooth) y":"Plug it in via USB (or Bluetooth) and","Energía llena":"Full energy",
+"Entra al núcleo de la red y el sistema te manda a una de las zonas abiertas, al azar en cada partida.":"Enter the network core and the system sends you to one of the open zones, random each match.",
+"Entrando en":"Entering","Equipada":"Equipped","Equipada · nivel {n}":"Equipped · level {n}","Equipo Centinela":"Centinela Team","Equipos":"Teams","Escuadra":"Squad","Escuadrón":"Squad","Escuadrón de hasta {n}":"Squad of up to {n}","Escudo":"Shield",
+"Escudo activo · destruye {n} torretas para romperlo":"Shield active · destroy {n} turrets to break it","Escudo burbuja":"Bubble shield","Ese código no es correcto":"That code isn't correct","Espectro":"Specter",
+"Esperando a otro piloto… Si nadie aparece en unos segundos, podrás jugar contra la máquina.":"Waiting for another pilot… If nobody shows up in a few seconds, you can play against the computer.",
+"Esperando a que se llene la sala · si no, empieza igual en":"Waiting for the room to fill · otherwise it starts anyway in","Esquiva y espera a que se recargue":"Dodge and wait for it to recharge",
+"Esta mejora pide el arma en nivel":"This upgrade needs the weapon at level","Esta mejora pide la nave en nivel":"This upgrade needs the ship at level","Estado":"Status","Estela Arcoíris":"Rainbow Trail","Estela de Fuego":"Fire Trail","Estela de Nieve":"Snow Trail","Está perfecta.":"It's perfect.",
+"Evento":"Event","Evento de Halloween":"Halloween event","Evento de invierno":"Winter event","Evento · Noche de los Virus Zombi":"Event · Night of the Zombie Viruses","Evento · {n} días":"Event · {n} days","Experiencia":"Experience",
+"Explosión":"Explosion","Explosión Calabaza":"Pumpkin Blast","Explosión Cristal":"Crystal Blast","Explosión Estrella":"Star Blast","Exterior":"Third person","FIN DE LA PARTIDA":"MATCH OVER","FUERA DE LA ZONA":"OUTSIDE THE ZONE",
+"Fiesta de Confeti":"Confetti Party","Francotirador":"Sniper","Fuego naranja del evento de Halloween.":"Orange fire from the Halloween event.","Fuerza del sonido":"Sound strength",
+"Funciona con el Thrustmaster T.Flight HOTAS X, Logitech Extreme {n}D Pro, mandos de Xbox, PlayStation y la mayoría de joysticks USB. Mejor con Chrome o Edge.":"Works with the Thrustmaster T.Flight HOTAS X, Logitech Extreme {n}D Pro, Xbox and PlayStation controllers and most USB joysticks. Best in Chrome or Edge.",
+"Furia":"Fury","Fácil":"Easy","GASES":"THROTTLE","GRATIS":"FREE","GRATIS · CADA DÍA":"FREE · EVERY DAY","GRATIS · PASE ÉLITE":"FREE · ELITE PASS","Gana {n} más":"Win {n} more",
+"Gana {n} partidas de battle royale y consigue la insignia de fuego y {n} bits.":"Win {n} battle royale matches to get the fire badge and {n} bits.","Ganas XP en cada partida: por jugar, por bajas, por tu puesto y por ganar. Todo gratis.":"You earn XP every match: for playing, kills, your place and winning. All free.",
+"Ganas el duelo":"You win the duel","Gira el móvil en horizontal para jugar":"Turn your phone sideways to play","Gira la rueda para cambiar de arma (o la tecla X)":"Turn the wheel to switch weapons (or the X key)","Gira la rueda para cambiar la velocidad":"Turn the wheel to change speed",
+"Gira y sube o baja el morro, como antes":"Turn and raise or lower the nose, like before","Girar y moverte":"Turn and move","Giro":"Turn",
+"Gracias por probar la versión {n}D de Centinela. Aquí tienes un regalo para empezar con buen pie.":"Thanks for trying the {n}D version of Centinela. Here's a gift to get you off to a good start.",
+"Granja de Minado":"Mining Farm","Granja de Minado · Nivel {n}":"Mining Farm · Level {n}","Gratis · +{n} % cada hora":"Free · +{n} % every hour","Gratis · se sube jugando":"Free · level it up by playing","Gráficos":"Graphics","Guardado en el servidor":"Saved on the server","Guardar ahora":"Save now",
+"HALLOWEEN · {n} DÍAS":"HALLOWEEN · {n} DAYS","Habilidad":"Ability","Habilidades":"Abilities","Hacia arriba = bajar el morro":"Up = nose down","Hangar {n}D con tu nave. Arrastra para girarla.":"{n}D hangar with your ship. Drag to rotate it.","Has destruido un":"You destroyed a","Has destruido una":"You destroyed a",
+"Hasta {n} al día.":"Up to {n} a day.","Hay avances más nuevos en otro dispositivo":"There is newer progress on another device","Hielo":"Ice","Hielo brillante del evento de invierno. Solo en Congelación del Sistema.":"Shiny ice from the winter event. Only in System Freeze.",
+"INCLUYE":"INCLUDES","INFECCIÓN DETENIDA":"INFECTION STOPPED","INVIERNO · {n} DÍAS":"WINTER · {n} DAYS","Impacta al instante y salta a dos enemigos cercanos.":"Hits instantly and jumps to two nearby enemies.",
+"Infección que se extiende":"Spreading infection","Infectado":"Infected","Insignia Copo de Cristal":"Crystal Snowflake Badge","Insignia para tu perfil. Se ve junto a tu nombre en el ranking.":"Badge for your profile. Shown next to your name in the ranking.",
+"Instalar":"Install","Invertir eje vertical":"Invert vertical axis","Invitar":"Invite","Invitar amigos de Telegram":"Invite Telegram friends","Ir más rápido":"Go faster","Islas de servidores flotando sobre un mar de datos.":"Islands of servers floating over a sea of data.",
+"JUGAR":"PLAY","Jefe final":"Final boss","Joystick y mando":"Joystick and gamepad","Jugar con la máquina":"Play against the computer","Jugar contra la máquina":"Play against the computer","Jugar el evento":"Play the event","Jugar evento":"Play event",
+"Kit de reparación":"Repair kit","LA ZONA SE CIERRA":"THE ZONE IS CLOSING","LANZAMIENTO":"LAUNCH","LANZAMIENTO EN":"LAUNCH IN","LEN":"SLOW","LIMPIEZA DE ZONA":"ZONE CLEANUP","LISTO":"READY","LOTE LEGENDARIO":"LEGENDARY BUNDLE",
+"La Nube":"The Cloud","La base hackeada ha sido liberada":"The hacked base has been freed","La infección ha ganado":"The infection won","La infección se ha disipado":"The infection has faded","La original":"The original","La partida está parada.":"The match is paused.",
+"Lanza un misil (clic der.)":"Fire a missile (right click)","Las habilidades no se dañan.":"Abilities don't get damaged.","Las misiones se renuevan cada día":"Missions refresh every day","Las naves que derribas estallan en esquirlas de hielo.":"Ships you shoot down burst into ice shards.",
+"Lava":"Lava","Legendaria":"Legendary","Legendaria · Pintura":"Legendary · Paint","Limpieza de zona":"Zone Cleanup","Lista en":"Ready in","Llamaradas naranjas al acelerar.":"Orange flames when you speed up.","Llamas de Calabaza":"Pumpkin Flames",
+"Llega al nivel":"Reach level","Llega al nivel {n} · te faltan {n} XP":"Reach level {n} · {n} XP to go","Llega el jefe · protege el núcleo":"The boss is coming · protect the core",
+"Los Núcleos sirven para pinturas, estelas, efectos y el pase Élite. Los bits siguen igual: se ganan jugando, aquí y en Centinela de Telegram.":"Cores are for paints, trails, effects and the Elite pass. Bits stay the same: you earn them by playing, here and in Centinela on Telegram.",
+"Los bots dejan de verte durante {n} s. Recarga en {n} s.":"Bots can't see you for {n} s. Recharges in {n} s.","Los bots no te ven durante {n} s":"Bots can't see you for {n} s",
+"Los clanes, la lista de amigos y jugar en dúo o escuadrón necesitan partidas con personas reales. Eso se hará a través de tu servidor de Railway, el mismo que ya usan los duelos y torneos de Centinela.":"Clans, the friends list and playing in duos or squads need matches with real people. That will run on the game server, the same one the Centinela duels and tournaments already use.",
+"Los torneos de Centinela siguen en Telegram. Muy pronto también podrás jugarlos en {n}D contra otros jugadores.":"Centinela tournaments are still on Telegram. Soon you'll also be able to play them in {n}D against other players.",
+"Los virus atacan el núcleo del sistema. Aguanta {n} oleadas, destruye sus nidos y vence al Megavirus.":"Viruses attack the system core. Survive {n} waves, destroy their nests and defeat the Megavirus.",
+"Los virus que derribas estallan en llamas naranjas.":"Viruses you shoot down burst into orange flames.","Lote Invierno":"Winter Bundle","LÁSER":"LASER","LÁSER DOBLE":"TWIN LASER","LÁSER DOBLE · NV {n}":"TWIN LASER · LV {n}",
+"Láser Dorado":"Golden Laser","Láser Tóxico":"Toxic Laser","Láser Violeta":"Violet Laser","Láser continuo":"Beam laser","Láser doble":"Twin laser","Láser giratorio":"Spinning laser","Láseres giratorios":"Spinning lasers",
+"MANDO":"GAMEPAD","MAPA":"MAP","MAPA DE LA RED":"NETWORK MAP","MEJOR PUESTO":"BEST PLACE","MISIL":"MISSILE","MISIÓN · OLEADAS":"MISSION · WAVES","MODO PRUEBA · SIN DINERO REAL":"TEST MODE · NO REAL MONEY","MOTOR":"ENGINE","MOVER":"MOVE",
+"MULTIJUGADOR · EQUIPOS":"MULTIPLAYER · TEAMS","MULTIJUGADOR · NUEVO":"MULTIPLAYER · NEW","Mando de consola":"Console gamepad","Mantén":"Hold","Mapa":"Map","Mapa de la Red":"Network Map","Mapa sorpresa":"Surprise map","Mapa sorpresa: te toca una zona al azar":"Surprise map: you get a random zone","Mapa:":"Map:",
+"Marco Navidad":"Christmas Frame","Marco Neón":"Neon Frame","Marco Élite":"Elite Frame","Materia oscura":"Dark matter","Mejor racha":"Best streak","Mejora de arma":"Weapon upgrade","Mejoras":"Upgrades","Mejoras de la nave":"Ship upgrades","Mejoras {n} / {n}":"Upgrades {n} / {n}",
+"Mensajes · {n}":"Messages · {n}","Mina de datos colocada":"Data mine placed","Minas":"Mines","Minas de datos":"Data mines","Minero de bits":"Bit miner","Mira a tu alrededor":"Look around","Mira con el ratón":"Look with the mouse","Mis cosas":"My stuff",
+"Misil":"Missile","Misil rastreador":"Homing missile","Misil sin fijar: va recto · mantén la mira para fijar":"Missile not locked: it flies straight · keep aiming to lock on","Misiones de hoy":"Today's missions","Misiones de hoy · se renuevan cada día":"Today's missions · refresh every day","Misiones y evento":"Missions and event",
+"Misión":"Mission","Misión completada ·":"Mission complete ·","Modo elegido: Congelación del Sistema":"Mode chosen: System Freeze","Modo prueba · sin dinero real":"Test mode · no real money","Modos de juego":"Game modes","Moverse de lado":"Strafe","Mueve el":"Move the",
+"Mundial · Centinela":"Worldwide · Centinela","Munición":"Ammo","Muro de fuego":"Wall of fire","Muros de fuego":"Walls of fire","MÁS BAJAS":"MOST KILLS","MÁX":"MAX","MÁXIMO":"MAXIMUM","MÓVIL":"MOBILE","Máquina":"Computer","Más velocidad":"More speed","Máx.":"Max.","Máx. {n}":"Max. {n}","Mítica":"Mythic","Música":"Music",
+"NAVE DAÑADA":"SHIP DAMAGED","NAVEGACIÓN":"NAVIGATION","NIVEL":"LEVEL","NIVEL MÁXIMO":"MAX LEVEL","NOCHE DE LOS VIRUS ZOMBI":"NIGHT OF THE ZOMBIE VIRUSES","NV {n}":"LV {n}","Nave":"Ship","Nave al":"Ship at","Nave al {n}%":"Ship at {n}%","Nave anterior":"Previous ship","Nave nivel {n}":"Ship level {n}","Nave siguiente":"Next ship",
+"Necesita el servidor":"Needs the server","Negro mate de fibra de carbono. Discreta y elegante.":"Matte carbon-fiber black. Subtle and sleek.","Neón":"Neon","Nido Troyano":"Trojan Nest","Nido Troyano · Nivel {n}":"Trojan Nest · Level {n}","Nidos":"Nests",
+"Nivel {n}":"Level {n}","Nivel {n} de {n}":"Level {n} of {n}","Nivel {n} en {n} XP":"Level {n} at {n} XP","Nivel {n} · Cristal II":"Level {n} · Crystal II","Nivel {n} · toca para equipar":"Level {n} · tap to equip","Nivel {n}: skin Asalto":"Level {n}: Assault skin","Nivel · retos · tienda":"Level · challenges · shop",
+"No cambia la vida, el daño ni la velocidad":"Doesn't change health, damage or speed","No hay avances guardados con ese código":"There's no saved progress with that code",
+"No hay otro piloto conectado en este momento. Juega contra la máquina o vuelve a intentarlo más tarde.":"No other pilot is online right now. Play against the computer or try again later.",
+"No se llenó la sala · entran naves de la máquina · lanzamiento en":"The room didn't fill · computer ships join · launch in","No se pudo cargar el ranking aquí.":"Couldn't load the ranking here.","No se pudo conectar con el servidor":"Couldn't connect to the server","No se pudo conectar con el servidor.":"Couldn't connect to the server.",
+"No se pudo conectar con el servidor. Puedes jugar contra la máquina.":"Couldn't connect to the server. You can play against the computer.","No se pudo guardar ahora":"Couldn't save right now","No se pudo guardar · se reintentará":"Couldn't save · will retry",
+"Noche de los":"Night of the","Noche de los Virus Zombi":"Night of the Zombie Viruses","Nodo Abisal":"Abyssal Node","Nodo Abisal · Reto especial":"Abyssal Node · Special challenge","Novedades de la temporada {n}":"Season {n} news","Nueva":"New","Nueva skin para la Centinela:":"New skin for the Centinela:",
+"NÚCLEO":"CORE","NÚCLEO DESTRUIDO":"CORE DESTROYED","NÚCLEOS":"CORES","Núcleo":"Core","Núcleo Cuántico":"Quantum Core","Núcleo Cuántico · Mapa sorpresa":"Quantum Core · Surprise map","Núcleos":"Cores","Núcleos · no se ha cobrado nada":"Cores · nothing was charged",
+"OLEADA {n} / {n}":"WAVE {n} / {n}","OTRA VEZ":"AGAIN","Oro":"Gold","Oro en todas las armas":"Gold on every weapon","Oro en {n} armas":"Gold on {n} weapons","Oro pulido que brilla en la oscuridad. Para que todos te vean llegar.":"Polished gold that glows in the dark. So everyone sees you coming.",
+"PARA DESBLOQUEARLA":"TO UNLOCK IT","PARTIDAS":"MATCHES","PASE":"PASS","PASE ÉLITE ACTIVO":"ELITE PASS ACTIVE","PELIGROS":"HAZARDS","PELIGROSO · ZONAS DE RIESGO":"DANGEROUS · RISK ZONES","PLATAFORMA DE LANZAMIENTO · TODOS CONTRA TODOS":"LAUNCH PAD · FREE FOR ALL",
+"PREPARANDO LANZAMIENTO":"PREPARING LAUNCH","PREPARANDO PARTIDA":"PREPARING MATCH","PREPÁRATE":"GET READY","PRIMERA BAJA":"FIRST KILL","PRIMERA COMPRA ×{n}":"FIRST PURCHASE ×{n}","PROGRESO DE LA RED":"NETWORK PROGRESS","PROTEGE EL NÚCLEO":"PROTECT THE CORE","PRÓXIMAMENTE":"COMING SOON","PRÓXIMAMENTE · FASE {n}":"COMING SOON · PHASE {n}","PUESTO":"PLACE","PUESTO #{n}":"PLACE #{n}",
+"Para instalar: menú del navegador → Instalar app / Añadir a pantalla de inicio":"To install: browser menu → Install app / Add to home screen","Para tu Centinela":"For your Centinela","Partida":"Play","Partida jugada":"Match played","Pase":"Pass","Pase de temporada":"Season pass","Pase nivel {n}":"Pass level {n}","Pase · Temporada {n}":"Pass · Season {n}",
+"Pausa":"Pause","Pausa / menú":"Pause / menu","Pega aquí el código de tu otro dispositivo para traer tus avances":"Paste the code from your other device here to bring your progress","Persigue a la nave que tengas fijada. {n} por partida.":"Chases the ship you've locked on. {n} per match.","Pilotaje":"Flying",
+"Pintura Calabaza":"Pumpkin Paint","Pintura Carbono":"Carbon Paint","Pintura Hielo":"Ice Paint","Pintura Neón":"Neon Paint","Pintura Oro":"Gold Paint","Pintura Tóxica":"Toxic Paint","Placa Base":"Motherboard","Placa Base · Zona {n}":"Motherboard · Zone {n}","Placa Base · cuidado con las defensas del mapa":"Motherboard · watch out for the map defenses",
+"Poder {n}":"Power {n}","Premio final · todos los retos":"Final prize · all challenges","Premio por ganar: +{n} kit de reparación":"Prize for winning: +{n} repair kit","Premio Élite recogido":"Elite prize claimed","Premios · niveles {n} a {n} · toca uno para verlo":"Prizes · levels {n} to {n} · tap one to see it",
+"Primero en llegar a":"First to reach","Protege el núcleo ·":"Protect the core ·","Prueba en directo":"Live test","Puedes jugar con naves de la máquina.":"You can play with computer ships.","Puerto USB":"USB Port","Puerto USB · Próximamente":"USB Port · Coming soon","Puesto #{n}":"Place #{n}","Puesto +{n}":"Place +{n}",
+"Pulsa el botón Instalar de arriba":"Press the Install button above","Pulsa el botón del":"Press the","Pulsa un botón…":"Press a button…","Pulso EMP":"EMP Pulse","Píxel":"Pixel",
+"QUEDAN {n} DÍAS":"{n} DAYS LEFT","Queda entre los {n} mejores":"Finish in the top {n}","Quita los escudos y aturde {n} s a las naves cercanas. {n} por partida.":"Removes shields and stuns nearby ships for {n} s. {n} per match.",
+"RECOMPENSAS":"REWARDS","REPARACIÓN":"REPAIR","RESULTADOS":"RESULTS","RIVALES":"RIVALS","Ranking de clanes":"Clan ranking","Rara":"Rare","Rara · Disparos":"Rare · Shots","Rara · Estela":"Rare · Trail","Rara · Marco":"Rare · Frame","Rara · NIVEL {n}":"Rare · LEVEL {n}","Rara · Pintura":"Rare · Paint",
+"Rascacielos de neón, autopistas de datos y calles estrechas.":"Neon skyscrapers, data highways and narrow streets.","Ratón":"Mouse","Rayo de cadena":"Chain lightning","Rayo eléctrico":"Lightning bolt","Rayos eléctricos":"Lightning bolts",
+"Recoge {n} mejoras":"Collect {n} upgrades","Recoge {n} regalos":"Collect {n} gifts","Recoger":"Claim","Recoger todo ({n})":"Claim all ({n})","Recoger Élite":"Claim Elite","Recupera {n}":"Restore {n}","Recupera {n} de casco al momento. Recarga en {n} s.":"Restores {n} hull instantly. Recharges in {n} s.","Recuperar":"Recover",
+"Red Neón":"Neon Grid","Red Neón · Zona {n}":"Neon Grid · Zone {n}","Repara tu nave y tus armas":"Repair your ship and weapons","Reparación":"Repair","Reparar a tu compañero":"Repair your teammate","Resultados":"Results","Retos del evento":"Event challenges","Retos del evento · premios gratis":"Event challenges · free prizes",
+"Rey Calabaza":"Pumpkin King","Rey Escarcha":"Frost King","Rosa neón que se ve desde la otra punta del mapa.":"Neon pink you can see from across the map.","Rueda":"Wheel","Rueda del ratón":"Mouse wheel","RÁP":"FAST","RÁPIDO":"FAST","Ráfaga rápida de dos cañones. Gasta poca energía.":"Fast burst from two cannons. Uses little energy.",
+"SE CIERRA EN":"CLOSES IN","SE CIERRA EN {n}":"CLOSES IN {n}","SEGUIR":"CONTINUE","SIN VIDAS":"NO LIVES LEFT","SISTEMAS":"SYSTEMS","Sala de espera":"Waiting room","Sala de espera ·":"Waiting room ·","Sala llena · el lanzamiento empieza en":"Room full · launch starts in","Salir al hangar":"Back to hangar","Salir de la sala":"Leave the room",
+"Satélite Orbital":"Orbital Satellite","Satélite Orbital · Nivel {n}":"Orbital Satellite · Level {n}","Se acabó el tiempo ·":"Time's up ·","Se consigue en el nivel":"Unlocked at level","Se cortó la conexión con el servidor":"The connection to the server was lost",
+"Se desbloquea en el nivel {n} · te faltan -{n}":"Unlocks at level {n} · -{n} to go","Se desbloquean subiendo de nivel, igual que en Centinela":"Unlocked by leveling up, just like in Centinela","Se ganan jugando":"Earned by playing",
+"Se ha cortado la conexión con el servidor.":"The connection to the server was lost.","Se ha cortado la conexión con el servidor. Puedes jugar contra la máquina.":"The connection to the server was lost. You can play against the computer.","Se juega contra la máquina, no hace falta servidor. Todo gratis.":"You play against the computer, no server needed. All free.",
+"Se pone en todas tus partidas":"Used in all your matches","Se quedan detrás de ti y explotan cuando pasa un enemigo. {n} por partida.":"They stay behind you and explode when an enemy passes. {n} per match.","Se repara sola":"Repairs itself","Se repite la ronda":"The round is replayed","Secundaria":"Secondary",
+"Seis proyectiles a la vez. Devastador de cerca.":"Six projectiles at once. Devastating up close.","Sencillo":"Simple","Sensibilidad del ratón":"Mouse sensitivity","Sensibilidad táctil":"Touch sensitivity","Servidor Fantasma":"Ghost Server","Servidor Fantasma · Nivel {n}":"Ghost Server · Level {n}",
+"Siempre puedes jugar aunque esté dañada · en los duelos {n} contra {n} no cuenta":"You can always play even if it's damaged · doesn't count in {n} vs {n} duels","Sigilo-Tech":"Stealth-Tech","Siguiente oleada en {n} s · recoge mejoras":"Next wave in {n} s · collect upgrades",
+"Sin bengalas · se recargan cada {n} s":"No flares · they recharge every {n} s","Sin conexión":"Offline","Sin conexión · se guarda en este navegador":"Offline · saved in this browser","Sin dinero real":"No real money","Sin munición · recoge mejoras rojas":"No ammo · collect red upgrades","Sin radar · interferencia":"No radar · interference",
+"Skin Escarcha":"Frost Skin","Skin, estela, explosión y marco del evento de invierno, todo a juego.":"Winter event skin, trail, blast and frame, all matching.","Skins · {n} de {n}":"Skins · {n} of {n}","Solo":"Solo","Solo durante el evento · no vuelve a salir":"Only during the event · never returns",
+"Solo en el":"Only in the","Solo en el pase Élite":"Only in the Elite pass","Solo en el pase Élite.":"Only in the Elite pass.","Solo en la Noche de los Virus Zombi. Viene en el Lote Calabaza.":"Only in Night of the Zombie Viruses. Comes in the Pumpkin Bundle.","Solo estilo · nunca te hace más fuerte":"Style only · never makes you stronger",
+"Soltar bengalas":"Drop flares","Sonido":"Sound","Sube jugando: +{n} por nave derribada con ella · daño causado · +{n} si ganas":"Levels up by playing: +{n} per ship shot down with it · damage dealt · +{n} if you win",
+"Sube jugando: cada partida, cada baja y cada victoria dan experiencia · las mejoras no cuentan en duelos":"Levels up by playing: every match, kill and win gives experience · upgrades don't count in duels","Sube usándola: +{n} cada vez · +{n} si ganas":"Levels up as you use it: +{n} each time · +{n} if you win",
+"Subir / bajar el morro":"Raise / lower the nose","Subir / bajar en vertical":"Climb / descend vertically","Supera Limpieza de zona con {n} estrellas":"Beat Zone Cleanup with {n} stars","Supera {n} Noche Zombi":"Survive {n} Zombie Night","Supera {n} noche":"Survive {n} night","Supera {n} noches":"Survive {n} nights","Supera {n} noches heladas":"Survive {n} frozen nights","Sí, borrar":"Yes, delete",
+"TARJETAS":"CARDS","TEMPORADA {n} · PASE GRATIS · QUEDAN {n} DÍAS":"SEASON {n} · FREE PASS · {n} DAYS LEFT","TONEL":"ROLL","TOTAL":"TOTAL","TU NAVE":"YOUR SHIP","TU RIVAL SE HA IDO":"YOUR RIVAL LEFT","TURBO":"BOOST","Taller":"Workshop",
+"También se cambia en partida con la tecla V":"You can also change it in a match with the V key","Tarda medio segundo en girar y luego dispara sin parar.":"Takes half a second to spin up, then fires nonstop.","Tarjetas de mejora":"Upgrade cards","Te están fijando":"You're being locked on",
+"Tema dance de fondo · {n} = sin música":"Background dance track · {n} = no music","Tiempo vivo":"Time alive","Tienda":"Shop","Tienda · {n} Núcleos":"Shop · {n} Cores","Tienes {n} Núcleos":"You have {n} Cores","Tienes {n} bits":"You have {n} bits","Tienes {n} · se ganan ganando partidas":"You have {n} · earned by winning matches",
+"Tigre digital":"Digital tiger","Toca o pulsa una tecla para saltar":"Tap or press a key to skip","Toca para equipar":"Tap to equip","Todavía no has jugado ninguna partida. ¡Dale a Jugar!":"You haven't played any matches yet. Hit Play!","Todavía no tienes nada. Mira la tienda o el pase Élite.":"You don't have anything yet. Check the shop or the Elite pass.",
+"Todo":"All","Todos contra todos":"Free for all","Todos contra todos mientras la zona se cierra. Gana el último antivirus en pie.":"Free for all while the zone closes. The last antivirus standing wins.","Todos los peligros":"All hazards","Tonel a la derecha":"Roll right","Tonel a la izquierda":"Roll left","Torneo del sábado":"Saturday tournament",
+"Torre de Control":"Control Tower","Torre de Control · Nivel {n}":"Control Tower · Level {n}","Torres de neón y anillos flotantes. El mapa de siempre.":"Neon towers and floating rings. The classic map.","Torreta de la base destruida · +{n} bits":"Base turret destroyed · +{n} bits",
+"Torreta de misiles":"Missile turret","Torreta de misiles te apunta":"Missile turret is aiming at you","Torreta láser":"Laser turret","Torretas":"Turrets","Torretas de misiles":"Missile turrets","Torretas láser":"Laser turrets",
+"Truco: quédate pegado a una torreta sin disparar y la hackeas":"Tip: stay close to a turret without shooting and you'll hack it","Tu Centinela: nivel, mejoras y skins":"Your Centinela: level, upgrades and skins","Tu código de cuenta":"Your account code","Tu equipamiento":"Your loadout","Tu equipo":"Your team","Tu flota de Centinela":"Your Centinela fleet",
+"Tu nave deja una estela blanca como la nieve.":"Your ship leaves a snow-white trail.","Tu nave ha quedado al":"Your ship is now at","Tu nave ha quedado al {n}% · repárala en el Taller":"Your ship is at {n}% · repair it in the Workshop","Tu nivel":"Your level","Tu nombre de piloto":"Your pilot name",
+"Tu rival está en pausa o se le ha cortado la conexión":"Your rival is paused or lost connection","Tu rival no te ve durante {n} s":"Your rival can't see you for {n} s","Tu rival se fue ·":"Your rival left ·","Tu torreta hackeada vuelve a ser enemiga":"Your hacked turret is hostile again",
+"Turbo":"Boost","Turbo y mejoras":"Boost and upgrades","Turbo y recoge una mejora":"Boost and grab an upgrade","Tus armas, sus skins y sus mejoras":"Your weapons, their skins and upgrades","Tus avances se guardan en el servidor":"Your progress is saved on the server","Tus disparos salen verde radiactivo.":"Your shots come out radioactive green.","Tus partidas {n}D":"Your {n}D matches",
+"TÚ":"YOU","Táctico":"Tactical","Témpano":"Iceberg","Tóxica":"Toxic","Tú":"You","Tú contra bots":"You vs. bots","Tú contra oleadas de virus":"You vs. waves of viruses",
+"Tú contra otra persona real, al mejor de {n} rondas. Si no hay nadie conectado, juegas contra la máquina.":"You against another real person, best of {n} rounds. If nobody is online, you play against the computer.","Tú contra {n} bots":"You vs. {n} bots",
+"USAR {n}":"USE {n}","Un rayo fijo que quema mientras lo mantienes. Se calienta.":"A steady beam that burns while you hold it. It heats up.",
+"Un virus de hielo ha congelado la red. Los mapas se cubren de nieve y los virus helados":"An ice virus has frozen the network. Maps are covered in snow and the frozen viruses",
+"Un virus de hielo ha congelado la red. Los virus helados te ralentizan, sueltan regalos y al final llega el Rey Escarcha.":"An ice virus has frozen the network. Frozen viruses slow you down, drop gifts, and at the end the Frost King arrives.",
+"Una estrella dorada en cada eliminación. Solo en el pase Élite.":"A golden star with every takedown. Only in the Elite pass.","Una placa de ordenador gigante con el procesador en el centro.":"A giant computer board with the processor in the middle.","Una placa de ordenador gigante: chips, memorias y el procesador en el centro.":"A giant computer board: chips, memory and the processor in the middle.",
+"Una zona nueva de la red que irá apareciendo a medida que avance el juego.":"A new zone of the network that will appear as the game grows.","Urbano":"Urban","Usa el":"Use the","Usa tu arma especial":"Use your special weapon","Usar un código":"Use a code",
+"VICTORIAS":"WINS","Valquiria":"Valkyrie","Velocidad":"Speed","Veloz":"Swift","Ver anuncio · {n} / {n}":"Watch ad · {n} / {n}","Ver el Lote Invierno en la tienda":"See the Winter Bundle in the shop","Ver el pase":"See the pass","Ver un anuncio · +{n}":"Watch an ad · +{n}",
+"Verde radiactivo. Los virus se lo piensan dos veces.":"Radioactive green. Viruses think twice.","Victoria en duelo":"Duel victory","Virus Zombi":"Zombie Virus","Virus de hielo":"Ice viruses","Vista al empezar":"Starting view","Vista desde la cabina":"Cockpit view",
+"Vista exterior · pulsa V para volver a la cabina":"Third-person view · press V to return to the cockpit","Vista exterior · toca el botón de cámara para volver":"Third-person view · tap the camera button to return","Volumen":"Volume","Volver":"Back","Volver a la tienda":"Back to shop","Vuelve a empezar la versión {n}D desde cero":"Restart the {n}D version from scratch",
+"Vuelve al círculo magenta":"Return to the magenta circle","Vuelve dentro del círculo":"Get back inside the circle","Vuelves en {n} s · vidas:":"Back in {n} s · lives:","Ya está al {n} %":"Already at {n} %","Ya estás listo para el Battle Royale":"You're ready for Battle Royale",
+"Ya puedes elegir armas en el equipamiento: cañón de plasma, minas de datos, camuflaje y más. El dispersor, la reparación y el rayo de cadena se consiguen subiendo el pase gratis.":"You can now choose weapons in your loadout: plasma cannon, data mines, camouflage and more. The scatter gun, repair and chain lightning are unlocked by leveling the free pass.",
+"ZONA":"ZONE","ZONA CERRÁNDOSE":"ZONE CLOSING","ZONA DESBLOQUEADA":"ZONE UNLOCKED","ZONA {n} · ABIERTA":"ZONE {n} · OPEN","Zombis":"Zombies","Zona Cero":"Ground Zero","Zona Cero · ???":"Ground Zero · ???","Zona que se cierra":"Closing zone","Zona {n}":"Zone {n}",
+"acelera · mueve el":"speeds up · move the","apunta · la nave vira e inclina sola":"aim · the ship turns and banks by itself","arma secundaria ·":"secondary weapon ·","bengalas ·":"flares ·","bits · destruye el minero":"bits · destroy the miner","bits · o espera a que se repare sola":"bits · or wait for it to repair itself","bits · se ganan jugando":"bits · earned by playing",
+"cambiar arma ·":"switch weapon ·","cayó en":"fell in","común":"common","con bengalas":"with flares","contra la máquina":"against the computer","de la victoria":"of victory","de virus":"of viruses","de {n}":"of {n}","de {n} naves":"of {n} ships","de {n} ✓":"of {n} ✓","del Sistema":"of the System","del pase gratis":"of the free pass","disparar ·":"shoot ·","días":"days",
+"el arma":"the weapon","el núcleo":"the core","el primero en llegar":"the first to reach","elimina a los virus":"destroy the viruses","en el mapa · mira tu radar":"on the map · check your radar","en línea":"online","equipada en":"equipped on","escuadrón":"squad","está bloqueada · elige otra nave":"is locked · choose another ship",
+"foco de infección":"infection core","gana con":"wins with","ganó":"won","girar sobre sí misma":"spin in place","ha vuelto de entre los muertos":"has come back from the dead","habilidad ·":"ability ·","inclinar y tirar de la nave":"bank and pull the ship","inclinar · doble toque = tonel":"bank · double tap = roll","kits de reparación":"repair kits",
+"la nave":"the ship","la zona":"the zone","lanza tu misil":"fires your missile","listo en":"ready in","minero de bits":"bit miner","más":"more","naves con esta arma ·":"ships with this weapon ·","naves · dificultad Normal":"ships · Normal difficulty","nido de virus":"virus nest","o en los retos del evento":"or in the event challenges",
+"para apuntar y girar":"to aim and turn","para disparar":"to shoot","para el turbo y recoge la mejora azul":"for boost and grab the blue upgrade","para girar":"to turn","para girar y pasa por dentro":"to turn and fly through","pulsa cualquier botón":"press any button","que sueltan y derrota al":"they drop and defeat the","ralentizan tu nave":"slow your ship down","ratón":"mouse",
+"reparada al {n} %":"repaired to {n} %","reparada con un kit":"repaired with a kit","se camufla":"camouflages","se desbloquea en el nivel":"unlocks at level","se ha ido · ahora la lleva la máquina":"left · the computer flies it now","se ha llevado el bote de":"took the jackpot of","se repara":"is repairing","se ve el ranking real de Centinela.":"you see the real Centinela ranking.",
+"si te dan. Supera {n} oleadas defendiendo el núcleo, recoge los":"if they hit you. Survive {n} waves defending the core, collect the","soltó bengalas y esquivó tu misil":"dropped flares and dodged your missile","sube al nivel":"reaches level",
+"subiendo armas de nivel ({n} común; cada {n} niveles, {n} rara; en el {n} épica) y con las misiones diarias ({n} común).":"by leveling up weapons ({n} common; every {n} levels, {n} rare; at {n} epic) and with daily missions ({n} common).",
+"subir/bajar ·":"climb/descend ·","turbo ·":"boost ·","un virus":"a virus","velocidad ·":"speed ·","virus de la base":"base virus","virus de práctica":"practice virus","vista ·":"view ·","y recoge la mejora azul":"and grab the blue upgrade",
+"{n} / {n} XP":"{n} / {n} XP","{n} / {n} ZONAS":"{n} / {n} ZONES","{n} / {n} retos":"{n} / {n} challenges","{n} NÚCLEOS":"{n} CORES","{n} bajas":"{n} kills","{n} bits":"{n} bits","{n} común":"{n} common","{n} de {n} skins":"{n} of {n} skins","{n} jugadores":"{n} players","{n} kit por {n} Núcleos":"{n} kit for {n} Cores",
+"{n} m · radio {n} m · foco {n} %":"{n} m · radius {n} m · core {n} %","{n} oleadas":"{n} waves","{n} pilotos, cada uno por su cuenta. Si te derriban, vuelves a los {n} segundos. Gana el primero en llegar a {n} bajas.":"{n} pilots, each on their own. If you're shot down, you're back in {n} seconds. First to {n} kills wins.",
+"{n} rondas":"{n} rounds","{n} segundos sin daño":"{n} seconds without damage","{n} segundos sin recibir daño. Recarga en {n} s.":"{n} seconds without taking damage. Recharges in {n} s.","{n} zonas":"{n} zones","{n} épica":"{n} epic",
+"¡ARMA MEJORADA!":"WEAPON UPGRADED!","¡ATACAN EL NÚCLEO!":"THE CORE IS UNDER ATTACK!","¡Avances recuperados! Cargando…":"Progress recovered! Loading…","¡BOTE CONSEGUIDO!":"JACKPOT!","¡Bienvenido a Centinela {n}D!":"Welcome to Centinela {n}D!","¡Centinela instalado! Búscalo entre tus apps":"Centinela installed! Find it in your apps",
+"¡DUELO GANADO!":"DUEL WON!","¡Desbloqueado:":"Unlocked:","¡EL REY CALABAZA!":"THE PUMPKIN KING!","¡EL REY ESCARCHA!":"THE FROST KING!","¡El escudo del virus ha caído! Dispárale":"The virus shield is down! Shoot it","¡HAS GANADO!":"YOU WON!","¡Insignia Copo de Cristal conseguida!":"Crystal Snowflake Badge earned!","¡Insignia de fuego conseguida! +{n} bits":"Fire badge earned! +{n} bits",
+"¡LANZAMIENTO!":"LAUNCH!","¡La Centinela sube al nivel":"The Centinela reaches level","¡Lanzamiento!":"Launch!","¡Láser sobrecalentado! Espera a que se enfríe":"Laser overheated! Wait for it to cool down","¡MEGAVIRUS!":"MEGAVIRUS!","¡Mejora conseguida!":"Upgrade unlocked!","¡Misil! Suelta bengalas":"Missile! Drop flares","¡Misil! Suelta bengalas (C)":"Missile! Drop flares (C)",
+"¡NOCHE SUPERADA!":"NIGHT SURVIVED!","¡NUEVO NIVEL!":"NEW LEVEL!","¡Noche superada!":"Night survived!","¡OLEADA SUPERADA!":"WAVE CLEARED!","¡Pase Élite activado! Recoge también los premios dorados":"Elite pass activated! Claim the golden prizes too","¡Premio conseguido!":"Prize claimed!","¡Preparados para el lanzamiento!":"Ready for launch!",
+"¡RONDA GANADA!":"ROUND WON!","¡Recoger premio!":"Claim prize!","¡Rival encontrado!":"Rival found!","¡SUBES DE NIVEL!":"LEVEL UP!","¡TE FALTAN":"YOU NEED","¡TUTORIAL COMPLETADO!":"TUTORIAL COMPLETE!","¡VICTORIA!":"VICTORY!","¡Victoria!":"Victory!","¡ZONA LIMPIA!":"ZONE CLEAR!","¡Zona limpia!":"Zone clear!","¡sin escudo!":"shield down!","¡ÚLTIMO RIVAL!":"LAST RIVAL!",
+"· al":"· to the","· al mejor de {n}":"· best of {n}","· ataca a tus rivales {n} s":"· attacks your rivals {n} s","· contra la máquina":"· against the computer","· cuidado con las defensas del mapa":"· watch out for the map defenses","· en línea":"· online","· está en la Tienda":"· it's in the Shop","· gana el primero en llegar a":"· first to reach",
+"· llegará pronto":"· coming soon","· prepárate":"· get ready","· repárala en el Taller":"· repair it in the Workshop","· se aplica en la próxima partida":"· applies next match","· se ganan ganando partidas":"· earned by winning matches","· toca para equipar":"· tap to equip","· toca uno para verlo":"· tap one to see it","· ya la llevas puesta":"· you're already wearing it",
+"º de":"of","» para que vaya más fluido":"» so it runs more smoothly","¿Seguro? Se pierden bits, pase y misiones de esta versión":"Are you sure? You'll lose bits, pass and missions from this version",
+"ÉLITE · NIVEL":"ELITE · LEVEL","ÉLITE · NIVEL {n}":"ELITE · LEVEL {n}","Élite":"Elite","Élite: +{n} Núcleos":"Elite: +{n} Cores","Élite: +{n} bits":"Elite: +{n} bits","Élite: Estela Dorada":"Elite: Golden Trail","Élite: Explosión Estrella":"Elite: Star Blast","Élite: Láser Dorado":"Elite: Golden Laser","Élite: Marco Élite":"Elite: Elite Frame","Élite: Pintura Hielo":"Elite: Ice Paint","Élite: Pintura Oro":"Elite: Gold Paint",
+"Épica":"Epic","Épica · Disparos":"Epic · Shots","Épica · Explosión":"Epic · Blast","Épica · Pintura":"Epic · Paint","Último antivirus en pie":"Last antivirus standing","épica":"epic","épicas":"epic",
+"▶ Tutorial · {n} minuto":"▶ Tutorial · {n} minute","☣ Zona infectada · sal o rompe el foco":"☣ Infected zone · get out or break the core","⚠ ATAQUE DE VIRUS":"⚠ VIRUS ATTACK","⚠ La base hackeada te dispara":"⚠ The hacked base is shooting at you",
+"✓ Elegido":"✓ Chosen","✓ En uso":"✓ In use","✓ TODO REPARADO":"✓ ALL REPAIRED","✓ Ya tienes el nivel":"✓ You already have the level","✓ Ya tienes todo el lote":"✓ You already have the whole bundle","✓ ZONA ELEGIDA":"✓ ZONE CHOSEN","❄ Mapas nevados":"❄ Snowy maps","❄ Retos del evento":"❄ Event challenges","🎁 Regalos":"🎁 Gifts","👑 Jefe final":"👑 Final boss","👑 ¡Has derrotado al":"👑 You defeated the",
+"💎 Bote: {n} bits · destruye el minero":"💎 Jackpot: {n} bits · destroy the miner","🔒 Gana {n} duelos":"🔒 Win {n} duels","🔒 Llega al nivel":"🔒 Reach level","🔒 Muy pronto":"🔒 Coming soon","🔒 Nivel {n}":"🔒 Level {n}","🔒 Próximamente":"🔒 Coming soon","🔒 Reto especial":"🔒 Special challenge","🔧 En construcción":"🔧 Under construction","🧊 Virus de hielo":"🧊 Ice viruses",
+/* textos del tutorial, menú y ataques */
+"Tutorial · paso {n} de {n}":"Tutorial · step {n} of {n}","Tutorial · {n} minuto":"Tutorial · {n} minute","Saltar tutorial":"Skip tutorial","Arma especial":"Special weapon","Derriba {n} virus de práctica":"Shoot down {n} practice viruses","Atraviesa {n} anillos":"Fly through {n} rings",
+"Anillo {n} de {n} ✓":"Ring {n} of {n} ✓","Virus {n} de {n} ✓":"Virus {n} of {n} ✓","Turbo ✓":"Boost ✓","Mejora recogida ✓":"Upgrade collected ✓","+{n} bits · ya estás listo para el Battle Royale":"+{n} bits · you're ready for Battle Royale",
+"Mueve el ratón para apuntar y girar":"Move the mouse to aim and turn","Joystick":"Joystick","Arrastrar":"Drag","Apuntar":"Aim","Disparo":"Shoot","W / S":"W / S","Bengalas":"Flares","Contra misiles":"Vs. missiles","Contra personas reales":"Against real people",
+"acelera":"speeds up","para el turbo y recoge la mejora azul":"for boost and grab the blue upgrade","joystick":"joystick","disparo":"shoot","misil":"missile","turbo":"boost","Clic derecho":"Right click","clic":"click",
+"Spreading infection":"Spreading infection","radio {n} m":"radius {n} m","foco {n} %":"core {n} %","bote 💎 {n}":"jackpot 💎 {n}","escudo · {n} torretas":"shield · {n} turrets","{n} m":"{n} m",
+"INFECCIÓN DETENIDA":"INFECTION STOPPED","+{n} bits · has roto el foco":"+{n} bits · you broke the core","BASE LIBERADA":"BASE FREED","+{n} bits · has desconectado el virus":"+{n} bits · you disconnected the virus","Torreta hackeada":"Hacked turret","torreta hackeada":"hacked turret",
+"Infección que se extiende · al":"Spreading infection · to the","Minero de bits · al":"Bit miner · to the","Base hackeada · al":"Hacked base · to the",
+"norte":"north","sur":"south","este":"east","oeste":"west","noreste":"northeast","noroeste":"northwest","sureste":"southeast","suroeste":"southwest",
+"+{n} Bits":"+{n} Bits","+{n} DE REGALO":"+{n} FREE","+{n} NIVEL":"+{n} LEVEL","+{n} NV":"+{n} LV","+{n} Núcleos":"+{n} Cores","+{n} XP":"+{n} XP","+{n} bits":"+{n} bits",
+"+{n} bits para comprar y mejorar armas y habilidades en Equipamiento.":"+{n} bits to buy and upgrade weapons and abilities in your Loadout.","+{n} bits · Insignia Calabaza":"+{n} bits · Pumpkin Badge","+{n} de casco":"+{n} hull","+{n} kit de reparación":"+{n} repair kit","+{n} munición":"+{n} ammo","+{n} nivel de pase":"+{n} pass level","+{n} tarjeta de mejora común":"+{n} common upgrade card","+{n} tarjetas":"+{n} cards",
+"Calidad gráfica ajustada a «media» para que vaya más fluido":"Graphics quality set to «medium» so it runs more smoothly","Calidad gráfica ajustada a «baja» para que vaya más fluido":"Graphics quality set to «low» so it runs more smoothly","Calidad gráfica ajustada a «alta» para que vaya más fluido":"Graphics quality set to «high» so it runs more smoothly",
+"Idioma":"Language","⚠ HACKEADA":"⚠ HACKED","SISTEMA BAJO CONTROL VIRUS":"SYSTEM UNDER VIRUS CONTROL","Español":"Spanish","Inglés":"English",
+"Elimina a los virus":"Destroy the viruses","Mapa":"Map","Ranking":"Ranking","Clan":"Clan","Hangar":"Hangar","Partida ":"Play"
+};
+
+/* =====================================================================
+   IDIOMA · español / inglés. Traduce todos los textos de la pantalla en cuanto aparecen.
+   Por defecto: español si el navegador está en español, si no inglés. Botón ES/EN arriba.
+   ===================================================================== */
+const LANG=(()=>{try{const s=localStorage.getItem('c3d_lang');if(s==='es'||s==='en')return s}catch(e){}return /^es\b/i.test(navigator.language||'es')?'es':'en'})();
+const I18N_D=new Map(Object.entries(I18N_EN)),I18N_C=new Map();
+const I18N_NUM=/\d[\d .,:]*\d|\d/g;
+function T(s){if(LANG!=='en'||s==null)return s;s=String(s);
+  const hit=I18N_C.get(s);if(hit!==undefined)return hit;
+  const m=s.match(/^(\s*)([\s\S]*?)(\s*)$/),core=m[2];let out=s;
+  if(core&&/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(core)){const tr=I18N_one(core);if(tr!==null)out=m[1]+tr+m[3];
+    else if(core.includes(' · ')){const parts=core.split(' · ');let any=false;const t=parts.map(p=>{const r=I18N_one(p);if(r!==null){any=true;return r}return p});if(any)out=m[1]+t.join(' · ')+m[3]}}
+  if(I18N_C.size>6000)I18N_C.clear();I18N_C.set(s,out);return out}
+function I18N_one(core){const nums=[];const key=core.replace(I18N_NUM,x=>{nums.push(x);return '{n}'});let t=I18N_D.get(key);
+  if(t===undefined){/* "al norte", "· al sureste"… */const dm=/^(.*?)(·\s*)?al (norte|sur|este|oeste|noreste|noroeste|sureste|suroeste)$/.exec(key);
+    if(dm){const pre=dm[1].trim(),a=pre?I18N_one(pre):'';if(a!==null)return (a?a+' ':'')+(dm[2]?'· ':'')+'to the '+I18N_D.get(dm[3])}
+    return null}
+  let i=0;return t.replace(/\{n\}/g,()=>nums[i++]??'')}
+if(LANG==='en'){document.documentElement.lang='en';
+  const SKIP=/^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE)$/;
+  const doText=n=>{const p=n.parentNode;if(!p||SKIP.test(p.nodeName)||(p.closest&&p.closest('[data-noi18n]')))return;const v=n.nodeValue,t=T(v);if(t!==v)n.nodeValue=t};
+  const doAttr=e=>{for(const a of ['placeholder','aria-label','title']){const v=e.getAttribute&&e.getAttribute(a);if(v){const t=T(v);if(t!==v)e.setAttribute(a,t)}}};
+  const walk=root=>{if(root.nodeType===3){doText(root);return}if(root.nodeType!==1||SKIP.test(root.nodeName))return;doAttr(root);
+    const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT);let n;while(n=w.nextNode()){if(n.nodeType===3)doText(n);else doAttr(n)}};
+  walk(document.body);
+  new MutationObserver(L=>{for(const m of L){if(m.type==='characterData')doText(m.target);else if(m.type==='attributes')doAttr(m.target);else m.addedNodes.forEach(walk)}})
+    .observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title']});
+  document.title=document.title.replace('Centinela','Centinela')}
+/* botón ES / EN arriba, junto a los ajustes */
+{const sb=document.querySelector('[aria-label="Ajustes"],[aria-label="Settings"]');if(sb){const l=document.createElement('span');l.className='lng';l.setAttribute('data-noi18n','');
+  l.innerHTML='<button type="button" data-l="es"'+(LANG==='es'?' class="on"':'')+'>ES</button><button type="button" data-l="en"'+(LANG==='en'?' class="on"':'')+'>EN</button>';sb.parentNode.insertBefore(l,sb);
+  l.addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(!b||b.dataset.l===LANG)return;try{localStorage.setItem('c3d_lang',b.dataset.l)}catch(err){}location.reload()})}}
+{const st=document.createElement('style');st.textContent=`
+.lng{display:flex;align-items:center;gap:calc(.15*var(--u));padding:calc(.22*var(--u));border-radius:99px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.lng button{border:0;cursor:pointer;font:800 calc(.78*var(--u)) var(--ui);padding:calc(.3*var(--u)) calc(.55*var(--u));border-radius:99px;color:#9fb3c8;background:none}.lng button.on{background:#5cf0ff;color:#031018}.lng button:not(.on):hover{color:#fff}
+`;document.head.appendChild(st)}
+window.__i18n={T,LANG,miss:()=>{const S=new Set();const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){const v=n.nodeValue.trim();if(v&&/[áéíóúñ¿¡]|\b(de|la|el|los|las|con|para|tu|que|del|y)\b/i.test(v)&&T(v)===n.nodeValue)S.add(v)}return [...S]}};
 
 /* instalar el juego como una app (móvil y ordenador) */
 try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
