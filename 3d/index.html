@@ -5760,7 +5760,7 @@ window.__tut={start:()=>tutStart(),st:()=>TUT&&{step:TUT.step,cnt:TUT.cnt,ok:TUT
   fr.innerHTML='<div class="cgh"><span class="lab">Cómo se juega</span><span class="cgt">'+(TOUCH?'MÓVIL':'PC')+'</span></div>'+
    (TOUCH?row('Joystick','Girar y moverte')+row('Arrastrar','Apuntar')+row('Disparo','Disparar')+row('Misil','Arma especial')+row('Turbo','Ir más rápido')+row('Bengalas','Contra misiles')
          :row('W / S','Acelerar y frenar')+row('Ratón','Apuntar y girar')+row('Clic','Disparar')+row('Clic der.','Misil')+row('Shift','Turbo')+row('C','Bengalas contra misiles'))+
-   '<button type="button" class="cgb" id="tutBtn">▶ Tutorial · 1 minuto</button>';
+   '<button type="button" class="cgb p" id="tutBtn">▶ Tutorial · 1 minuto</button>';
   $('tutBtn').addEventListener('click',()=>{tone(500,900,.1,'sine',.04);tutStart()})}}
 {const sq=document.getElementById('squad');if(sq)sq.style.display='none'}
 /* el texto del mapa dice lo que de verdad pasa */
@@ -5785,6 +5785,19 @@ addEventListener('pagehide',()=>{if(MODE==='game')c3End()});
 .cgb{margin-top:calc(.7*var(--u));width:100%;height:calc(2.3*var(--u));border:0;border-radius:calc(.8*var(--u));font:800 calc(.95*var(--u)) var(--ui);letter-spacing:.12em;text-transform:uppercase;color:#031018;background:linear-gradient(180deg,#e9fdff,#5cf0ff 60%,#22b8d8);box-shadow:0 0 calc(1.4*var(--u)) rgba(92,240,255,.45);cursor:pointer}
 .cgb:hover{filter:brightness(1.1)}
 `;document.head.appendChild(st)}
+
+/* el menú de arriba funciona igual en cualquier idioma (antes dependía del texto en español) */
+document.querySelectorAll('#nav button').forEach(b=>{const k=b.dataset.k||b.textContent.trim();const nb=b.cloneNode(true);nb.dataset.k=k;b.replaceWith(nb);nb.addEventListener('click',()=>openView(navMap[k]))});
+setNav=function(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',navMap[b.dataset.k]===v))};
+/* DEMO: sin compras ni pase de temporada, solo para probar el juego */
+const DEMO=true;
+if(DEMO){
+  document.querySelectorAll('#nav button').forEach(b=>{if(b.dataset.k==='Pase'||b.dataset.k==='Tienda')b.style.display='none'});
+  {const e=$('passCard');if(e)e.style.display='none'}{const g=$('seg');if(g)g.style.visibility='hidden'}
+  {const n=document.querySelector('.nucCur');if(n)n.style.display='none'}
+  {const ov=openView;openView=function(v){if(['tienda','item','nucleos','pase'].includes(v))v=null;return ov.call(this,v)}}
+  {const r1=render;render=function(){r1();const l=$('wiLote');if(l)l.style.display='none'}}
+}
 
 /* =====================================================================
    CRÉDITOS, DERECHOS DE AUTOR, LICENCIAS Y PRIVACIDAD
@@ -6341,8 +6354,8 @@ if(LANG!=='es'){document.documentElement.lang=LANG;
     .observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title']});
   document.title=document.title.replace('Centinela','Centinela')}
 /* botón ES / EN arriba, junto a los ajustes */
-{const sb=document.querySelector('[aria-label="Ajustes"],[aria-label="Settings"],[aria-label="Definições"]');if(sb){const l=document.createElement('span');l.className='lng';l.setAttribute('data-noi18n','');
-  l.innerHTML=['es','en','pt'].map(l=>'<button type="button" data-l="'+l+'"'+(LANG===l?' class="on"':'')+'>'+l.toUpperCase()+'</button>').join('');sb.parentNode.insertBefore(l,sb);
+{const sb=document.querySelector('[aria-label="Ajustes"],[aria-label="Settings"],[aria-label="Definições"]');if(sb){const l=document.createElement('span');l.className='lng p';l.setAttribute('data-noi18n','');
+  l.innerHTML=['es','en','pt'].map(l=>'<button type="button" data-l="'+l+'" class="p'+(LANG===l?' on':'')+'">'+l.toUpperCase()+'</button>').join('');sb.parentNode.insertBefore(l,sb);
   l.addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(!b||b.dataset.l===LANG)return;try{localStorage.setItem('c3d_lang',b.dataset.l)}catch(err){}location.reload()})}}
 {const st=document.createElement('style');st.textContent=`
 .lng{display:flex;align-items:center;gap:calc(.15*var(--u));padding:calc(.22*var(--u));border-radius:99px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
