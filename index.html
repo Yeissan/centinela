@@ -1780,13 +1780,13 @@ const CONFIG = {
     // RANKING GLOBAL E INVITACIONES: pega aquí la URL de tu Firebase Realtime Database (plan gratuito), p. ej.
     // 'https://tu-proyecto-default-rtdb.firebaseio.com'. Reglas que debes pegar en Firebase:
     // { "rules": {
-    //   "ranking": { ".read": true, ".indexOn": ["p"],
-    //     "$uid": { ".write": true, ".validate": "newData.child('p').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } },
-    //   "refs": { "$ref": { ".read": true,
-    //     "$uid": { ".write": true, ".validate": "newData.child('l').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } }
-    //   ,"torneo": { "$w": { ".read": true,
-    //     "$uid": { ".write": true, ".validate": "newData.child('p').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16" } } }
+    //   ".read": false, ".write": false,
+    //   "ranking": { ".read": true, ".indexOn": ["p"] },
+    //   "superv": { "$id": { ".read": true, ".indexOn": ["p"] } },
+    //   "refs": { "$ref": { ".read": true } },
+    //   "torneo": { "$w": { ".read": true } }
     // } }
+    // Nadie escribe directamente: el juego manda los datos al servidor de Railway (/pub), que comprueba la firma de Telegram y los guarda él.
     databaseUrl: 'https://centinela-juego-default-rtdb.firebaseio.com',
     // SERVIDOR CONTRA TRAMPAS (carpeta de Firebase): si lo usas, pon aquí su dirección y deja databaseUrl vacío.
     // '/api' si el juego está en Firebase Hosting; o la dirección completa de la función si el juego está en otro sitio.
@@ -2301,9 +2301,9 @@ const Online = (() => {
       if (useApi) return await sync();
       const body = JSON.stringify({ n: myName(), p: rankPoints(), l: save.level, w: save.duelWins, t: save.title || '', pr: save.pr | 0 });
       if (body === lastSent) return true;
-      const r = await dbFetch(base + '/ranking/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
-      if (r.ok) lastSent = body;
-      return r.ok;
+      const ok = await pubSend('rank', JSON.parse(body));
+      if (ok) lastSent = body;
+      return ok;
     } catch (e) { return false; }
   }
   async function top() {
@@ -2320,7 +2320,7 @@ const Online = (() => {
     const o = { n: myName(), l: save.level }; if (save.refSrc) o.s = save.refSrc;   /* s: red desde la que llegó este jugador */
     const body = JSON.stringify(o);
     if (body === lastRef) return true;
-    try { const r = await dbFetch(base + '/refs/' + encodeURIComponent(save.ref) + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) lastRef = body; return r.ok; }
+    try { const ok = await pubSend('ref', { ref: save.ref, n: o.n, l: o.l }); if (ok) lastRef = body; return ok; }
     catch (e) { return false; }
   }
   async function refList() {
@@ -2350,6 +2350,13 @@ async function dbFetch(url, opts) {
     if (r.status === 451) throw new Error('bloqueado');
     return r;
   } catch (e) { clearTimeout(to); dbVia = true; return bridge(); }
+}
+/* publicar en los rankings (normal, supervivencia, torneo e invitaciones): siempre a través del servidor, con la firma de Telegram.
+   La base de datos ya no deja escribir a nadie más, así que nadie puede tocar la fila de otro ni inventarse puntos desde fuera. */
+async function pubSend(k, d) {
+  if (!SRV || !inTg || !tg.initData) return false;
+  try { const r = await fetch(SRV + '/pub', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ init: tg.initData, k, d }) }); return r.ok; }
+  catch (e) { return false; }
 }
 const SRV_WS = SRV ? SRV.replace(/^http/, 'ws') + '/ws' : '';
 class WsConn {
@@ -2396,7 +2403,7 @@ const Surv = (() => {
     if (!on || !save.surv.best) return false;
     const body = JSON.stringify({ n: myName(), p: save.surv.best, w: save.surv.bestW, s: save.skin });
     if (body === sent) return true;
-    try { const r = await dbFetch(base + '/superv/' + SURV_ALL + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); if (r.ok) sent = body; return r.ok; }
+    try { const ok = await pubSend('surv', JSON.parse(body)); if (ok) sent = body; return ok; }
     catch (e) { return false; }
   }
   async function board(id) {
@@ -6633,7 +6640,7 @@ const Tour = (() => {
   /* ===== clasificación del fin de semana (base de datos) ===== */
   async function pushPoints() {
     if (!dbOn) return;
-    try { await dbFetch(dbBase + '/torneo/' + save.tpts.id + '/' + encodeURIComponent(myUid()) + '.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ n: myName(), p: save.tpts.p, t: Date.now(), un: tgUser && tgUser.username ? String(tgUser.username).slice(0, 32) : '' }) }); } catch (e) {}
+    try { await pubSend('tour', { id: save.tpts.id, n: myName(), p: save.tpts.p }); } catch (e) {}
   }
   async function board(id) {
     const r = await dbFetch(dbBase + '/torneo/' + id + '.json'); if (!r.ok) throw new Error('http ' + r.status);
