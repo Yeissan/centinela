@@ -2126,6 +2126,7 @@ function cloudUnpack(v) {
 }
 function persist() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  guardSoon();
   if (cloudOK) {
     clearTimeout(cloudT);
     cloudT = setTimeout(() => { try { const pk = cloudPack(); for (const k in pk) if (cloudSent[k] !== pk[k]) { cloudSent[k] = pk[k]; tg.CloudStorage.setItem(k, pk[k]); } } catch (e) {} }, 800);
@@ -2357,6 +2358,32 @@ async function pubSend(k, d) {
   if (!SRV || !inTg || !tg.initData) return false;
   try { const r = await fetch(SRV + '/pub', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ init: tg.initData, k, d }) }); return r.ok; }
   catch (e) { return false; }
+}
+/* VIGILANTE: manda al servidor un resumen (bits, bits ganados, nivel, naves) con la firma de Telegram.
+   El servidor guarda la copia oficial y, si una subida es imposible, puede mandar la corrección (fix). */
+let guardT = 0, guardLast = 0, guardBusy = false;
+function guardSoon(now) {
+  if (guardT) return;
+  const wait = now ? 1500 : Math.max(3000, 20000 - (Date.now() - guardLast));
+  guardT = setTimeout(guardSend, wait);
+}
+async function guardSend() {
+  guardT = 0;
+  if (guardBusy || !SRV || !inTg || !tg.initData) return;
+  guardBusy = true; guardLast = Date.now();
+  const s = { b: save.bits | 0, e: save.earned | 0, l: save.level | 0, pr: save.pr | 0, sk: (save.skins || []).length, n: myName() };
+  try {
+    const r = await fetch(SRV + '/guard', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ init: tg.initData, s }) });
+    const d = r.ok ? await r.json() : null;
+    if (d && d.fix) {
+      /* se quita solo lo que el servidor no acepta; lo ganado o gastado mientras tanto se respeta */
+      const cutB = Math.max(0, s.b - Math.max(0, Number(d.fix.b) || 0)), cutE = Math.max(0, s.e - Math.max(0, Number(d.fix.e) || 0));
+      save.bits = Math.max(0, save.bits - cutB); save.earned = Math.max(0, save.earned - cutE);
+      persist();
+      if (typeof refreshMenu === 'function') try { refreshMenu(); } catch (e) {}
+    }
+  } catch (e) {}
+  guardBusy = false;
 }
 const SRV_WS = SRV ? SRV.replace(/^http/, 'ws') + '/ws' : '';
 class WsConn {
@@ -8886,7 +8913,7 @@ function boot(data) {
       const sp = inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param, rm = sp && /^ref_(tg\d{3,15})(?:_([a-z]{1,5}))?$/.exec(sp);
       if (rm && tgUser && !save.ref && rm[1] !== myUid() && save.level === 1 && !save.earned) { save.ref = rm[1]; save.refSrc = rm[2] || ''; persist(); }
     } catch (e) {}
-    Online.refPush(); refreshRefs().then(() => refreshMenu()); checkLanding();
+    Online.refPush(); refreshRefs().then(() => refreshMenu()); checkLanding(); guardSoon(true);
     Lobby.start(); Tour.migrate(); Tour.claim(); Online2.start(); Avatar.paint(); Surv.push();
     const duelLink = /^duel_/.test((inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '');
     const tourLink = ((inTg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '') === 'tour';   /* enlace de los avisos del torneo: ...?startapp=tour */
