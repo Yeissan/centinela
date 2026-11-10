@@ -3295,7 +3295,7 @@ function openView(v){
   ovH.hidden=false;render();
 }
 function render(){
-  const T={equip:['Armería','Tus armas, sus skins y sus mejoras'],taller:['Taller','Repara tu nave y tus armas'],hangar:['Hangar','Tu flota de Centinela'],pase:['Pase de temporada','Gratis · se sube jugando'],ranking:['Ranking',''],misiones:['Misiones y evento','Las misiones se renuevan cada día'],buzon:['Buzón',''],ajustes:['Ajustes','Tus avances se guardan en el servidor'],clan:['Clan y amigos',''],tienda:['Tienda','Solo estilo · nunca te hace más fuerte'],item:['Tienda',''],nucleos:['Conseguir Núcleos',SHOP_TEST?'Modo prueba · sin dinero real':''],mapas:['Elige mapa','Cada mapa tiene sus propias defensas que atacan a todos'],modos:['Modos de juego','Elige cómo quieres jugar'],evento:['Evento de Halloween','Noche de los Virus Zombi'],invierno:['Evento de invierno','Congelación del Sistema · hasta el 6 de enero'],creditos:['Créditos y legal','']}[view];
+  const T={equip:['Armería','Tus armas, sus skins y sus mejoras'],taller:['Taller','Repara tu nave y tus armas'],hangar:['Hangar','Tu flota de Centinela'],pase:['Pase de temporada','Gratis · se sube jugando'],ranking:['Ranking',''],misiones:['Misiones y evento','Las misiones se renuevan cada día'],buzon:['Buzón',''],ajustes:['Ajustes','Tus avances se guardan en el servidor'],clan:['Clan y amigos',''],tienda:['Tienda','Solo estilo · nunca te hace más fuerte'],item:['Tienda',''],nucleos:['Conseguir Núcleos',SHOP_TEST?'Modo prueba · sin dinero real':''],mapas:['Elige mapa','Cada mapa tiene sus propias defensas que atacan a todos'],modos:['Modos de juego','Elige cómo quieres jugar'],evento:['Evento de Halloween','Noche de los Virus Zombi'],invierno:['Evento de invierno','Congelación del Sistema · hasta el 6 de enero'],creditos:['Créditos y legal',''],mision:['Misiones','']}[view];
   $('ovT').textContent=T[0];$('ovS').textContent=T[1];
   const B=$('ovB');B.innerHTML=VIEWS[view]();BIND[view]&&BIND[view](B);
 }
@@ -5480,7 +5480,7 @@ window.__wiGift=v=>wiGift(v);window.__wi={img:()=>MODEIMG.invierno,wi:()=>WI(),g
    ===================================================================== */
 const VE={list:[],next:0,order:[],tex:null};
 const _vv=new THREE.Vector3(),_vw=new THREE.Vector3();
-const veOn=()=>G&&G.mode==='br'&&!G.over;
+const veOn=()=>G&&(G.mode==='br'||G.mode==='mis')&&!G.over;
 function veMesh(o){GS.add(o);return o}
 function veFree(o){if(!o)return;GS.remove(o);o.traverse(c=>{if(c.geometry&&!c.geometry._keep)c.geometry.dispose();if(c.material&&!c.material._keep){if(c.material.map&&!c.material.map._keep)c.material.map.dispose();c.material.dispose()}})}
 const veMat=(c,i,base)=>new THREE.MeshStandardMaterial({color:base??0x220008,emissive:c,emissiveIntensity:i??.7,roughness:.4,metalness:.35});
@@ -5513,7 +5513,7 @@ function veTarget(name,center,hp,rad,onHit){const t={hz:true,ve:true,name,pos:ce
   HZT.push(t);return t}
 function veUntarget(t){const i=HZT.indexOf(t);if(i>=0)HZT.splice(i,1);t.alive=false}
 /* sitio libre dentro de la zona segura */
-function veSpot(clear){const z=G.zone;for(let k=0;k<60;k++){const a=Math.random()*6.283,r=Math.sqrt(Math.random())*Math.min(z.r*.6,ARENA*.7),x=z.cx+Math.cos(a)*r,zz=z.cz+Math.sin(a)*r;
+function veSpot(clear){if(VE.force)return VE.force.clone();const z=G.zone;for(let k=0;k<60;k++){const a=Math.random()*6.283,r=Math.sqrt(Math.random())*Math.min(z.r*.6,ARENA*.7),x=z.cx+Math.cos(a)*r,zz=z.cz+Math.sin(a)*r;
     if(Math.hypot(x,zz)>ARENA*.82)continue;let ok=true;for(const y of [FLOOR+10,FLOOR+50,FLOOR+90])if(insideBox(_vv.set(x,y,zz),clear)){ok=false;break}
     if(ok&&G.player.pos.distanceTo(_vv.set(x,G.player.pos.y,zz))>140)return new THREE.Vector3(x,FLOOR,zz)}
   return new THREE.Vector3(z.cx+rand(-60,60),FLOOR,z.cz+rand(-60,60))}
@@ -5642,7 +5642,7 @@ function veSpawn(k){if(!k){if(!VE.order.length)VE.order=Object.keys(VE_TYPES).so
 function veReset(){for(const e of VE.list)try{e.kill()}catch(err){}VE.list.length=0;VE.next=0;VE.order=[];const h=document.getElementById('veH');if(h)h.hidden=true}
 function veStep(dt){if(!veOn()){return}
   if(!VE.next)VE.next=G.t+rand(55,75);
-  if(G.t>VE.next){if(!VE.list.length&&G.player.alive&&G.zone.r>220)veSpawn();VE.next=G.t+rand(90,120)}
+  if(G.t>VE.next){if(G.mode==='br'&&!(typeof MIS!=='undefined'&&MIS)&&!VE.list.length&&G.player.alive&&G.zone.r>220)veSpawn();VE.next=G.t+rand(90,120)}
   for(const e of VE.list)e.step(dt);
   for(let i=VE.list.length-1;i>=0;i--)if(VE.list[i].done){VE.list[i].kill();VE.list.splice(i,1)}}
 /* aviso fijo arriba: qué ataque hay, a cuánta distancia y hacia dónde */
@@ -5898,6 +5898,212 @@ if(!PR.nvAsked&&!(PR.nv&&PR.nv.nm))setTimeout(()=>{if(MODE==='hangar')nvOpen(tru
 #nvEd:hover{background:rgba(92,240,255,.3)}
 `;document.head.appendChild(st)}
 
+/* =====================================================================
+   MODO MISIONES · Capítulo 1 «Primer contacto» (5 misiones, hasta 15 estrellas)
+   ★ completar · ★★ acabar con más del 50 % de vida · ★★★ hacerlo antes del tiempo meta
+   ===================================================================== */
+const MIS_L=[
+ {n:1,t:'Patrulla',map:1,mode:'mis',time:240,bits:200,ic:'1',
+  brief:'Un virus desconocido ha entrado por la placa base. Limpia la zona y recupera los 3 datos que nos han robado.',
+  desc:'Limpia la zona de virus y recupera 3 datos perdidos. Para aprender sin presión.',obj:['Derriba 8 virus','Recupera 3 datos perdidos']},
+ {n:2,t:'Defiende el procesador',map:1,mode:'pve',time:300,bits:250,ic:'2',
+  brief:'Los virus van a por el procesador. Aguanta 3 oleadas y no dejes que lo destruyan.',
+  desc:'Aguanta 3 oleadas protegiendo el núcleo del sistema.',obj:['Aguanta 3 oleadas','Protege el núcleo']},
+ {n:3,t:'Infección',map:1,mode:'mis',time:180,bits:300,ic:'3',
+  brief:'La infección avanza por la placa. Si llega al procesador, perdemos el sistema. Rompe sus raíces y luego el foco. ¡Rápido, piloto!',
+  desc:'Una mancha roja se extiende por la placa. Rompe el foco y sus 3 raíces antes de que cubra el procesador.',obj:['Rompe las 3 raíces de la infección','Destruye el foco central','No dejes que cubra el procesador']},
+ {n:4,t:'El minero',map:0,mode:'br',time:240,bits:350,ic:'4',
+  brief:'Un minero de bits roba energía de la Red Neón y 5 naves rivales quieren su bote. Destrúyelo tú antes que ellas.',
+  desc:'Destruye al minero de bits antes de que las naves rivales se lleven el bote.',obj:['Destruye el minero de bits','Que ningún rival se lleve el bote','Sobrevive']},
+ {n:5,t:'Base hackeada',map:1,mode:'mis',time:300,bits:500,ic:'☠',boss:1,
+  brief:'El virus que empezó todo se ha hecho fuerte en una base. Rompe su escudo, desconéctalo y vence a su guardián, Kernel Panic.',
+  desc:'Recupera una base con torretas y vence al guardián del virus.',obj:['Destruye 2 torretas','Desconecta el virus de la base','Derrota a Kernel Panic']}];
+let MIS=null,misSel=0;
+const misP=()=>{PR.camp=PR.camp||{s:{}};return PR.camp};
+const misStars=()=>MIS_L.reduce((a,m)=>a+(misP().s[m.n]||0),0);
+const misOpen=n=>n===1||(misP().s[n-1]||0)>0;
+const mmss=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+/* skin de premio: las 15 estrellas */
+{const sk={id:'v9_contacto',n:'Primer Contacto',mis:15,pal:['#0f3a4a','#0a1118','#5cf0ff'],img:NSK0IMG,k:'nskin',r:'Nave',p:0};NSK.push(sk);SHOP.push(sk)}
+{const nh=nvHas;nvHas=function(x){if(x&&x.mis)return misStars()>=x.mis;return nh.apply(this,arguments)}}
+{const nr=nvReq;nvReq=function(x){if(x&&x.mis)return 'Misiones · '+misStars()+' / '+x.mis+' estrellas';return nr.apply(this,arguments)}}
+/* ---------- pantalla del capítulo ---------- */
+const MIS_POS=[[10,62],[37,30],[53,58],[71,62],[90,32]];
+VIEWS.mision=()=>{const P=misP(),st=misStars();misSel=Math.min(misSel,MIS_L.length-1);if(!misOpen(MIS_L[misSel].n))misSel=0;const m=MIS_L[misSel];
+  const firstOpen=MIS_L.findIndex(x=>misOpen(x.n)&&!(P.s[x.n]>0));
+  const nodes=MIS_L.map((x,i)=>{const s=P.s[x.n]||0,op=misOpen(x.n),[l,t]=MIS_POS[i];
+    return '<button type="button" class="msN'+(s?' done':'')+(op?'':' lock')+(x.boss?' boss':'')+(i===misSel?' sel':'')+'" data-ms="'+i+'" style="left:'+l+'%;top:'+t+'%"><span class="c">'+(op?x.ic:'🔒')+'</span><b>'+x.t+'</b><span class="s">'+(op?'★'.repeat(s)+'<i>'+'★'.repeat(3-s)+'</i>':'')+'</span></button>'}).join('');
+  const segs=MIS_POS.slice(1).map((p,i)=>{const a=MIS_POS[i],on=(P.s[MIS_L[i].n]||0)>0;return '<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+p[0]+'" y2="'+p[1]+'" class="'+(on?'on':'off')+'"/>'}).join('');
+  const s=P.s[m.n]||0;
+  return '<div class="msV"><div class="msC"><div class="im"'+(MAPIMG.placa&&MAPIMG.placa.startsWith('data:')?' style="background-image:url('+MAPIMG.placa+')"':'')+'></div><div class="in"><span class="k">Capítulo 1 · Placa Base</span><h2>Primer contacto</h2>'+
+   '<p>Un virus desconocido ha entrado por la placa base. La central necesita a su mejor antivirus: tú.</p>'+
+   '<div class="stb">★ '+st+' / 15<span class="bar"><i style="width:'+st/15*100+'%"></i></span></div>'+
+   '<div class="mrw'+(st>=15?' got':'')+'"><span class="sw"></span><span><b>Skin «Primer Contacto»</b><small>'+(st>=15?'¡Conseguida! Póntela en el Hangar':'Consigue las 15 estrellas')+'</small></span></div></div></div>'+
+  '<div class="msR"><div class="msP"><svg viewBox="0 0 100 100" preserveAspectRatio="none">'+segs+'</svg>'+nodes+'</div>'+
+   '<div class="msD"><div class="tx"><span class="k">Misión '+m.n+' de 5'+(s?' · mejor: '+'★'.repeat(s):'')+'</span><h3>'+m.t+'</h3><p>'+m.desc+'</p>'+
+    '<div class="chips"><i>⏱ meta '+mmss(m.time)+'</i><i>💎 +'+m.bits+' bits</i><i>⭐ hasta 3 estrellas</i></div></div>'+
+    '<button type="button" class="msGo" id="msGo">▶ Jugar misión</button></div></div></div>'};
+BIND.mision=B=>{B.querySelectorAll('[data-ms]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.ms;if(!misOpen(MIS_L[i].n)){toast('Consigue al menos 1 estrella en la misión anterior');return}misSel=i;tone(500,800,.06,'sine',.03);render()}));
+  $('msGo').addEventListener('click',()=>misBrief(MIS_L[misSel]))};
+{const r1=render;render=function(){r1();if(view==='mision'){$('ovT').textContent='Misiones';$('ovS').textContent='Capítulo 1 · Primer contacto'}}}
+/* botón arriba en el menú */
+{const nav=$('nav');if(nav){const b=document.createElement('button');b.type='button';b.textContent='Misiones';b.dataset.k='Misiones';navMap.Misiones='mision';
+  b.insertAdjacentHTML('afterbegin','<svg class="nvI" viewBox="0 0 24 24"><path d="M5 21V4m0 0h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>');
+  const first=nav.children[0];nav.insertBefore(b,first?first.nextSibling:null);b.addEventListener('click',()=>openView('mision'))}}
+/* ---------- presentación de la misión ---------- */
+function misBrief(m){const old=$('msB');if(old)old.remove();const d=document.createElement('div');d.id='msB';
+  const stars=['Completa la misión','Termina con más del 50 % de vida','Hazlo en menos de '+mmss(m.time)];
+  d.innerHTML='<div class="mbc"><span class="k">Capítulo 1 · Misión '+m.n+'</span><h2>'+m.t+'</h2>'+
+   '<div class="msg"><div class="av">🛰</div><div><b>Central del antivirus</b><p>«'+m.brief+'»</p></div></div>'+
+   '<div class="obj"><div class="ol"><span class="k">Objetivos</span>'+m.obj.map((o,i)=>'<div><i>'+(i+1)+'</i>'+o+'</div>').join('')+'</div>'+
+   '<div class="sl"><span class="k">Estrellas</span>'+stars.map((o,i)=>'<div><span>'+'★'.repeat(i+1)+'</span>'+o+'</div>').join('')+'</div></div>'+
+   '<div class="brow"><button type="button" class="msGo" id="mbGo">¡Empezar!</button><button type="button" class="sk" id="mbX">Volver a las misiones</button></div></div>';
+  document.body.appendChild(d);
+  $('mbX').addEventListener('click',()=>d.remove());
+  $('mbGo').addEventListener('click',()=>{d.remove();openView(null);misStart(m)})}
+/* ---------- empezar y jugar ---------- */
+const MIS_W2=[{n:4,nests:0},{n:5,nests:1},{n:6,nests:1}];
+function misStart(m){if(MIS)return;PR.tutSeen=1;MIS={m,prev:GMODE,st:0,kills:0,data:0,objs:[],tg:[]};
+  if(m.mode==='pve'){MIS.wv=WAVES.slice();WAVES.length=0;MIS_W2.forEach(w=>WAVES.push(w))}
+  GMODE=m.mode;startGame()}
+{const mp=mapPick;mapPick=function(){return MIS?MIS.m.map:mp.apply(this,arguments)}}
+function misAhead(d,side,y){const p=G.player.pos,f=playerFwd(new THREE.Vector3());f.y=0;f.normalize();const r=new THREE.Vector3(-f.z,0,f.x);const v=p.clone().addScaledVector(f,d).addScaledVector(r,side||0);
+  const lim=ARENA*.78,L=Math.hypot(v.x,v.z);if(L>lim){v.x*=lim/L;v.z*=lim/L}v.y=y==null?FLOOR:y;return v}
+function misFree(v,pad){for(let k=0;k<14&&insideBox(v,pad||14);k++)v.y+=14;return v}
+function misSetup(){const m=MIS.m,p=G.player;MIS.t0=G.t;MIS.st=1;VE.next=1e12;$('kf').innerHTML='';
+  if(m.mode!=='pve')for(let i=0;i<5;i++)addPickup(PICK[i%4],misFree(misAhead(rand(80,260),rand(-140,140),rand(40,110))));
+  if(m.n===1){// 8 virus en grupos y 3 datos perdidos
+    for(let g=0;g<3;g++){const c=misFree(misAhead(220+g*120,[-120,90,-30][g],rand(55,95)),20);
+      for(let k=0;k<(g===2?2:3);k++){const pos=c.clone().add(new THREE.Vector3(rand(-40,40),rand(-12,18),rand(-40,40)));misFree(pos,14);
+        const v=veVirus(6);v.position.copy(pos);GS.add(v);MIS.objs.push(v);
+        const t=veTarget('virus',pos.clone(),60,10);t.home=pos.clone();t.ph=rand(0,6);t.cool=rand(1,3);t.mesh=v;t.onDie=()=>{boom(t.pos,0xff3d6a,1.2);v.visible=false;MIS.kills++};MIS.tg.push(t)}}
+    MIS.cubes=[];for(let k=0;k<3;k++){const pos=misFree(misAhead(180+k*150,[150,-160,40][k],rand(40,120)),12);const g=new THREE.Group();g.position.copy(pos);
+      g.add(new THREE.Mesh(new THREE.BoxGeometry(5,5,5),new THREE.MeshBasicMaterial({color:new THREE.Color(0x5cf0ff).multiplyScalar(1.1),toneMapped:false})));
+      const gl=spr(FXT.flash,0x5cf0ff);gl.scale.set(34,34,1);gl.material.opacity=.45;g.add(gl);GS.add(g);MIS.objs.push(g);MIS.cubes.push({g,pos,got:false})}}
+  if(m.n===3){VE.force=misAhead(260,0,FLOOR);const e=VE_TYPES.inf();VE.force=null;VE.list.push(e);MIS.e=e;MIS.roots=0;
+    const foco=HZT.filter(h=>h.name==='foco de infección').pop();MIS.foco=foco;const oh=foco.hit;
+    foco.hit=(d,by)=>{if(MIS&&MIS.roots<3){if(by&&by.isPlayer&&!(MIS.tip>G.t)){MIS.tip=G.t+4;toast('El foco está protegido · rompe primero las 3 raíces')}hitFx(foco.center.clone(),0xffa0b0,true,null);return}oh(d,by)};
+    for(let k=0;k<3;k++){const a=k/3*6.283+.5,pos=new THREE.Vector3(e.pos.x+Math.cos(a)*75,FLOOR+18,e.pos.z+Math.sin(a)*75);misFree(pos,10);const g=new THREE.Group();g.position.copy(pos);
+      const sp=new THREE.Mesh(new THREE.ConeGeometry(5,30,6),veMat(0xff1e4a,.9,0x40000c));sp.position.y=-4;g.add(sp);const v=veVirus(5);v.position.y=12;g.add(v);GS.add(g);MIS.objs.push(g);
+      const t=veTarget('raíz de la infección',pos.clone().add(new THREE.Vector3(0,8,0)),150,12);t.onDie=()=>{boom(t.pos,0xff3d6a,1.6);g.visible=false;MIS.roots++;feed('Raíz destruida · '+MIS.roots+' / 3',true)};MIS.tg.push(t)}}
+  if(m.n===4){const bots=G.ships.filter(s=>!s.isPlayer);bots.slice(5).forEach(b=>{b.alive=false;if(b.mesh)GS.remove(b.mesh);if(b.trail)GS.remove(b.trail)});G.ships=G.ships.filter(s=>s.isPlayer||bots.indexOf(s)<5);
+    VE.force=misAhead(300,0,FLOOR);const e=VE_TYPES.min();VE.force=null;VE.list.push(e);MIS.e=e;
+    const t=HZT.filter(h=>h.name==='minero de bits').pop();const od=t.onDie;t.onDie=by=>{if(MIS)MIS.minerBy=by||{name:'?'};od(by)};
+    G.ships.forEach(s=>{if(!s.isPlayer)s.wander.set(e.pos.x+rand(-80,80),FLOOR+rand(60,120),e.pos.z+rand(-80,80))})}
+  if(m.n===5){VE.force=misAhead(280,0,FLOOR);const e=VE_TYPES.hak();VE.force=null;VE.list.push(e);MIS.e=e;
+    MIS.tur=HZT.filter(h=>h.name==='torreta hackeada').slice(-4);MIS.core=HZT.filter(h=>h.name==='virus de la base').pop()}
+  misHudBuild();banner(m.t.toUpperCase(),'Misión '+m.n+' · Capítulo 1','',3)}
+function misBoss(){const e=MIS.e,c=e.pos.clone();c.y=FLOOR+70;const v=veVirus(15,0xff1e4a);v.position.copy(c);GS.add(v);MIS.objs.push(v);
+  const t=veTarget('Kernel Panic',c,1300,26);t.mesh=v;t.cool=2;t.ang=0;t.onDie=()=>{boom(t.pos,0xff3d6a,3);noise(.9,.35);v.visible=false;MIS.bossDead=true};MIS.boss=t;MIS.tg.push(t);
+  banner('¡KERNEL PANIC!','El guardián del virus','red',3);tone(120,60,.8,'sawtooth',.06)}
+function misShoot(t,dmg,n){const p=G.player;for(let i=0;i<(n||1);i++){const dir=new THREE.Vector3().copy(p.pos).addScaledVector(p.vel,t.pos.distanceTo(p.pos)/420).sub(t.pos).normalize();dir.x+=rand(-.05,.05);dir.y+=rand(-.05,.05);dir.z+=rand(-.05,.05);dir.normalize();spawnShot(t,t.pos.clone().addScaledVector(dir,(t.r2?Math.sqrt(t.r2):10)+2),dir,dmg)}}
+function misStep(dt){if(!MIS||!G||MIS.fin)return;const m=MIS.m,p=G.player;
+  if(G.zone){G.zone.timer=Math.max(G.zone.timer,300);G.zone.state='wait'}
+  if(MIS.st===0){if(G.intro>0)return;misSetup();return}
+  const tt=G.t-MIS.t0;
+  if(m.n===1){for(const t of MIS.tg){if(!t.alive)continue;t.ph+=dt;t.pos.set(t.home.x+Math.cos(t.ph*.6)*14,t.home.y+Math.sin(t.ph*1.3)*6,t.home.z+Math.sin(t.ph*.6)*14);t.mesh.position.copy(t.pos);t.mesh.rotation.y+=dt;
+      t.cool-=dt;if(t.cool<=0){t.cool=rand(2.2,3.4);if(p.alive&&t.pos.distanceTo(p.pos)<200&&hzLOS(t.pos,p.pos))misShoot(t,3)}}
+    for(const c of MIS.cubes){if(c.got)continue;c.g.rotation.y+=dt*1.5;c.g.rotation.x+=dt*.7;if(p.pos.distanceTo(c.pos)<16){c.got=true;c.g.visible=false;MIS.data++;tone(900,1700,.15,'sine',.05);feed('Dato recuperado · '+MIS.data+' / 3',true)}}
+    if(MIS.kills>=8&&MIS.data>=3)misFinish(true)}
+  if(m.n===2){/* lo resuelve el modo de oleadas */}
+  if(m.n===3){const e=MIS.e;e.t0+=dt*.35;if(MIS.foco&&!MIS.foco.alive)misFinish(true);else if(e.R>=169)misFinish(false,'La infección ha cubierto el procesador')}
+  if(m.n===4){if(MIS.minerBy){if(MIS.minerBy.isPlayer)misFinish(true);else misFinish(false,(MIS.minerBy.name||'Un rival')+' se ha llevado el bote')}else if(MIS.e.end!=null)misFinish(false,'El minero ha escapado con el bote')}
+  if(m.n===5){if(!MIS.core.alive&&!MIS.boss){MIS.bossT=(MIS.bossT||0)+dt;if(MIS.bossT>2)misBoss()}
+    else if(MIS.boss&&MIS.boss.alive){const b=MIS.boss,c=MIS.e.pos;b.ang+=dt*.35;b.pos.set(c.x+Math.cos(b.ang)*95,FLOOR+70+Math.sin(G.t*.8)*14,c.z+Math.sin(b.ang)*95);b.mesh.position.copy(b.pos);b.mesh.lookAt(p.pos);
+      b.cool-=dt;if(b.cool<=0){b.cool=b.hp<b.maxHp*.5?1.7:2.4;if(p.alive&&b.pos.distanceTo(p.pos)<320)misShoot(b,5,b.hp<b.maxHp*.5?7:5);tone(260,140,.2,'sawtooth',.03)}
+      if(b.pos.distanceTo(p.pos)<320)hzWarnSet('☠ Kernel Panic te dispara','#ff3d6a',3)}
+    if(MIS.bossDead)misFinish(true);else if(MIS.e.end!=null&&MIS.core.alive)misFinish(false,'El virus ha escapado de la base')}
+  misHud(tt)}
+{const st=hzStep;hzStep=function(dt){st.apply(this,arguments);try{misStep(dt)}catch(err){console.error(err)}}}
+/* marcas en el radar */
+{const hm=hzMini;hzMini=function(loc,sc){hm.apply(this,arguments);if(!MIS||!MIS.st)return;
+  if(MIS.cubes)for(const c of MIS.cubes){if(c.got)continue;const [x,y]=loc(c.pos.x,c.pos.z);mmc.fillStyle='#5cf0ff';mmc.fillRect(x-5,y-5,10,10)}
+  for(const t of MIS.tg){if(!t.alive)continue;const [x,y]=loc(t.pos.x,t.pos.z);mmc.fillStyle=t===MIS.boss?'#ffd76a':'#ff3d6a';mmc.beginPath();mmc.arc(x,y,t===MIS.boss?9:5,0,7);mmc.fill()}}}
+/* ---------- marcador de objetivos en la partida ---------- */
+function misHudBuild(){let h=$('misH');if(!h){h=document.createElement('div');h.id='misH';$('P').appendChild(h)}h.hidden=false}
+function misHud(tt){const h=$('misH');if(!h)return;const m=MIS.m;let o=[];
+  if(m.n===1)o=[[MIS.kills>=8,'Derriba 8 virus',MIS.kills+' / 8'],[MIS.data>=3,'Recupera 3 datos perdidos',MIS.data+' / 3']];
+  if(m.n===2)o=[[false,'Aguanta 3 oleadas','Oleada '+Math.min(3,(G.wave||0)+1)+' / 3'],[true,'Protege el núcleo',G.core?Math.round(G.core.hp/G.core.maxHp*100)+' %':'']];
+  if(m.n===3)o=[[MIS.roots>=3,'Rompe las 3 raíces de la infección',MIS.roots+' / 3'],[MIS.foco&&!MIS.foco.alive,'Destruye el foco central',MIS.roots<3?'🔒':''],[true,'No dejes que cubra el procesador',Math.round(MIS.e.R/169*100)+' %']];
+  if(m.n===4)o=[[false,'Destruye el minero de bits','💎 '+fmt(Math.round(MIS.e.bote||0))],[true,'Que ningún rival se lleve el bote',''],[true,'Sobrevive','']];
+  if(m.n===5){const td=MIS.tur.filter(t=>!t.alive).length;o=[[td>=2,'Destruye 2 torretas',Math.min(2,td)+' / 2'],[!MIS.core.alive,'Desconecta el virus de la base',''],[!!MIS.bossDead,'Derrota a Kernel Panic',MIS.boss?Math.ceil(MIS.boss.hp/MIS.boss.maxHp*100)+' %':'']]}
+  const k=o.map(x=>(x[0]?1:0)+x[2]).join('|')+Math.floor(tt);if(h._k===k)return;h._k=k;
+  h.innerHTML='<div class="mh"><span>Misión '+m.n+'</span><b>'+m.t+'</b><em class="'+(tt>m.time?'late':'')+'">⏱ '+mmss(tt)+' / '+mmss(m.time)+'</em></div>'+o.map(x=>'<div class="mo'+(x[0]?' ok':'')+'"><i>'+(x[0]?'✓':'')+'</i><span>'+x[1]+'</span><small>'+x[2]+'</small></div>').join('')}
+/* ---------- final ---------- */
+function misFinish(win,why){if(!MIS||MIS.fin)return;MIS.fin=1;const m=MIS.m,p=G.player,tt=G.t-(MIS.t0||G.t);
+  const life=p.maxH?Math.max(0,p.hull/p.maxH):0,s=win?1+(life>=.5?1:0)+(tt<=m.time?1:0):0;
+  G.over=true;try{c3End()}catch(e){}lockWanted=false;try{document.exitPointerLock&&document.exitPointerLock()}catch(e){}
+  const P=misP(),prev=P.s[m.n]||0,first=win&&!prev;let bits=win?(first?m.bits:Math.round(m.bits*.25)):0;
+  if(s>prev)P.s[m.n]=s;PR.bits+=bits;let msgs=[];try{msgs=nvCommit(win)}catch(e){}saveP();setBitsTop();
+  if(win&&misStars()>=15&&!P.skin){P.skin=1;saveP();msgs.push('¡Desbloqueada la skin «Primer Contacto»!')}
+  if(win){banner('¡MISIÓN COMPLETADA!','','gold',2.5);tone(600,1500,.4,'sine',.06)}else{banner('MISIÓN FALLIDA',why||'','red',2.5);tone(300,120,.5,'sawtooth',.05)}
+  setTimeout(()=>misResult(win,s,life,tt,bits,why,msgs),1600)}
+function misResult(win,s,life,tt,bits,why,msgs){const m=MIS?MIS.m:null;if(!m)return;const old=$('msE');if(old)old.remove();const d=document.createElement('div');d.id='msE';
+  const star=(on,big)=>'<svg class="'+(on?'on ':'')+(big?'m':'')+'" viewBox="0 0 24 24"><path d="M12 2l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.8 5.7 21.4l1.5-7.1L1.8 9.4 9 8.6z" fill="'+(on?'#ffd76a':'rgba(255,255,255,.12)')+'"'+(on?'':' stroke="rgba(255,255,255,.3)" stroke-width=".6"')+'/></svg>';
+  const nx=MIS_L.find(x=>x.n===m.n+1),canNext=win&&nx;
+  d.innerHTML='<div class="mrc"><span class="k">Capítulo 1 · Misión '+m.n+' · '+m.t+'</span><h2 class="'+(win?'':'ko')+'">'+(win?'Misión completada':'Misión fallida')+'</h2>'+
+   (win?'<div class="mst">'+star(s>=1)+star(s>=2,1)+star(s>=3)+'</div>':'<p class="why">'+(why||'')+'</p>')+
+   '<div class="mcr"><div class="'+(win?'ok':'no')+'"><b>'+(win?'✓':'✕')+'</b><small>'+(win?'Completada':'Sin completar')+'</small></div><div class="'+(life>=.5?'ok':'no')+'"><b>'+Math.round(life*100)+' %</b><small>Vida al final</small></div><div class="'+(tt<=m.time?'ok':'no')+'"><b>'+mmss(tt)+'</b><small>Tiempo · meta '+mmss(m.time)+'</small></div></div>'+
+   '<div class="mpz"><i>💎 +'+bits+' bits</i><i>★ '+misStars()+' / 15</i></div>'+
+   '<div class="mrb"><button type="button" class="alt" id="mrR">↻ '+(win?'Repetir':'Reintentar')+'</button>'+(canNext?'<button type="button" class="msGo" id="mrN">Siguiente misión ▶</button>':'<button type="button" class="msGo" id="mrB">Volver a las misiones</button>')+'</div></div>';
+  document.body.appendChild(d);msgs.forEach((t,i)=>setTimeout(()=>toast(t),600+i*2200));
+  const go=after=>{d.remove();toHangar();setTimeout(after,700)};
+  $('mrR').addEventListener('click',()=>go(()=>misStart(m)));
+  const n=$('mrN');n&&n.addEventListener('click',()=>go(()=>{misSel=MIS_L.indexOf(nx);misBrief(nx)}));
+  const b=$('mrB');b&&b.addEventListener('click',()=>go(()=>openView('mision')))}
+{const eg=endGame;endGame=function(win){if(MIS&&!MIS.fin){if(G&&G.mode==='br'&&win)return;misFinish(false,'Te han derribado');return}if(MIS&&MIS.fin)return;return eg.apply(this,arguments)}}
+{const pe=pveEnd;pveEnd=function(win,why){if(MIS){if(!MIS.fin)misFinish(win,win?'':why==='lives'?'Te has quedado sin vidas':'Han destruido el núcleo');return}return pe.apply(this,arguments)}}
+{const th=toHangar;toHangar=function(){if(MIS){for(const o of MIS.objs)veFree(o);for(const t of MIS.tg)veUntarget(t);if(MIS.wv){WAVES.length=0;MIS.wv.forEach(w=>WAVES.push(w))}GMODE=MIS.prev;MIS=null;const h=$('misH');if(h)h.remove();const e=$('msE');if(e)e.remove()}return th.apply(this,arguments)}}
+window.__mis={start:n=>misStart(MIS_L[n-1]),st:()=>MIS&&{n:MIS.m.n,st:MIS.st,kills:MIS.kills,data:MIS.data,roots:MIS.roots,fin:MIS.fin},M:()=>MIS,P:()=>misP()};
+{const st=document.createElement('style');st.textContent=`
+.msV{flex:1;min-height:0;display:grid;grid-template-columns:calc(22*var(--u)) 1fr;gap:calc(1.6*var(--u))}
+.msC{display:flex;flex-direction:column;border-radius:calc(1.4*var(--u));overflow:hidden;background:rgba(5,12,26,.86);box-shadow:inset 0 0 0 1px rgba(92,240,255,.3)}
+.msC .im{height:calc(10*var(--u));background:#0a1426 center/cover;position:relative;flex:none}.msC .im:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(5,12,26,1))}
+.msC .in{padding:calc(.4*var(--u)) calc(1.3*var(--u)) calc(1.2*var(--u));display:flex;flex-direction:column;gap:calc(.55*var(--u));flex:1;min-height:0}
+.msV .k,#msB .k,#msE .k{font:700 calc(.8*var(--u)) var(--ui);letter-spacing:.22em;text-transform:uppercase;color:#5cf0ff}
+.msC h2{margin:0;font:800 italic calc(2.2*var(--u))/1 var(--hx);text-transform:uppercase}.msC p{margin:0;font:600 calc(1*var(--u))/1.35 var(--ui);color:#c9d6e4}
+.msC .stb{display:flex;align-items:center;gap:calc(.6*var(--u));font:800 calc(1.4*var(--u)) var(--ui);color:#ffd76a}.msC .bar{flex:1;height:calc(.5*var(--u));border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden}.msC .bar i{display:block;height:100%;background:linear-gradient(90deg,#ffb43d,#ffe39a)}
+.msC .mrw{margin-top:auto;display:flex;gap:calc(.7*var(--u));align-items:center;padding:calc(.6*var(--u));border-radius:calc(1*var(--u));background:rgba(255,215,106,.08);box-shadow:inset 0 0 0 1px rgba(255,215,106,.4)}
+.msC .mrw .sw{flex:none;width:calc(3.4*var(--u));height:calc(3.4*var(--u));border-radius:calc(.8*var(--u));background:linear-gradient(135deg,#0f3a4a 0 45%,#5cf0ff 45% 55%,#0a1118 55%);box-shadow:inset 0 0 0 1px rgba(92,240,255,.6)}
+.msC .mrw b{display:block;font:800 calc(1.05*var(--u)) var(--ui)}.msC .mrw small{font:700 calc(.8*var(--u)) var(--ui);color:#ffd76a;letter-spacing:.06em}.msC .mrw.got{box-shadow:inset 0 0 0 2px #58f29a}
+.msR{display:flex;flex-direction:column;gap:calc(1.2*var(--u));min-height:0}
+.msP{position:relative;flex:1;min-height:0}.msP svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.msP line{stroke-width:.6;vector-effect:non-scaling-stroke}.msP line.on{stroke:#58f29a;stroke-width:5px;filter:drop-shadow(0 0 6px #5cf0ff)}.msP line.off{stroke:#3a4a60;stroke-width:4px;stroke-dasharray:10 10}
+.msN{position:absolute;transform:translate(-50%,-50%);width:calc(10*var(--u));border:0;background:none;color:#fff;cursor:pointer;text-align:center;padding:0}
+.msN .c{width:calc(4.8*var(--u));height:calc(4.8*var(--u));margin:0 auto;border-radius:50%;display:grid;place-items:center;font:800 italic calc(2.1*var(--u)) var(--hx);background:radial-gradient(circle at 40% 35%,#17345a,#081426);box-shadow:inset 0 0 0 3px #5cf0ff,0 0 calc(1.6*var(--u)) rgba(92,240,255,.5);transition:transform .15s}
+.msN.done .c{box-shadow:inset 0 0 0 3px #58f29a,0 0 calc(1.4*var(--u)) rgba(88,242,154,.45)}.msN.lock .c{box-shadow:inset 0 0 0 2px rgba(255,255,255,.2);color:#6a7a90;background:#0a1220;font-size:calc(1.5*var(--u))}
+.msN.boss .c{width:calc(5.8*var(--u));height:calc(5.8*var(--u));box-shadow:inset 0 0 0 3px #ff3d6a,0 0 calc(1.8*var(--u)) rgba(255,61,106,.5);color:#ffb0c0}
+.msN.sel .c{transform:scale(1.12);box-shadow:inset 0 0 0 4px #fff,0 0 0 6px rgba(92,240,255,.35),0 0 calc(2.4*var(--u)) rgba(92,240,255,.7)}
+.msN b{display:block;margin-top:calc(.5*var(--u));font:800 calc(1.1*var(--u)) var(--ui);text-transform:uppercase}.msN .s{font-size:calc(1.1*var(--u));letter-spacing:2px;color:#ffd76a}.msN .s i{font-style:normal;color:rgba(255,255,255,.18)}.msN.lock b{color:#6a7a90}
+.msD{flex:none;display:flex;gap:calc(1.4*var(--u));align-items:center;padding:calc(1.1*var(--u)) calc(1.5*var(--u));border-radius:calc(1.4*var(--u));background:rgba(5,12,26,.86);box-shadow:inset 0 0 0 1px rgba(92,240,255,.3)}
+.msD .tx{flex:1;min-width:0}.msD h3{margin:calc(.25*var(--u)) 0 calc(.35*var(--u));font:800 italic calc(1.9*var(--u)) var(--hx);text-transform:uppercase}.msD p{margin:0;font:600 calc(1*var(--u))/1.35 var(--ui);color:#c9d6e4}
+.msD .chips{display:flex;gap:calc(.5*var(--u));margin-top:calc(.5*var(--u))}.msD .chips i{font-style:normal;font:700 calc(.85*var(--u)) var(--ui);padding:calc(.25*var(--u)) calc(.6*var(--u));border-radius:99px;background:rgba(255,255,255,.08)}
+.msGo{border:0;cursor:pointer;padding:0 calc(2*var(--u));height:calc(3.8*var(--u));border-radius:calc(1.1*var(--u));font:800 italic calc(1.6*var(--u)) var(--hx);letter-spacing:.08em;text-transform:uppercase;color:#031018;background:linear-gradient(180deg,#e9fdff,#5cf0ff 60%,#22b8d8);box-shadow:0 0 calc(1.6*var(--u)) rgba(92,240,255,.55);white-space:nowrap}
+#msB,#msE{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(3,6,14,.72);--u:min(12.8px,1vw,1.73vh);font-family:"Barlow Condensed",sans-serif;color:#fff}
+#msB .mbc{width:calc(56*var(--u));padding:calc(2*var(--u)) calc(2.4*var(--u));border-radius:calc(1.8*var(--u));background:rgba(5,12,26,.92);box-shadow:inset 0 0 0 1px rgba(92,240,255,.35),0 0 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:calc(1*var(--u))}
+#msB h2{margin:0;font:800 italic calc(4*var(--u))/1 "Barlow Condensed";text-transform:uppercase;text-shadow:0 0 calc(1.5*var(--u)) rgba(255,61,106,.6)}
+#msB .msg{display:flex;gap:calc(1.1*var(--u));align-items:flex-start;padding:calc(1.1*var(--u));border-radius:calc(1.2*var(--u));background:rgba(92,240,255,.07);box-shadow:inset 0 0 0 1px rgba(92,240,255,.3)}
+#msB .av{flex:none;width:calc(4.5*var(--u));height:calc(4.5*var(--u));border-radius:50%;display:grid;place-items:center;font-size:calc(2.3*var(--u));background:radial-gradient(circle,#1b3e66,#07111f);box-shadow:inset 0 0 0 2px #5cf0ff}
+#msB .msg b{display:block;font:800 calc(1.1*var(--u)) "Barlow Condensed";letter-spacing:.16em;color:#5cf0ff;text-transform:uppercase}#msB .msg p{margin:calc(.25*var(--u)) 0 0;font:600 calc(1.45*var(--u))/1.35 "Barlow Condensed";color:#e6eef8}
+#msB .obj{display:grid;grid-template-columns:1fr 1fr;gap:calc(.9*var(--u))}#msB .obj>div{padding:calc(.9*var(--u)) calc(1.2*var(--u));border-radius:calc(1.2*var(--u));background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+#msB .ol div{font:700 calc(1.3*var(--u)) "Barlow Condensed";margin-top:calc(.45*var(--u));display:flex;gap:calc(.6*var(--u));align-items:center}#msB .ol div i{font-style:normal;flex:none;width:calc(1.7*var(--u));height:calc(1.7*var(--u));border-radius:calc(.45*var(--u));display:grid;place-items:center;background:rgba(255,61,106,.18);color:#ff8fa8;font-size:calc(1*var(--u))}
+#msB .sl div{font:700 calc(1.25*var(--u)) "Barlow Condensed";margin-top:calc(.45*var(--u));color:#dfe8f2}#msB .sl div span{color:#ffd76a;letter-spacing:2px;margin-right:calc(.6*var(--u))}
+#msB .brow{display:flex;gap:calc(.9*var(--u));align-items:center;margin-top:calc(.3*var(--u))}#msB .sk{margin-left:auto;border:0;background:none;cursor:pointer;font:700 calc(1.1*var(--u)) "Barlow Condensed";color:#9fb3c8;text-decoration:underline}
+#msE .mrc{width:calc(50*var(--u));padding:calc(2.2*var(--u)) calc(2.6*var(--u));border-radius:calc(1.8*var(--u));background:rgba(5,12,26,.92);box-shadow:inset 0 0 0 1px rgba(92,240,255,.35);text-align:center;display:flex;flex-direction:column;gap:calc(1.1*var(--u));align-items:center}
+#msE h2{margin:0;font:800 italic calc(4.4*var(--u))/1 "Barlow Condensed";text-transform:uppercase;text-shadow:0 0 calc(1.7*var(--u)) rgba(88,242,154,.6);color:#eafff2}#msE h2.ko{color:#ffd0da;text-shadow:0 0 calc(1.7*var(--u)) rgba(255,61,106,.7)}
+#msE .why{margin:0;font:700 calc(1.5*var(--u)) "Barlow Condensed";color:#ff8fa8}
+#msE .mst{display:flex;gap:calc(1.4*var(--u));align-items:flex-end}#msE .mst svg{width:calc(7.5*var(--u));height:calc(7.5*var(--u))}#msE .mst svg.m{width:calc(9.5*var(--u));height:calc(9.5*var(--u))}#msE .mst svg.on{filter:drop-shadow(0 0 10px #ffb43d)}
+#msE .mcr{display:flex;gap:calc(.8*var(--u));width:100%}#msE .mcr div{flex:1;padding:calc(.9*var(--u));border-radius:calc(1.2*var(--u));background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+#msE .mcr b{display:block;font:800 calc(2.2*var(--u)) "Barlow Condensed"}#msE .mcr small{font:700 calc(1*var(--u)) "Barlow Condensed";letter-spacing:.1em;color:#9fb3c8;text-transform:uppercase}#msE .mcr .ok b{color:#58f29a}#msE .mcr .no b{color:#ff8fa8}
+#msE .mpz{display:flex;gap:calc(.8*var(--u))}#msE .mpz i{font-style:normal;font:800 calc(1.55*var(--u)) "Barlow Condensed";padding:calc(.6*var(--u)) calc(1.2*var(--u));border-radius:calc(1.1*var(--u));background:rgba(92,240,255,.1);box-shadow:inset 0 0 0 1px rgba(92,240,255,.4)}
+#msE .mrb{display:flex;gap:calc(.9*var(--u));width:100%}#msE .alt{flex:1;height:calc(4.6*var(--u));border:0;cursor:pointer;border-radius:calc(1.4*var(--u));color:#fff;font:800 calc(1.55*var(--u)) "Barlow Condensed";letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}#msE .msGo{flex:1.4;height:calc(4.6*var(--u));font-size:calc(1.9*var(--u))}
+#misH{position:absolute;left:calc(1.6*var(--u));top:calc(18.5*var(--u));width:calc(19*var(--u));padding:calc(.8*var(--u)) calc(1*var(--u));border-radius:calc(1.1*var(--u));background:rgba(4,10,22,.78);box-shadow:inset 0 0 0 1px rgba(92,240,255,.35);z-index:6;pointer-events:none}
+#misH .mh{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 calc(.6*var(--u));margin-bottom:calc(.4*var(--u))}#misH .mh span{font:800 calc(.7*var(--u)) var(--ui);letter-spacing:.18em;color:#5cf0ff;text-transform:uppercase;width:100%}
+#misH .mh b{font:800 italic calc(1.35*var(--u)) var(--hx);text-transform:uppercase}#misH .mh em{margin-left:auto;font-style:normal;font:800 calc(.85*var(--u)) var(--ui);color:#cfe8ff}#misH .mh em.late{color:#ff8fa8}
+#misH .mo{display:flex;align-items:center;gap:calc(.5*var(--u));font:700 calc(.85*var(--u)) var(--ui);color:#dfe8f2;margin-top:calc(.3*var(--u))}#misH .mo i{font-style:normal;flex:none;width:calc(1.2*var(--u));height:calc(1.2*var(--u));border-radius:calc(.35*var(--u));display:grid;place-items:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);font-size:calc(.75*var(--u))}
+#misH .mo.ok i{background:#58f29a;color:#032;box-shadow:none}#misH .mo.ok span{color:#9fe8b8}#misH .mo span{flex:1}#misH .mo small{font:800 calc(.8*var(--u)) var(--ui);color:#ffd76a}
+`;document.head.appendChild(st)}
+
 /* Diccionario español → inglés. {n} = un número (se copia en el mismo orden). */
 const I18N_EN={
 "(la tienes en el":"(you have it in the","(tienes el":"(you have the",
@@ -6105,7 +6311,7 @@ const I18N_EN={
 "Para borrar tus datos o cualquier duda, escribe a":"To delete your data or ask anything, write to",
 "Bienvenido, piloto":"Welcome, pilot","Tu nave":"Your ship","Ponle nombre":"Name","a tu nave":"your ship","Cambiar nombre":"Rename","Esta es tu Centinela, el antivirus que vas a pilotar. Irá subiendo de nivel y ganando skins contigo.":"This is your Centinela, the antivirus you'll fly. It will level up and earn skins with you.","Puedes cambiarlo cuando quieras.":"You can change it whenever you want.",
 "Nombre de tu nave":"Your ship's name","Tu nombre de piloto":"Your pilot name","¡A volar!":"Let's fly!","Guardar":"Save","Dejarla como «Centinela»":"Keep «Centinela»","Nombre al azar":"Random name","Cambiar nombre de la nave":"Rename your ship","¡Tu nave se llama":"Your ship is called","Tu nave se llama Centinela":"Your ship is called Centinela",
-"Idioma":"Language","Portugués":"Portuguese","al norte":"to the north","al sur":"to the south","al este":"to the east","al oeste":"to the west","al noreste":"to the northeast","al noroeste":"to the northwest","al sureste":"to the southeast","al suroeste":"to the southwest","⚠ HACKEADA":"⚠ HACKED","SISTEMA BAJO CONTROL VIRUS":"SYSTEM UNDER VIRUS CONTROL","Español":"Spanish","Inglés":"English",
+"Misiones":"Missions","Capítulo {n} · Primer contacto":"Chapter {n} · First contact","Capítulo {n} · Placa Base":"Chapter {n} · Motherboard","Primer contacto":"First contact","Un virus desconocido ha entrado por la placa base. La central necesita a su mejor antivirus: tú.":"An unknown virus has entered the motherboard. Command needs its best antivirus: you.","★ {n} / {n}":"★ {n} / {n}","Skin «Primer Contacto»":"«First Contact» skin","¡Conseguida! Póntela en el Hangar":"Unlocked! Equip it in the Hangar","Consigue las {n} estrellas":"Earn all {n} stars","Misión {n} de {n}":"Mission {n} of {n}","mejor: ★":"best: ★","mejor: ★★":"best: ★★","mejor: ★★★":"best: ★★★","Patrulla":"Patrol","Defiende el procesador":"Defend the processor","Infección":"Infection","El minero":"The miner","PATRULLA":"PATROL","DEFIENDE EL PROCESADOR":"DEFEND THE PROCESSOR","INFECCIÓN":"INFECTION","EL MINERO":"THE MINER","BASE HACKEADA":"HACKED BASE","Limpia la zona de virus y recupera {n} datos perdidos. Para aprender sin presión.":"Clear the zone of viruses and recover {n} lost data cubes. Learn with no pressure.","Aguanta {n} oleadas protegiendo el núcleo del sistema.":"Survive {n} waves protecting the system core.","Una mancha roja se extiende por la placa. Rompe el foco y sus {n} raíces antes de que cubra el procesador.":"A red stain spreads across the board. Break the core and its {n} roots before it covers the processor.","Destruye al minero de bits antes de que las naves rivales se lleven el bote.":"Destroy the bit miner before rival ships take the jackpot.","Recupera una base con torretas y vence al guardián del virus.":"Take back a base full of turrets and defeat the virus guardian.","«Un virus desconocido ha entrado por la placa base. Limpia la zona y recupera los {n} datos que nos han robado.»":"«An unknown virus has entered the motherboard. Clear the zone and recover the {n} data cubes it stole from us.»","«Los virus van a por el procesador. Aguanta {n} oleadas y no dejes que lo destruyan.»":"«The viruses are going for the processor. Survive {n} waves and don't let them destroy it.»","«La infección avanza por la placa. Si llega al procesador, perdemos el sistema. Rompe sus raíces y luego el foco. ¡Rápido, piloto!»":"«The infection is spreading across the board. If it reaches the processor, we lose the system. Break its roots, then the core. Hurry, pilot!»","«Un minero de bits roba energía de la Red Neón y {n} naves rivales quieren su bote. Destrúyelo tú antes que ellas.»":"«A bit miner is stealing energy from the Neon Grid and {n} rival ships want its jackpot. Destroy it before they do.»","«El virus que empezó todo se ha hecho fuerte en una base. Rompe su escudo, desconéctalo y vence a su guardián, Kernel Panic.»":"«The virus that started it all has dug into a base. Break its shield, disconnect it and defeat its guardian, Kernel Panic.»","Derriba {n} virus":"Shoot down {n} viruses","Recupera {n} datos perdidos":"Recover {n} lost data cubes","Aguanta {n} oleadas":"Survive {n} waves","Protege el núcleo":"Protect the core","Rompe las {n} raíces de la infección":"Break the {n} roots of the infection","Destruye el foco central":"Destroy the central core","No dejes que cubra el procesador":"Don't let it cover the processor","Destruye el minero de bits":"Destroy the bit miner","Que ningún rival se lleve el bote":"Don't let any rival take the jackpot","Sobrevive":"Survive","Destruye {n} torretas":"Destroy {n} turrets","Desconecta el virus de la base":"Disconnect the base virus","Derrota a Kernel Panic":"Defeat Kernel Panic","⏱ meta {n}":"⏱ target {n}","💎 +{n} bits":"💎 +{n} bits","⭐ hasta {n} estrellas":"⭐ up to {n} stars","▶ Jugar misión":"▶ Play mission","Capítulo {n} · Misión {n}":"Chapter {n} · Mission {n}","Capítulo {n}":"Chapter {n}","Misión {n}":"Mission {n}","Central del antivirus":"Antivirus Command","Objetivos":"Objectives","Estrellas":"Stars","Completa la misión":"Complete the mission","Termina con más del {n} % de vida":"Finish with more than {n} % health","Hazlo en menos de {n}":"Do it in under {n}","¡Empezar!":"Start!","Volver a las misiones":"Back to missions","Oleada {n} / {n}":"Wave {n} / {n}","⏱ {n} / {n}":"⏱ {n} / {n}","Misión completada":"Mission complete","Misión fallida":"Mission failed","Sin completar":"Not completed","Vida al final":"Health at the end","Tiempo":"Time","meta {n}":"target {n}","↻ Repetir":"↻ Replay","↻ Reintentar":"↻ Retry","Siguiente misión ▶":"Next mission ▶","Te han derribado":"You were shot down","La infección ha cubierto el procesador":"The infection has covered the processor","El minero ha escapado con el bote":"The miner escaped with the jackpot","El virus ha escapado de la base":"The virus escaped from the base","Te has quedado sin vidas":"You're out of lives","Han destruido el núcleo":"The core was destroyed","se ha llevado el bote":"took the jackpot","¡MISIÓN COMPLETADA!":"MISSION COMPLETE!","MISIÓN FALLIDA":"MISSION FAILED","Misión {n} · Capítulo {n}":"Mission {n} · Chapter {n}","Raíz destruida":"Root destroyed","Dato recuperado":"Data recovered","El foco está protegido":"The core is protected","rompe primero las {n} raíces":"break the {n} roots first","Consigue al menos {n} estrella en la misión anterior":"Earn at least {n} star in the previous mission","¡Desbloqueada la skin «Primer Contacto»!":"«First Contact» skin unlocked!","¡KERNEL PANIC!":"KERNEL PANIC!","El guardián del virus":"The virus guardian","☠ Kernel Panic te dispara":"☠ Kernel Panic is shooting at you","{n} / {n} estrellas":"{n} / {n} stars","Primer Contacto":"First Contact","raíz de la infección":"infection root","virus":"virus","Idioma":"Language","Portugués":"Portuguese","al norte":"to the north","al sur":"to the south","al este":"to the east","al oeste":"to the west","al noreste":"to the northeast","al noroeste":"to the northwest","al sureste":"to the southeast","al suroeste":"to the southwest","⚠ HACKEADA":"⚠ HACKED","SISTEMA BAJO CONTROL VIRUS":"SYSTEM UNDER VIRUS CONTROL","Español":"Spanish","Inglés":"English",
 "Elimina a los virus":"Destroy the viruses","Mapa":"Map","Ranking":"Ranking","Clan":"Clan","Hangar":"Hangar","Partida ":"Play"
 };
 
@@ -6307,7 +6513,7 @@ Object.assign(I18N_PT,{
 "radio {n} m":"raio {n} m","foco {n} %":"foco {n} %","bote 💎 {n}":"jackpot 💎 {n}","escudo · {n} torretas":"escudo · {n} torres","{n} m":"{n} m",
 "+{n} bits · has roto el foco":"+{n} bits · partiste o foco","BASE LIBERADA":"BASE LIBERTADA","+{n} bits · has desconectado el virus":"+{n} bits · desligaste o vírus","Torreta hackeada":"Torre pirateada","torreta hackeada":"torre pirateada",
 "norte":"norte","sur":"sul","este":"este","oeste":"oeste","noreste":"nordeste","noroeste":"noroeste","sureste":"sudeste","suroeste":"sudoeste",
-"Idioma":"Idioma","Español":"Espanhol","Inglés":"Inglês","Portugués":"Português","⚠ HACKEADA":"⚠ PIRATEADA","SISTEMA BAJO CONTROL VIRUS":"SISTEMA SOB CONTROLO DO VÍRUS",
+"Misiones":"Missões","Capítulo {n} · Primer contacto":"Capítulo {n} · Primeiro contacto","Capítulo {n} · Placa Base":"Capítulo {n} · Placa-mãe","Primer contacto":"Primeiro contacto","Un virus desconocido ha entrado por la placa base. La central necesita a su mejor antivirus: tú.":"Um vírus desconhecido entrou pela placa-mãe. A central precisa do seu melhor antivírus: tu.","★ {n} / {n}":"★ {n} / {n}","Skin «Primer Contacto»":"Skin «Primeiro Contacto»","¡Conseguida! Póntela en el Hangar":"Conseguida! Equipa-a no Hangar","Consigue las {n} estrellas":"Consegue as {n} estrelas","Misión {n} de {n}":"Missão {n} de {n}","mejor: ★":"melhor: ★","mejor: ★★":"melhor: ★★","mejor: ★★★":"melhor: ★★★","Patrulla":"Patrulha","Defiende el procesador":"Defende o processador","Infección":"Infeção","El minero":"O mineiro","PATRULLA":"PATRULHA","DEFIENDE EL PROCESADOR":"DEFENDE O PROCESSADOR","INFECCIÓN":"INFEÇÃO","EL MINERO":"O MINEIRO","BASE HACKEADA":"BASE PIRATEADA","Limpia la zona de virus y recupera {n} datos perdidos. Para aprender sin presión.":"Limpa a zona de vírus e recupera {n} dados perdidos. Para aprender sem pressão.","Aguanta {n} oleadas protegiendo el núcleo del sistema.":"Aguenta {n} vagas a proteger o núcleo do sistema.","Una mancha roja se extiende por la placa. Rompe el foco y sus {n} raíces antes de que cubra el procesador.":"Uma mancha vermelha espalha-se pela placa. Parte o foco e as suas {n} raízes antes que cubra o processador.","Destruye al minero de bits antes de que las naves rivales se lleven el bote.":"Destrói o mineiro de bits antes que as naves rivais levem o jackpot.","Recupera una base con torretas y vence al guardián del virus.":"Recupera uma base com torres e vence o guardião do vírus.","«Un virus desconocido ha entrado por la placa base. Limpia la zona y recupera los {n} datos que nos han robado.»":"«Um vírus desconhecido entrou pela placa-mãe. Limpa a zona e recupera os {n} dados que nos roubaram.»","«Los virus van a por el procesador. Aguanta {n} oleadas y no dejes que lo destruyan.»":"«Os vírus vão atrás do processador. Aguenta {n} vagas e não deixes que o destruam.»","«La infección avanza por la placa. Si llega al procesador, perdemos el sistema. Rompe sus raíces y luego el foco. ¡Rápido, piloto!»":"«A infeção avança pela placa. Se chegar ao processador, perdemos o sistema. Parte as raízes e depois o foco. Depressa, piloto!»","«Un minero de bits roba energía de la Red Neón y {n} naves rivales quieren su bote. Destrúyelo tú antes que ellas.»":"«Um mineiro de bits rouba energia da Rede Néon e {n} naves rivais querem o jackpot. Destrói-o tu antes delas.»","«El virus que empezó todo se ha hecho fuerte en una base. Rompe su escudo, desconéctalo y vence a su guardián, Kernel Panic.»":"«O vírus que começou tudo fortificou-se numa base. Parte o escudo, desliga-o e vence o guardião, Kernel Panic.»","Derriba {n} virus":"Abate {n} vírus","Recupera {n} datos perdidos":"Recupera {n} dados perdidos","Aguanta {n} oleadas":"Aguenta {n} vagas","Protege el núcleo":"Protege o núcleo","Rompe las {n} raíces de la infección":"Parte as {n} raízes da infeção","Destruye el foco central":"Destrói o foco central","No dejes que cubra el procesador":"Não deixes que cubra o processador","Destruye el minero de bits":"Destrói o mineiro de bits","Que ningún rival se lleve el bote":"Que nenhum rival leve o jackpot","Sobrevive":"Sobrevive","Destruye {n} torretas":"Destrói {n} torres","Desconecta el virus de la base":"Desliga o vírus da base","Derrota a Kernel Panic":"Derrota o Kernel Panic","⏱ meta {n}":"⏱ meta {n}","💎 +{n} bits":"💎 +{n} bits","⭐ hasta {n} estrellas":"⭐ até {n} estrelas","▶ Jugar misión":"▶ Jogar missão","Capítulo {n} · Misión {n}":"Capítulo {n} · Missão {n}","Capítulo {n}":"Capítulo {n}","Misión {n}":"Missão {n}","Central del antivirus":"Central do antivírus","Objetivos":"Objetivos","Estrellas":"Estrelas","Completa la misión":"Completa a missão","Termina con más del {n} % de vida":"Acaba com mais de {n} % de vida","Hazlo en menos de {n}":"Fá-lo em menos de {n}","¡Empezar!":"Começar!","Volver a las misiones":"Voltar às missões","Oleada {n} / {n}":"Vaga {n} / {n}","⏱ {n} / {n}":"⏱ {n} / {n}","Misión completada":"Missão concluída","Misión fallida":"Missão falhada","Sin completar":"Por concluir","Vida al final":"Vida no fim","Tiempo":"Tempo","meta {n}":"meta {n}","↻ Repetir":"↻ Repetir","↻ Reintentar":"↻ Tentar outra vez","Siguiente misión ▶":"Próxima missão ▶","Te han derribado":"Foste abatido","La infección ha cubierto el procesador":"A infeção cobriu o processador","El minero ha escapado con el bote":"O mineiro fugiu com o jackpot","El virus ha escapado de la base":"O vírus fugiu da base","Te has quedado sin vidas":"Ficaste sem vidas","Han destruido el núcleo":"Destruíram o núcleo","se ha llevado el bote":"levou o jackpot","¡MISIÓN COMPLETADA!":"MISSÃO CONCLUÍDA!","MISIÓN FALLIDA":"MISSÃO FALHADA","Misión {n} · Capítulo {n}":"Missão {n} · Capítulo {n}","Raíz destruida":"Raiz destruída","Dato recuperado":"Dado recuperado","El foco está protegido":"O foco está protegido","rompe primero las {n} raíces":"parte primeiro as {n} raízes","Consigue al menos {n} estrella en la misión anterior":"Consegue pelo menos {n} estrela na missão anterior","¡Desbloqueada la skin «Primer Contacto»!":"Desbloqueada a skin «Primeiro Contacto»!","¡KERNEL PANIC!":"KERNEL PANIC!","El guardián del virus":"O guardião do vírus","☠ Kernel Panic te dispara":"☠ O Kernel Panic está a disparar contra ti","{n} / {n} estrellas":"{n} / {n} estrelas","Primer Contacto":"Primeiro Contacto","raíz de la infección":"raiz da infeção","virus":"vírus","Idioma":"Idioma","Español":"Espanhol","Inglés":"Inglês","Portugués":"Português","⚠ HACKEADA":"⚠ PIRATEADA","SISTEMA BAJO CONTROL VIRUS":"SISTEMA SOB CONTROLO DO VÍRUS",
 "+{n} Bits":"+{n} Bits","+{n} DE REGALO":"+{n} DE OFERTA","+{n} NIVEL":"+{n} NÍVEL","+{n} NV":"+{n} NV","+{n} Núcleos":"+{n} Núcleos","+{n} XP":"+{n} XP","+{n} bits":"+{n} bits",
 "+{n} bits para comprar y mejorar armas y habilidades en Equipamiento.":"+{n} bits para comprar e melhorar armas e habilidades no Equipamento.","+{n} bits · Insignia Calabaza":"+{n} bits · Insígnia Abóbora","+{n} de casco":"+{n} de casco","+{n} kit de reparación":"+{n} kit de reparação","+{n} munición":"+{n} munições","+{n} nivel de pase":"+{n} nível de passe","+{n} tarjeta de mejora común":"+{n} carta de melhoria comum","+{n} tarjetas":"+{n} cartas",
 "Calidad gráfica ajustada a «media» para que vaya más fluido":"Qualidade gráfica ajustada para «média» para correr mais fluido","Calidad gráfica ajustada a «baja» para que vaya más fluido":"Qualidade gráfica ajustada para «baixa» para correr mais fluido","Calidad gráfica ajustada a «alta» para que vaya más fluido":"Qualidade gráfica ajustada para «alta» para correr mais fluido",
