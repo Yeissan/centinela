@@ -1623,6 +1623,7 @@ function newShip(isPlayer,name,pos,hp,sh){
     lastHit:-99,alive:true,kills:0,cool:rand(0,1),target:null,retarget:0,wander:new THREE.Vector3(),mesh:null,energy:100,lastAttacker:null};
 }
 function clearWorld(){
+  if(SALIDA_OBJ){GS.remove(SALIDA_OBJ);SALIDA_OBJ=null}
   if(!G)return;
   if(G.pm){GS.remove(G.pm);if(G.pm.userData.trail.parent)GS.remove(G.pm.userData.trail);G.pm.userData.trail.geometry.dispose()}
   G.ships.forEach(s=>{s.mesh&&GS.remove(s.mesh);if(s.trail){GS.remove(s.trail);s.trail.geometry.dispose()}});
@@ -1672,7 +1673,7 @@ async function startGame2(s){
   G={t:0,ships:[],player:null,mods:M,ship:s,zone:{phase:0,state:'wait',timer:ZONES[0].wait,cx:0,cz:0,r:ARENA,fromR:ARENA,fromX:0,fromZ:0,toR:ZONES[0].r,toX:0,toZ:0},
      yaw:0,pitch:0,tyaw:0,tpitch:0,roll:0,thr:.42,boost:100,bits:0,over:false,place:0,shake:0,lastShot:0,hitT:0,dmgT:0,lockT:null,lockOk:false,
      ab:{cd:0,act:0,type:PR.lo.a},auto:!!PR.set.auto,w:PR.lo.w,sec:PR.lo.s,ammo:AMMO[PR.lo.s]+wpAmmo(),ammoMax:AMMO[PR.lo.s]+wpAmmo(),picks:0,camo:0,joy:{x:0,y:0},tFire:false,tTbo:false};
-  pickNext(G.zone);G.mode=GMODE;
+  pickNext(G.zone);G.mode=GMODE;G.desdeCiber=CIB_ORIGEN;CIB_ORIGEN=null;
   // salida despejada: busca un sitio con 160 m libres por delante (para no chocar al salir del portal)
   let a0=Math.random()*Math.PI*2,y0=60;{const tv=new THREE.Vector3();let ok=false;
     for(let tr=0;tr<40&&!ok;tr++){const a=a0+tr*.61,y=Math.min(CEIL-15,60+Math.floor(tr/8)*35),sx=Math.cos(a)*ARENA*.55,sz=Math.sin(a)*ARENA*.55,d=Math.hypot(sx,sz);ok=true;
@@ -1706,7 +1707,7 @@ async function startGame2(s){
   $('pchelp').style.opacity=1;setTimeout(()=>{$('pchelp').style.opacity=0},12000);
   renderer.toneMappingExposure=1.0;
   buildSegs();setWeaponHud();genCracks();setView(G.view,true);$('tAut').classList.toggle('on',G.auto);
-  startLaunch(G._pr,s);
+  if(CIB_SALTO){CIB_SALTO=false;MODE='game';$('P').hidden=false;gcam.up.set(0,1,0);portalIntro(true);saltoFin()}else startLaunch(G._pr,s);
   feed(G.mode==='ciber'?'<b>Ciberespacio</b> · vuela hasta el portal de una zona · una sola vida':G.mode==='ffa'?'<b>Todos contra todos</b> · '+MAP.name+' · gana el primero en llegar a '+FF.kmax+' bajas':G.mode==='duel'?'<b>Duelo</b> contra <i>'+DU.opp.n+'</i> · '+MAP.name+' · al mejor de 3':G.mode==='br'?'Mapa <b>'+MAP.name+'</b> · <b>16</b> naves · dificultad '+DIFF[diff].n:(G.mode==='zombie'?'<b>Noche de los Virus Zombi</b>':'<b>Limpieza de zona</b>')+' · '+MAP.name+' · '+WAVES.length+' oleadas');
   setTimeout(()=>$('fade').classList.remove('on','ld'),80);
   if(!TOUCH){lockWanted=true;requestLock()}
@@ -1934,7 +1935,7 @@ function damage(s,amt,by){
   if(!s.alive)return;
   if(G.mode==='duel'){amt*=DUEL_K;if(DU&&duelDamage(s,amt,by))return}
   if(G.mode==='ffa'){amt*=FFA_K;if(ffaDamage(s,amt,by))return}
-  if(s.isPlayer&&G.ab.act>0){return}
+  if(s.isPlayer&&(G.ab.act>0||G.salidaCiber)){return}
   s.lastHit=G.t;if(by&&by!=='zone')s.lastAttacker=by;
   const shF=G.mode==='duel'?.5:1,sh0=s.shield,fs=Math.min(s.shield,amt*shF);s.shield-=fs;s.hull-=amt-fs/shF;
   if(s.isPlayer){G.dmgT=1;G.shake=Math.max(G.shake,reduce?0:.7);tone(160,80,.15,'triangle',.06);
@@ -1985,7 +1986,7 @@ function endGame(win,place){
   const bonus=G.mode==='ciber'?Math.round((G.cibProg||0)*150):G.mode==='ffa'?(win?500:Math.max(0,(9-place)*40)):G.mode==='duel'?(win?400:100):PVEM()?(win?300+(G.stars||0)*150:(G.wavesDone||0)*60):win?500:Math.max(0,(17-place)*15);G.bits+=bonus;
   const res=metaEnd({win,place,kills:G.player.kills,bits:G.bits,picks:G.picks,ship:G.ship.name});
   if(win&&G.mode==='br')banner('¡VICTORIA!','Último antivirus en pie','',3);
-  setTimeout(()=>{lockWanted=false;try{document.exitPointerLock&&document.exitPointerLock()}catch(e){}showResults(win,place,bonus,res)},win?1600:1800);
+  if(win&&G.desdeCiber&&G.mode==='br')setTimeout(()=>ciberAbrirSalida(bonus,res),1600);else setTimeout(()=>{lockWanted=false;try{document.exitPointerLock&&document.exitPointerLock()}catch(e){}showResults(win,place,bonus,res)},win?1600:1800);
 }
 /* resultados: primero el puesto en grande y luego todo lo que has ganado, contándose */
 let rsTimers=[];
@@ -2184,10 +2185,10 @@ function step(dt){
   // punto de mira en pantalla (en vista exterior no está en el centro)
   if(G.view==='ext'){_ct.copy(p.pos).addScaledVector(playerFwd(_cf),260).project(gcam);G.aimN={x:_ct.x,y:_ct.y}}else G.aimN={x:0,y:0};
   for(const s of G.ships)if(s.alive&&!s.isPlayer&&!s.remote)botThink(s,dt);
-  hzStep(dt);arsenalStep(dt);if(PVEM())pveStep(dt);if(G.mode==='ciber')ciberStep(dt);if(G.mode==='duel')duelStep(dt);if(G.mode==='ffa')ffaStep(dt);
+  hzStep(dt);arsenalStep(dt);if(PVEM())pveStep(dt);if(G.mode==='ciber')ciberStep(dt);if(G.salidaCiber)ciberSalidaStep(dt);if(G.mode==='duel')duelStep(dt);if(G.mode==='ffa')ffaStep(dt);
   let pout=false;
   for(const s of G.ships){if(!s.alive)continue;const out=Math.hypot(s.pos.x-z.cx,s.pos.z-z.cz)>z.r;
-    if(out){s.zoneAcc=(s.zoneAcc||0)+dt;if(s.zoneAcc>.5){s.zoneAcc=0;const amt=zdps*.5;if(!(s.isPlayer&&G.ab.act>0)){s.shield=Math.max(0,s.shield-amt*.5);s.hull-=amt;s.lastHit=G.t;if(s.isPlayer)tone(120,90,.1,'sine',.04);if(s.hull<=0)kill(s,'zone')}}}
+    if(out){s.zoneAcc=(s.zoneAcc||0)+dt;if(s.zoneAcc>.5){s.zoneAcc=0;const amt=zdps*.5;if(!(s.isPlayer&&(G.ab.act>0||G.salidaCiber))){s.shield=Math.max(0,s.shield-amt*.5);s.hull-=amt;s.lastHit=G.t;if(s.isPlayer)tone(120,90,.1,'sine',.04);if(s.hull<=0)kill(s,'zone')}}}
     if(s.isPlayer)pout=out}
   $('zoneV').style.opacity=pout&&p.alive?1:0;
   if(pout&&p.alive&&$('ban').hidden)banner('FUERA DE LA ZONA','Vuelve al círculo magenta','red',1.2);
@@ -2293,7 +2294,7 @@ function hud(dt){
   while(nps.children.length<5){const d=document.createElement('div');d.className='np';d.innerHTML='<b></b><span class="bb"><i><u style="background:#5cf0ff"></u></i><i><u style="background:#ff2a4d"></u></i></span>';nps.appendChild(d)}
   [...nps.children].forEach((el,i)=>{const s=near[i];const o=s&&scr(tmp2.copy(s.pos).add({x:0,y:6,z:0}),{});if(!o){el.style.display='none';return}
     el.style.display='';el.style.left=o.x+'px';el.style.top=o.y+'px';el.firstChild.textContent=s.name;const u=el.querySelectorAll('u');u[0].style.width=(s.shield/s.maxS*100)+'%';u[1].style.width=(s.hull/s.maxH*100)+'%'});
-  hzHud(dt);flyHud();arsenalHud();if(PVEM())pveHud();else if(G.mode==='duel')duelHud();else if(G.mode==='ffa')ffaHud();else{$('pveH').hidden=true;$('bossB').hidden=true}if(G.mode==='ciber')ciberHud();
+  hzHud(dt);flyHud();arsenalHud();if(PVEM())pveHud();else if(G.mode==='duel')duelHud();else if(G.mode==='ffa')ffaHud();else{$('pveH').hidden=true;$('bossB').hidden=true}if(G.mode==='ciber')ciberHud();if(G.salidaCiber)ciberHudSalida();
   if((G.mmF=(G.mmF||0)+1)%2===0)drawMini();
 }
 function autoQ(dt){
@@ -4298,10 +4299,22 @@ function construirCiberespacio(THREE, mergeGeometries, cons, opts = {}) {
     for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + Math.PI / 8; const l = add(new THREE.BoxGeometry(2, r * 0.95, 2), neonC(color, bloqueada ? 0.3 : 0.9), g, Math.sin(a) * r * 0.62, -r * 0.47, Math.cos(a) * r * 0.62); l.lookAt(V(0, -r * 0.94, 0)); }
     if (contenido) contenido(g);
     const dirC = V(-x, 0, -z).normalize();
-    const p = new THREE.Group(); p.position.copy(dirC.clone().multiplyScalar(r + 90)).setY(60); p.lookAt(dirC.clone().multiplyScalar(r + 400).setY(60)); g.add(p);
+    // entrada: túnel que mira al núcleo; la boca queda fuera y la puerta dimensional al fondo, junto a la isla
+    const p = new THREE.Group(); p.position.copy(dirC.clone().multiplyScalar(r + 210)).setY(60); p.rotation.y = Math.atan2(dirC.x, dirC.z); g.add(p);
     add(new THREE.TorusGeometry(70, 9, 10, 48), metalOsc, p);
-    for (const [rr2, k] of [[70, 1.8], [56, 1], [42, 1.8]]) add(new THREE.TorusGeometry(rr2, 2, 6, 48), neonC(color, bloqueada ? 0.35 : k), p, 0, 0, 5);
-    if (!bloqueada) { const v = add(new THREE.CircleGeometry(40, 40), vidrio(color, 0.35), p, 0, 0, 3); anim.push((t) => (v.material.opacity = 0.25 + Math.sin(t * 3) * 0.1)); }
+    for (const [rr2, k] of [[70, 1.8], [56, 1], [46, 1.8]]) add(new THREE.TorusGeometry(rr2, 2, 6, 48), neonC(color, bloqueada ? 0.35 : k), p, 0, 0, 5);
+    if (!bloqueada) {
+      const TL = 200, TR = 42;
+      add(new THREE.CylinderGeometry(TR, TR, TL, 28, 1, true), vidrio(color, 0.14), p, 0, 0, -TL / 2).rotation.x = Math.PI / 2;
+      for (let k = 0; k <= 8; k++) add(new THREE.TorusGeometry(TR + 0.8, 1.2, 6, 40), neonC(color, 1.2), p, 0, 0, -k * TL / 8);
+      for (const zc of [-50, -150]) { add(new THREE.CylinderGeometry(TR + 6, TR + 6, 14, 28, 1, true), metal, p, 0, 0, zc).rotation.x = Math.PI / 2; for (const s of [-1, 1]) add(new THREE.TorusGeometry(TR + 6.2, 1, 4, 40), C.naranja, p, 0, 0, zc + s * 7); }
+      // puerta dimensional al fondo (gira y late)
+      const puerta = new THREE.Group(); puerta.name = 'Puerta_Dimensional'; puerta.userData.animado = true; puerta.position.z = -TL; p.add(puerta);
+      const remolino = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(1.4), transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending });
+      add(new THREE.CircleGeometry(TR, 40), remolino, puerta);
+      for (let k = 0; k < 5; k++) { const e = add(new THREE.TorusGeometry(8 + k * 7, 1.1, 4, 40, Math.PI * 1.3), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffffff).multiplyScalar(1.6), transparent: true, opacity: 0.7, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false }), puerta, 0, 0, 0.5); e.rotation.z = k * 1.3; }
+      anim.push((t) => { puerta.rotation.z = t * 2.2; remolino.opacity = 0.45 + Math.sin(t * 4) * 0.15; });
+    }
     add(new THREE.CylinderGeometry(bloqueada ? 3 : 8, bloqueada ? 3 : 8, 3000, 10), vidrio(color, bloqueada ? 0.08 : 0.22), g, 0, 1400, 0);
     if (bloqueada) {
       const c = new THREE.Group(); c.name = 'Candado'; c.userData.animado = true; c.position.y = 140; g.add(c);
@@ -4311,11 +4324,13 @@ function construirCiberespacio(THREE, mergeGeometries, cons, opts = {}) {
     }
     etiqueta(nombre, bloqueada ? '#ff6b7f' : '#' + new THREE.Color(color).getHexString(), g, bloqueada ? 240 : tam * 0.42 + 120, 1);
     const portalW = g.position.clone().add(p.position);
-    islas.push({ g, x, z, alto, r, color, portal: portalW, id, nombre, bloqueada });
+    const fondoW = portalW.clone().addScaledVector(dirC, -200); // puerta dimensional
+    islas.push({ g, x, z, alto, r, color, portal: portalW, fondo: fondoW, id, nombre, bloqueada });
     caja(x, alto - r * 0.9, z, r * 0.62, r * 0.62, alto + 2);
     caja(x, alto, z, r * 0.7, r * 0.7, alto + hC);
     if (!bloqueada) {
-      portales.push({ id, nombre, color, pos: portalW.clone().setY(portalW.y + Y0), r: 44 });
+      portales.push({ id, nombre, color, pos: portalW.clone().setY(portalW.y + Y0), dentro: fondoW.clone().setY(fondoW.y + Y0), r: 42,
+        vuelta: { pos: portalW.clone().addScaledVector(dirC, 140).setY(portalW.y + Y0), yaw: Math.atan2(-dirC.x, -dirC.z) } });
       const lado = V(-dirC.z, 0, dirC.x);
       torretas.push(portalW.clone().addScaledVector(lado, 110).setY(portalW.y + Y0 - 40));
     }
@@ -4323,7 +4338,11 @@ function construirCiberespacio(THREE, mergeGeometries, cons, opts = {}) {
   };
   const maqueta = (mapa, escala, y = 0) => (g) => { const m = mapa.root; m.scale.multiplyScalar(escala); m.position.y = y; g.add(m); m.userData.animado = true; anim.push(mapa.actualizar); };
   const pl = cons.placa(THREE, mergeGeometries, { juego: true, sinChoques: true }), cf = cons.cortafuegos(THREE, mergeGeometries, { juego: true, sinChoques: true });
-  for (const m of [pl, cf]) { const l = m.root.children.find((c) => c.name === 'Luces'); if (l) m.root.remove(l); }
+  // como islas se ven de lejos: fuera luces, ciudades del abismo, circuitos del suelo y datos en movimiento (mucho menos peso)
+  for (const m of [pl, cf]) for (const c of [...m.root.children]) {
+    if (['Luces', 'Ciudad_Datos', 'Ciudad_Abismo', 'Datos_En_Movimiento'].includes(c.name)) m.root.remove(c);
+    else if (c.name === 'Suelo_Circuitos' || c.name === 'Suelo_Abismo') for (const h of [...c.children]) if (!h.material || h.material.name !== 'suelo') c.remove(h);
+  }
   isla('PLACA BASE', 'placa', 0x22e6ff, 0.2, 2400, 120, 1490 * 0.4, maqueta(pl, 0.4), 80);
   isla('CORTAFUEGOS', 'fuego', 0xff5a2a, 1.45, 2600, -60, 1960 * 0.34, maqueta(cf, 0.34), 110);
   isla('CIUDAD DE DATOS', 'ciudad', 0xff3df2, 2.55, 2350, 260, 520, (g) => {
@@ -4457,9 +4476,9 @@ function construirCiberespacio(THREE, mergeGeometries, cons, opts = {}) {
       const dir = V(rr(-1, 1), rr(-0.3, 0.3), rr(-1, 1)).normalize();
       const curva = new THREE.CatmullRomCurve3([p.clone().addScaledVector(dir, -260), p.clone().add(V(rr(-60, 60), rr(-40, 40), rr(-60, 60))), p.clone().addScaledVector(dir, 260)]);
       const col = [0x22e6ff, 0xa040ff, 0xff4a20][i % 3];
-      add(new THREE.TubeGeometry(curva, 60, 24, 20, false), vidrio(col, 0.16), g);
+      add(new THREE.TubeGeometry(curva, J ? 36 : 60, 24, J ? 14 : 20, false), vidrio(col, 0.16), g);
       const anilloM = neonC(col);
-      for (let k = 0; k <= 12; k++) { const q = curva.getPointAt(k / 12), tg = curva.getTangentAt(k / 12); const r = new THREE.Group(); r.position.copy(q); r.lookAt(q.clone().add(tg)); g.add(r); add(new THREE.TorusGeometry(25, 1.4, 6, 32), anilloM, r); }
+      for (let k = 0; k <= 12; k++) { const q = curva.getPointAt(k / 12), tg = curva.getTangentAt(k / 12); const r = new THREE.Group(); r.position.copy(q); r.lookAt(q.clone().add(tg)); g.add(r); add(new THREE.TorusGeometry(25, 1.4, J ? 4 : 6, J ? 20 : 32), anilloM, r); }
     }
     for (let i = 0; i < 26; i++) {
       const a = rnd() * 6.28, d = rr(600, 3800), p = V(Math.sin(a) * d, rr(-300, 300), Math.cos(a) * d);
@@ -4672,7 +4691,47 @@ const MAPS=[
 ];
 
 /* ---------- CIBERESPACIO: viaje en mundo abierto entre zonas ---------- */
-let CIB=null,CIB_SIG=null;const _cv=new THREE.Vector3();
+let CIB=null,CIB_SIG=null,CIB_SALTO=false,CIB_ORIGEN=null,CIB_VUELTA=null,SALTO=null,SALIDA_OBJ=null;
+/* salto dimensional: estelas de velocidad y destello, sin pasar por el hangar */
+function ciberSalto(cb){if(SALTO)return;
+  const N=320,P=new Float32Array(N*6),dat=[];
+  for(let i=0;i<N;i++){const a=Math.random()*6.283,r=3+Math.random()*16;dat.push([Math.cos(a)*r,Math.sin(a)*r,-10-Math.random()*240])}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(P,3));
+  const L=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:new THREE.Color(0x9ff8ff).multiplyScalar(2.2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));L.frustumCulled=false;gcam.add(L);
+  let w=document.getElementById('saltoW');if(!w){w=document.createElement('div');w.id='saltoW';w.style.cssText='position:fixed;inset:0;z-index:99999;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,#fff 0%,#c8fcff 28%,#5cf0ff 62%,#0a3a5a 100%)';document.body.appendChild(w)}
+  w.style.transition='none';w.style.opacity=0;
+  tone(80,400,1.5,'sawtooth',.06);noise(1.4,.25);tone(220,1760,1.2,'sine',.04);
+  const t0=performance.now();let fin=false;SALTO={L};
+  (function f(){const k=(performance.now()-t0)/1000,sp=Math.min(1,k/1.1);
+    for(let i=0;i<N;i++){const d=dat[i];d[2]+=(60+sp*900)*.016;if(d[2]>2)d[2]=-250;const len=4+sp*90;P[i*6]=d[0];P[i*6+1]=d[1];P[i*6+2]=d[2];P[i*6+3]=d[0];P[i*6+4]=d[1];P[i*6+5]=d[2]-len}
+    geo.attributes.position.needsUpdate=true;L.material.opacity=Math.min(1,k*1.5);w.style.opacity=Math.max(0,Math.min(1,(k-.85)/.5));
+    if(k<1.45)requestAnimationFrame(f);else if(!fin){fin=true;w.style.opacity=1;cb()}})();
+}
+function saltoFin(){if(SALTO){gcam.remove(SALTO.L);SALTO.L.geometry.dispose();SALTO.L.material.dispose();SALTO=null}
+  const w=document.getElementById('saltoW');if(w){w.style.transition='opacity 1s';setTimeout(()=>{w.style.opacity=0},60)}}
+/* túnel de salida al ganar: devuelve al ciberespacio junto a la isla de la zona */
+function ciberAbrirSalida(bonus,res){if(!G)return;const p=G.player;
+  const f=playerFwd(new THREE.Vector3());f.y=0;if(f.lengthSq()<.01)f.set(0,0,-1);f.normalize();
+  // busca un sitio despejado para todo el túnel: varias direcciones y alturas
+  let boca=null;const libreT=(b0,d)=>{for(let k=-20;k<=170;k+=15){const q=b0.clone().addScaledVector(d,k);if(insideBox(q,42)||Math.hypot(q.x,q.z)>ARENA-60||q.y<FLOOR+40||q.y>CEIL-40)return false}return true};
+  const yb=clamp(p.pos.y,FLOOR+60,CEIL-60);
+  busca:for(const h of [0,40,80,-30,120]){for(const a of [0,.6,-.6,1.2,-1.2,1.9,-1.9,Math.PI]){const d=f.clone().applyAxisAngle(new THREE.Vector3(0,1,0),a);for(const dist of [170,240,120]){const b0=p.pos.clone().addScaledVector(d,dist);b0.y=clamp(yb+h,FLOOR+60,CEIL-60);if(libreT(b0,d)){boca=b0;f.copy(d);break busca}}}}
+  if(!boca){boca=p.pos.clone().addScaledVector(f,170);boca.y=CEIL-50}
+  const g=new THREE.Group();g.position.copy(boca);g.rotation.y=Math.atan2(f.x,f.z);GS.add(g);SALIDA_OBJ=g;
+  const col=0x22e6ff,vid=new THREE.MeshBasicMaterial({color:new THREE.Color(col),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}),neo=new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(1.6),toneMapped:false}),met=new THREE.MeshStandardMaterial({color:0x16131f,metalness:.8,roughness:.4});
+  const tubo=new THREE.Mesh(new THREE.CylinderGeometry(30,30,140,28,1,true),vid);tubo.rotation.x=Math.PI/2;tubo.position.z=70;g.add(tubo);
+  for(let k=0;k<=7;k++){const r=new THREE.Mesh(new THREE.TorusGeometry(30.8,1,6,40),neo);r.position.z=k*20;g.add(r)}
+  const boc=new THREE.Mesh(new THREE.TorusGeometry(48,7,10,48),met);g.add(boc);for(const [rr,kk] of [[48,1.8],[38,1]]){const r=new THREE.Mesh(new THREE.TorusGeometry(rr,1.8,6,48),new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(kk),toneMapped:false}));r.position.z=-4;g.add(r)}
+  const puerta=new THREE.Group();puerta.position.z=140;g.add(puerta);
+  puerta.add(new THREE.Mesh(new THREE.CircleGeometry(30,40),new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(1.4),transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,blending:THREE.AdditiveBlending})));
+  for(let k=0;k<5;k++){const e=new THREE.Mesh(new THREE.TorusGeometry(6+k*5,.9,4,40,Math.PI*1.3),new THREE.MeshBasicMaterial({color:new THREE.Color(0xffffff).multiplyScalar(1.6),transparent:true,opacity:.7,toneMapped:false,blending:THREE.AdditiveBlending,depthWrite:false}));e.position.z=.5;e.rotation.z=k*1.3;puerta.add(e)}
+  G.salidaCiber={dentro:boca.clone().addScaledVector(f,140),puerta,usado:false};
+  banner('TÚNEL ABIERTO','+'+G.bits+' bits · +'+(res&&res.xp||0)+' XP · vuela al túnel para volver al Ciberespacio','gold',5);tone(500,1500,.6,'sine',.05);
+}
+function ciberSalidaStep(dt){const S=G.salidaCiber,p=G.player;S.puerta.rotation.z+=dt*2.2;if(S.usado||!p.alive)return;
+  S.dist=p.pos.distanceTo(S.dentro);
+  if(S.dist<34){S.usado=true;CIB_VUELTA=MAP.id;ciberSalto(()=>{CIB_SALTO=true;Promise.resolve(startGame())})}}
+function ciberHudSalida(){const S=G.salidaCiber;if(!S)return;$('gZoneTx').textContent='Túnel · '+Math.round(S.dist||0)+' m';$('mmTx').textContent='VUELVE AL CIBERESPACIO'}const _cv=new THREE.Vector3();
 const CIBER_MAP={id:'ciber',name:'Ciberespacio',k:'VIAJE · MUNDO ABIERTO',c:'#22e6ff',sky:0x05040c,fog:.00011,floor:150,ceil:2450,arena:4700,far:15000,
  build(){
   const mp=construirCiberespacio(THREE,geos=>mergeUV(geos.map(g=>({g,m:new THREE.Matrix4()}))),{placa:construirMapaPlaca,cortafuegos:construirMapaCortafuegos},{juego:true});
@@ -4686,10 +4745,10 @@ const CIBER_MAP={id:'ciber',name:'Ciberespacio',k:'VIAJE · MUNDO ABIERTO',c:'#2
  }};
 function ciberInit(EP){
   const z=G.zone;z.phase=ZONES.length;z.state='final';z.r=ARENA*3;z.cx=z.cz=0;zoneObj.visible=false;nextRing.visible=false;
-  const p=G.player,S=CIB.salida;p.pos.copy(S.pos);G.yaw=G.tyaw=S.yaw;G.pitch=G.tpitch=0;flyInit();
+  const p=G.player,V0=CIB_VUELTA&&CIB.portales.find(q=>q.id===CIB_VUELTA);CIB_VUELTA=null;const S=V0?V0.vuelta:CIB.salida;p.pos.copy(S.pos);G.yaw=G.tyaw=S.yaw;G.pitch=G.tpitch=0;flyInit();
   G.cib={d0:Math.min(...CIB.portales.map(q=>q.pos.distanceTo(p.pos))),dist:0,cerca:null};G.cibProg=0;
   const D=DIFF[diff];let n=0;
-  CIB.nidos.forEach((nd,i)=>{for(let k=0;k<2;k++){n++;
+  CIB.nidos.forEach((nd,i)=>{for(let k=0;k<1;k++){n++;
     const b=newShip(false,'Virus '+n,nd.clone().add(new THREE.Vector3(rand(-40,40),rand(-20,20),rand(-40,40))),Math.round(D.hp*.6),Math.round(D.hp*.3));
     for(let q=0;q<20&&insideBox(b.pos,8);q++)b.pos.y+=10;
     b.home=nd.clone();b.mesh=enemyMesh(EP.length?EP[(i+k)%EP.length]:null);b.mesh.position.copy(b.pos);GS.add(b.mesh);b.mesh.userData.img=THUMB[SHIPS[(i+k)%SHIPS.length].id];
@@ -4701,13 +4760,13 @@ function ciberStep(dt){const p=G.player;if(!CIB||!G.cib||!p.alive||G.over)return
     if(best<55*55){_cv.copy(P[Math.min(bi+3,P.length-1)]).sub(P[Math.max(bi-3,0)]).normalize();p.pos.addScaledVector(_cv,70*dt);break}}
   let dmin=1e9,cerca=null;for(const q of CIB.portales){const d=q.pos.distanceTo(p.pos);if(d<dmin){dmin=d;cerca=q}}
   G.cib.cerca=cerca;G.cib.dist=dmin;G.cibProg=Math.max(G.cibProg||0,clamp(1-dmin/G.cib.d0,0,1));
-  if(cerca&&dmin<cerca.r)ciberLlegar(cerca);
+  for(const q of CIB.portales)if(q.dentro.distanceTo(p.pos)<q.r){ciberLlegar(q);break}
 }
 function ciberLlegar(q){if(G.over)return;G.over=true;
   const premio=250;PR.bits+=premio;saveP();try{setBitsTop()}catch(e){}
   banner('¡ZONA ALCANZADA!',q.nombre+' · +'+premio+' bits','gold',2.5);tone(400,1200,.5,'sine',.06);
   const idx=MAPS.findIndex(m=>m.id===q.id);
-  setTimeout(()=>{CIB_SIG=idx<0?1:idx;const prev=GMODE;GMODE='br';Promise.resolve(startGame()).finally(()=>{GMODE=prev})},2200);
+  ciberSalto(()=>{CIB_SIG=idx<0?1:idx;CIB_SALTO=true;CIB_ORIGEN=q.id;const prev=GMODE;GMODE='br';Promise.resolve(startGame()).finally(()=>{GMODE=prev})});
 }
 function ciberHud(){const c=G.cib;if(!c||!c.cerca)return;
   $('gZoneTx').textContent='Portal · '+(c.dist>=1000?(c.dist/1000).toFixed(1)+' km':Math.round(c.dist)+' m');$('mmTx').textContent='VUELA AL PORTAL · '+c.cerca.nombre}
@@ -4719,7 +4778,7 @@ const HZS=[];
 function disposeTree(o){o.traverse(x=>{if(x.geometry)x.geometry.dispose();if(x.material){[].concat(x.material).forEach(m=>{for(const k of ['map','emissiveMap'])if(m[k])m[k].dispose();m.dispose()})}})}
 function buildMap(i){
   if(mapBuilt===i)return;
-  if(WG){GS.remove(WG);disposeTree(WG)}
+  if(WG){GS.remove(WG);disposeTree(WG)}CIB=null;
   boxes.length=0;MAP_ANIM.length=0;HZS.length=0;
   MAP=typeof i==='object'?i:MAPS[i];FLOOR=MAP.floor;CEIL=MAP.ceil;ARENA=MAP.arena||900;if(gcam){gcam.far=MAP.far||2500;gcam.updateProjectionMatrix()}mSeed=11+(typeof i==='number'?i:7)*97;
   WG=new THREE.Group();GS.add(WG);MAP.build();mapBuilt=i;boxes._n=boxes.length;
@@ -7980,7 +8039,7 @@ const I18N_EN={
 "Noche de los":"Night of the","Noche de los Virus Zombi":"Night of the Zombie Viruses","Nodo Abisal":"Abyssal Node","Nodo Abisal · Reto especial":"Abyssal Node · Special challenge","Novedades de la temporada {n}":"Season {n} news","Nueva":"New","Nueva skin para la Centinela:":"New skin for the Centinela:",
 "NÚCLEO":"CORE","NÚCLEO DESTRUIDO":"CORE DESTROYED","NÚCLEOS":"CORES","Núcleo":"Core","Núcleo Cuántico":"Quantum Core","Núcleo Cuántico · Mapa sorpresa":"Quantum Core · Surprise map","Núcleos":"Cores","Núcleos · no se ha cobrado nada":"Cores · nothing was charged",
 "OLEADA {n} / {n}":"WAVE {n} / {n}","OTRA VEZ":"AGAIN","Oro":"Gold","Oro en todas las armas":"Gold on every weapon","Oro en {n} armas":"Gold on {n} weapons","Oro pulido que brilla en la oscuridad. Para que todos te vean llegar.":"Polished gold that glows in the dark. So everyone sees you coming.",
-"PARA DESBLOQUEARLA":"TO UNLOCK IT","PARTIDAS":"MATCHES","PASE":"PASS","PASE ÉLITE ACTIVO":"ELITE PASS ACTIVE","PELIGROS":"HAZARDS","PELIGROSO · ZONAS DE RIESGO":"DANGEROUS · RISK ZONES","VIAJE · MUNDO ABIERTO":"JOURNEY · OPEN WORLD","Sal del Núcleo Cuántico y vuela por el ciberespacio hasta el portal de una zona, esquivando virus, muros de fuego y bloques de datos. Al cruzarlo empieza la partida.":"Leave the Quantum Core and fly through cyberspace to a zone portal, dodging viruses, firewalls and data blocks. Crossing it starts the match.","Mundo abierto":"Open world","Una vida":"One life","Premio por llegar":"Reward for arriving","¡ZONA ALCANZADA!":"ZONE REACHED!","VIAJE TERMINADO":"JOURNEY OVER","CIBERESPACIO":"CYBERSPACE","Viaje":"Journey","VIAJE":"JOURNEY","del camino recorrido":"of the way covered","ZONA {n} · NUEVA":"ZONE {n} · NEW","ELEGIR ZONA":"CHOOSE ZONE","Modo elegido: Ciberespacio":"Mode chosen: Cyberspace","Virus":"Viruses","Bloques de datos":"Data blocks","Una fortaleza cortafuegos en el centro, rodeada de puentes, túneles de fuego y pozos de lava y datos.":"A firewall fortress in the middle, surrounded by bridges, fire tunnels and pools of lava and data.","PLATAFORMA DE LANZAMIENTO · TODOS CONTRA TODOS":"LAUNCH PAD · FREE FOR ALL",
+"PARA DESBLOQUEARLA":"TO UNLOCK IT","PARTIDAS":"MATCHES","PASE":"PASS","PASE ÉLITE ACTIVO":"ELITE PASS ACTIVE","PELIGROS":"HAZARDS","PELIGROSO · ZONAS DE RIESGO":"DANGEROUS · RISK ZONES","TÚNEL ABIERTO":"TUNNEL OPEN","VUELVE AL CIBERESPACIO":"BACK TO CYBERSPACE","VIAJE · MUNDO ABIERTO":"JOURNEY · OPEN WORLD","Sal del Núcleo Cuántico y vuela por el ciberespacio hasta el portal de una zona, esquivando virus, muros de fuego y bloques de datos. Al cruzarlo empieza la partida.":"Leave the Quantum Core and fly through cyberspace to a zone portal, dodging viruses, firewalls and data blocks. Crossing it starts the match.","Mundo abierto":"Open world","Una vida":"One life","Premio por llegar":"Reward for arriving","¡ZONA ALCANZADA!":"ZONE REACHED!","VIAJE TERMINADO":"JOURNEY OVER","CIBERESPACIO":"CYBERSPACE","Viaje":"Journey","VIAJE":"JOURNEY","del camino recorrido":"of the way covered","ZONA {n} · NUEVA":"ZONE {n} · NEW","ELEGIR ZONA":"CHOOSE ZONE","Modo elegido: Ciberespacio":"Mode chosen: Cyberspace","Virus":"Viruses","Bloques de datos":"Data blocks","Una fortaleza cortafuegos en el centro, rodeada de puentes, túneles de fuego y pozos de lava y datos.":"A firewall fortress in the middle, surrounded by bridges, fire tunnels and pools of lava and data.","PLATAFORMA DE LANZAMIENTO · TODOS CONTRA TODOS":"LAUNCH PAD · FREE FOR ALL",
 "PREPARANDO LANZAMIENTO":"PREPARING LAUNCH","PREPARANDO PARTIDA":"PREPARING MATCH","PREPÁRATE":"GET READY","PRIMERA BAJA":"FIRST KILL","PRIMERA COMPRA ×{n}":"FIRST PURCHASE ×{n}","PROGRESO DE LA RED":"NETWORK PROGRESS","PROTEGE EL NÚCLEO":"PROTECT THE CORE","PRÓXIMAMENTE":"COMING SOON","PRÓXIMAMENTE · FASE {n}":"COMING SOON · PHASE {n}","PUESTO":"PLACE","PUESTO #{n}":"PLACE #{n}",
 "Para instalar: menú del navegador → Instalar app / Añadir a pantalla de inicio":"To install: browser menu → Install app / Add to home screen","Para tu Centinela":"For your Centinela","Partida":"Play","Partida jugada":"Match played","Pase":"Pass","Pase de temporada":"Season pass","Pase nivel {n}":"Pass level {n}","Pase · Temporada {n}":"Pass · Season {n}",
 "Pausa":"Pause","Pausa / menú":"Pause / menu","Pega aquí el código de tu otro dispositivo para traer tus avances":"Paste the code from your other device here to bring your progress","Persigue a la nave que tengas fijada. {n} por partida.":"Chases the ship you've locked on. {n} per match.","Pilotaje":"Flying",
@@ -8195,7 +8254,7 @@ Object.assign(I18N_PT,{
 "Noche de los":"Noite dos","Noche de los Virus Zombi":"Noite dos Vírus Zombie","Nodo Abisal":"Nó Abissal","Nodo Abisal · Reto especial":"Nó Abissal · Desafio especial","Novedades de la temporada {n}":"Novidades da temporada {n}","Nueva":"Nova","Nueva skin para la Centinela:":"Nova skin para a Centinela:",
 "NÚCLEO":"NÚCLEO","NÚCLEO DESTRUIDO":"NÚCLEO DESTRUÍDO","NÚCLEOS":"NÚCLEOS","Núcleo":"Núcleo","Núcleo Cuántico":"Núcleo Quântico","Núcleo Cuántico · Mapa sorpresa":"Núcleo Quântico · Mapa surpresa","Núcleos":"Núcleos","Núcleos · no se ha cobrado nada":"Núcleos · não foi cobrado nada",
 "OLEADA {n} / {n}":"VAGA {n} / {n}","OTRA VEZ":"OUTRA VEZ","Oro":"Ouro","Oro en todas las armas":"Ouro em todas as armas","Oro en {n} armas":"Ouro em {n} armas","Oro pulido que brilla en la oscuridad. Para que todos te vean llegar.":"Ouro polido que brilha no escuro. Para que todos te vejam chegar.",
-"PARA DESBLOQUEARLA":"PARA A DESBLOQUEAR","PARTIDAS":"PARTIDAS","PASE":"PASSE","PASE ÉLITE ACTIVO":"PASSE ELITE ATIVO","PELIGROS":"PERIGOS","PELIGROSO · ZONAS DE RIESGO":"PERIGOSO · ZONAS DE RISCO","VIAJE · MUNDO ABIERTO":"VIAGEM · MUNDO ABERTO","Sal del Núcleo Cuántico y vuela por el ciberespacio hasta el portal de una zona, esquivando virus, muros de fuego y bloques de datos. Al cruzarlo empieza la partida.":"Sai do Núcleo Quântico e voa pelo ciberespaço até ao portal de uma zona, desviando-te de vírus, muros de fogo e blocos de dados. Ao atravessá-lo começa a partida.","Mundo abierto":"Mundo aberto","Una vida":"Uma vida","Premio por llegar":"Prémio por chegar","¡ZONA ALCANZADA!":"ZONA ALCANÇADA!","VIAJE TERMINADO":"VIAGEM TERMINADA","CIBERESPACIO":"CIBERESPAÇO","Viaje":"Viagem","VIAJE":"VIAGEM","del camino recorrido":"do caminho percorrido","ZONA {n} · NUEVA":"ZONA {n} · NOVA","ELEGIR ZONA":"ESCOLHER ZONA","Modo elegido: Ciberespacio":"Modo escolhido: Ciberespaço","Virus":"Vírus","Bloques de datos":"Blocos de dados","Una fortaleza cortafuegos en el centro, rodeada de puentes, túneles de fuego y pozos de lava y datos.":"Uma fortaleza corta-fogo no centro, rodeada de pontes, túneis de fogo e poços de lava e dados.","PLATAFORMA DE LANZAMIENTO · TODOS CONTRA TODOS":"PLATAFORMA DE LANÇAMENTO · TODOS CONTRA TODOS",
+"PARA DESBLOQUEARLA":"PARA A DESBLOQUEAR","PARTIDAS":"PARTIDAS","PASE":"PASSE","PASE ÉLITE ACTIVO":"PASSE ELITE ATIVO","PELIGROS":"PERIGOS","PELIGROSO · ZONAS DE RIESGO":"PERIGOSO · ZONAS DE RISCO","TÚNEL ABIERTO":"TÚNEL ABERTO","VUELVE AL CIBERESPACIO":"VOLTA AO CIBERESPAÇO","VIAJE · MUNDO ABIERTO":"VIAGEM · MUNDO ABERTO","Sal del Núcleo Cuántico y vuela por el ciberespacio hasta el portal de una zona, esquivando virus, muros de fuego y bloques de datos. Al cruzarlo empieza la partida.":"Sai do Núcleo Quântico e voa pelo ciberespaço até ao portal de uma zona, desviando-te de vírus, muros de fogo e blocos de dados. Ao atravessá-lo começa a partida.","Mundo abierto":"Mundo aberto","Una vida":"Uma vida","Premio por llegar":"Prémio por chegar","¡ZONA ALCANZADA!":"ZONA ALCANÇADA!","VIAJE TERMINADO":"VIAGEM TERMINADA","CIBERESPACIO":"CIBERESPAÇO","Viaje":"Viagem","VIAJE":"VIAGEM","del camino recorrido":"do caminho percorrido","ZONA {n} · NUEVA":"ZONA {n} · NOVA","ELEGIR ZONA":"ESCOLHER ZONA","Modo elegido: Ciberespacio":"Modo escolhido: Ciberespaço","Virus":"Vírus","Bloques de datos":"Blocos de dados","Una fortaleza cortafuegos en el centro, rodeada de puentes, túneles de fuego y pozos de lava y datos.":"Uma fortaleza corta-fogo no centro, rodeada de pontes, túneis de fogo e poços de lava e dados.","PLATAFORMA DE LANZAMIENTO · TODOS CONTRA TODOS":"PLATAFORMA DE LANÇAMENTO · TODOS CONTRA TODOS",
 "PREPARANDO LANZAMIENTO":"A PREPARAR LANÇAMENTO","PREPARANDO PARTIDA":"A PREPARAR PARTIDA","PREPÁRATE":"PREPARA-TE","PRIMERA BAJA":"PRIMEIRO ABATE","PRIMERA COMPRA ×{n}":"PRIMEIRA COMPRA ×{n}","PROGRESO DE LA RED":"PROGRESSO DA REDE","PROTEGE EL NÚCLEO":"PROTEGE O NÚCLEO","PRÓXIMAMENTE":"EM BREVE","PRÓXIMAMENTE · FASE {n}":"EM BREVE · FASE {n}","PUESTO":"POSIÇÃO","PUESTO #{n}":"POSIÇÃO #{n}",
 "Para instalar: menú del navegador → Instalar app / Añadir a pantalla de inicio":"Para instalar: menu do navegador → Instalar app / Adicionar ao ecrã principal","Para tu Centinela":"Para a tua Centinela","Partida":"Partida","Partida jugada":"Partida jogada","Pase":"Passe","Pase de temporada":"Passe de temporada","Pase nivel {n}":"Passe nível {n}","Pase · Temporada {n}":"Passe · Temporada {n}",
 "Pausa":"Pausa","Pausa / menú":"Pausa / menu","Pega aquí el código de tu otro dispositivo para traer tus avances":"Cola aqui o código do teu outro dispositivo para trazer o teu progresso","Persigue a la nave que tengas fijada. {n} por partida.":"Persegue a nave que tiveres fixado. {n} por partida.","Pilotaje":"Pilotagem",
